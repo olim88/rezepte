@@ -18,15 +18,81 @@ class xmlExtraction {
 }
 
 
-data class Data(val name: String, val temperature: Int, val author : String,val serves : String, val speed : String){
+data class Data(val name: String, val temperature: Int, val author : String,val serves : String, val speed : CookingSteps,val website: String?, val linked: LinkedRecipes?){
     companion object {
         fun xml(k: Konsumer): Data {
             k.checkCurrent("data")
-            return Data(k.childText("name"),k.childInt("temperature"),k.childText("author"),k.childText("servings"),k.childText("speed"))
+            return Data(k.childText("name"),
+                k.childInt("temperature"),
+                k.childText("author"),
+                k.childText("servings"),
+                k.child("cookingSteps"){CookingSteps.xml(this)},
+                k.childTextOrNull("website"),
+                k.childOrNull("linkedRecipes"){LinkedRecipes.xml(this)})
         }
 
     }
 }
+data class CookingStepContainer( val type : TinOrPanOptions, val isRound: Boolean?, val size : Int?){
+    companion object {
+        fun xml(k: Konsumer): CookingStepContainer {
+
+            return CookingStepContainer( enumValueOf(k.childText("value")),(k.childTextOrNull("roundTin")== "true"),k.childTextOrNull("tinSize")?.toInt())
+        }
+
+    }
+}
+data class CookingStepTemperature( val temperature : Int?, val hobTemperature: HobOption, val isFan : Boolean?){
+    companion object {
+        fun xml(k: Konsumer): CookingStepTemperature {
+
+            return CookingStepTemperature(k.childTextOrNull("temperature")?.toInt(),enumValueOf(k.childText("hobTemperature")),k.childText("isFan")=="true")
+        }
+
+    }
+}
+data class CookingStep(val index: Int, val time : String, val type: CookingStage, val container : CookingStepContainer?,val cookingTemperature: CookingStepTemperature?){
+    companion object {
+        fun xml(k: Konsumer): CookingStep {
+
+            return CookingStep(k.attributes["index"].toInt(),k.childText("value"),
+                enumValueOf(k.childText("value")),
+                k.childOrNull("cookingStepContainer"){CookingStepContainer.xml(this)},
+                k.childOrNull("cookingStepTemperature"){CookingStepTemperature.xml(this)},
+                )
+        }
+
+    }
+}
+data class CookingSteps(val list: List<CookingStep>){
+    companion object {
+        fun xml(k: Konsumer): CookingSteps {
+            k.checkCurrent("cookingSteps")
+            return CookingSteps(k.child("list") { children("entry") { CookingStep.xml(this) } })
+        }
+
+    }
+}
+
+data class LinkedRecipe(val name : String, val subRecipe: Boolean){
+    companion object {
+        fun xml(k: Konsumer): LinkedRecipe {
+
+            return LinkedRecipe(k.childText("value"), k.childText("isSubRecipe")=="true")
+        }
+
+    }
+}
+data class LinkedRecipes(val list: List<LinkedRecipe>){
+    companion object {
+        fun xml(k: Konsumer): LinkedRecipes {
+            k.checkCurrent("linkedRecipes")
+            return LinkedRecipes(k.child("list") { children("entry") { LinkedRecipe.xml(this) } })
+        }
+
+    }
+}
+
 data class Ingredient(val index: Int, val text : String, var striked: Boolean){
     companion object {
         fun xml(k: Konsumer): Ingredient {
@@ -71,4 +137,30 @@ data class Recipe(val data : Data, val ingredients : Ingredients, val instructio
         }
 
     }
+}
+
+enum class CookingStage{
+    prep,
+    pan,
+    oven,
+    fridge,
+    wait,
+}
+enum class TinOrPanOptions{
+    fryingPan,
+    wok,
+    saucePan,
+    tray,
+    roundTin,
+    rectangleTin,
+
+}
+enum class HobOption{
+    zero,
+    low,
+    lowMedium,
+    medium,
+    highMedium,
+    high,
+    max,
 }
