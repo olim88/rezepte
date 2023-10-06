@@ -151,11 +151,8 @@ class MakeActivity : AppCompatActivity()
             //load saved data about recipe
             val downloader = DownloadTask(DropboxClient.getClient(token))
             GlobalScope.launch {
-
-
                 //get data
                 val data : String = downloader.GetXml("/xml/$recipeName.xml")
-
                 ExtractedData = xmlExtraction().GetData(data)
 
                 withContext(Dispatchers.Main){
@@ -163,8 +160,8 @@ class MakeActivity : AppCompatActivity()
                     findViewById<TextView>(R.id.recipeName).text = ExtractedData.data.name
                     findViewById<TextView>(R.id.AuthorTextBox).text = "Author: ${ExtractedData.data.author}"
                     findViewById<TextView>(R.id.ServingsTextBox).text = "Servings: ${ExtractedData.data.serves}"
-                    findViewById<TextView>(R.id.TimeTextBox).text = "Time: ${ExtractedData.data.speed}"
-                    findViewById<TextView>(R.id.CookingTempText).text = "Temperature: ${ExtractedData.data.temperature}"
+                    findViewById<TextView>(R.id.TimeTextBox).text = "Time: ${ExtractedData.data.cookingSteps}"
+                    findViewById<TextView>(R.id.CookingTempText).text = " "//"Temperature: ${ExtractedData.data.temperature}"
                     //compile Ingredients/Instructions into string
                     updateIngredients()
 

@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Create Recipe", Toast.LENGTH_SHORT).show()
             //move to create activity
             val intent = Intent(this,CreateActivity::class.java)
+            intent.putExtra("recipe name","thi") //todo remove
             intent.putExtra("preload option","website")
             intent.putExtra("preload data","http://www.yummly.com/recipe/Yogurt-Coffee-Cake-473376?prm-v1")//todo get website from user
             startActivity(intent);

@@ -68,6 +68,12 @@ class SearchActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //see if there are extra data sent e.g. geting name of recipe not just opening it
+        val extras = intent.extras
+        var returnName =  (extras != null && extras.getBoolean("get recipe name"))
+
+
+
         //set access token
         ACCESS_TOKEN = retrieveAccessToken()
 
@@ -86,7 +92,7 @@ class SearchActivity : ComponentActivity() {
             withContext(Dispatchers.Main) {
                 setContent {
                     RezepteTheme {
-                        MainScreen(data, hashMapOf())
+                        MainScreen(data, hashMapOf(),returnName)
                     }
                 }
             }
@@ -94,7 +100,7 @@ class SearchActivity : ComponentActivity() {
             withContext(Dispatchers.Main) {
                 setContent {
                     RezepteTheme {
-                        MainScreen(data, thumbnails)
+                        MainScreen(data, thumbnails,returnName)
                     }
                 }            }        }    }
 
@@ -114,7 +120,7 @@ class SearchActivity : ComponentActivity() {
 }
 
 @Composable
-fun RecipieCard(name: String,thumbNail : Bitmap?){
+fun RecipieCard(name: String,thumbNail : Bitmap?,getName : Boolean){
 
     // Fetching the Local Context
     val mContext = LocalContext.current
@@ -194,9 +200,18 @@ fun RecipieCard(name: String,thumbNail : Bitmap?){
                         .weight(1f)
                 )
                 Button(onClick = {
-                    val intent = Intent(mContext,MakeActivity::class.java)
-                    intent.putExtra("recipe name",name)
-                    mContext.startActivity(intent);
+                    if (getName){ //if returning a name to createing
+                        val intent = Intent(mContext, CreateActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        intent.putExtra("creating", true)
+                        intent.putExtra("recipe name", name)
+                        mContext.startActivity(intent)
+                    }
+                    else {
+                        val intent = Intent(mContext, MakeActivity::class.java)
+                        intent.putExtra("recipe name", name)
+                        mContext.startActivity(intent)
+                    }
                 },
                     modifier = Modifier.padding(all = 5.dp)) {
                     Text(
@@ -216,7 +231,7 @@ fun RecipieCard(name: String,thumbNail : Bitmap?){
 
 
 @Composable
-fun RecipeList(names: List<String>, thumbnails: Map<String, Bitmap?>, state: MutableState<TextFieldValue>){
+fun RecipeList(names: List<String>, thumbnails: Map<String, Bitmap?>, state: MutableState<TextFieldValue>,getName : Boolean){
     var filteredNames: List<String>
     LazyColumn {
         val searchedText = state.value.text
@@ -235,7 +250,7 @@ fun RecipeList(names: List<String>, thumbnails: Map<String, Bitmap?>, state: Mut
         }
 
         items(filteredNames) { name ->
-            RecipieCard(name,thumbnails[name])
+            RecipieCard(name,thumbnails[name], getName)
         }
     }
 }
@@ -292,11 +307,11 @@ fun SearchView(state: MutableState<TextFieldValue>) {
     )
 }
 @Composable
-fun MainScreen(names: List<String>, thumbnails: Map<String, Bitmap?>) {
+private fun MainScreen(names: List<String>, thumbnails: Map<String, Bitmap?>,getName : Boolean) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     Column {
         SearchView(textState)
-        RecipeList(names,thumbnails,textState)
+        RecipeList(names,thumbnails,textState,getName)
     }
 }
 
@@ -306,9 +321,9 @@ fun MainScreen(names: List<String>, thumbnails: Map<String, Bitmap?>) {
     name = "Dark Mode"
 )
 @Composable
-fun MainScreenPreview() {
+private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen((listOf("Carrot Cake", "other Cake")), hashMapOf())
+        MainScreen((listOf("Carrot Cake", "other Cake")), hashMapOf(),false)
     }
 }
 @Preview(
@@ -347,7 +362,7 @@ fun TopBarPreview() {
 fun previewRecipeCard(){
     RezepteTheme {
         Surface {
-            RecipieCard(name = "Carrot Cake",null)
+            RecipieCard(name = "Carrot Cake",null,false)
 
         }
     }}
@@ -361,6 +376,6 @@ fun previewRecipeCards(){
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     RezepteTheme {
         Surface {
-            RecipeList( (listOf("Carrot Cake", "other Cake" )), hashMapOf(),textState)
+            RecipeList( (listOf("Carrot Cake", "other Cake" )), hashMapOf(),textState,false)
         }
     }}
