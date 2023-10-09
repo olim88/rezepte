@@ -215,7 +215,7 @@ fun RecipieCard(name: String,thumbNail : Bitmap?,getName : Boolean){
                 },
                     modifier = Modifier.padding(all = 5.dp)) {
                     Text(
-                        "Make",
+                        if (getName) "Link" else "Make",
                         modifier = Modifier.padding(all = 2.dp),
                         style = MaterialTheme.typography.titleLarge
                     )

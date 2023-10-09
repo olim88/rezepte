@@ -83,6 +83,7 @@ dependencies {
     implementation("org.redundent:kotlin-xml-builder:1.8.0")
     implementation("com.gitlab.mvysny.konsume-xml:konsume-xml:1.0")
     implementation("it.skrape:skrapeit:1.2.2")
+    implementation("io.coil-kt:coil-compose:2.4.0")
     
 
 }
