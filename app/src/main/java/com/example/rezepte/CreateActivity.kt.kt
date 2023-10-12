@@ -6,9 +6,9 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -18,10 +18,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,10 +36,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,7 +71,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,11 +89,10 @@ import org.redundent.kotlin.xml.xml
 import java.io.File
 
 
-class CreateActivity : ComponentActivity()
-{
-    private var recipeName: String? = null
+class CreateActivity : ComponentActivity() {
+    private var loadedRecipeName: String? = null
     private val IMAGE_REQUEST_CODE = 10
-    private var imageUri : Uri? = null
+    private var imageUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,8 +137,9 @@ class CreateActivity : ComponentActivity()
             }
         }
          */
-         recipeName = intent.extras?.getString("recipe name")
-        if (recipeName != null) {
+        loadedRecipeName = intent.extras?.getString("recipe name")
+        var image: MutableState<Bitmap?> = mutableStateOf(null)
+        if (loadedRecipeName != null) {
             //get token
             val token = DbTokenHandling(
                 getSharedPreferences(
@@ -149,33 +153,43 @@ class CreateActivity : ComponentActivity()
             val downloader = DownloadTask(DropboxClient.getClient(token))
             GlobalScope.launch {
                 //get data
-                val data: String = downloader.GetXml("/xml/$recipeName.xml")
+                val data: String = downloader.GetXml("/xml/$loadedRecipeName.xml")
                 val extractedData = xmlExtraction().GetData(data)
 
                 withContext(Dispatchers.Main) {
                     setContent {
                         RezepteTheme {
-                            MainScreen(recipeDataInput = extractedData, { deleteRecipe() }, { recipe, uri -> finishRecipe(recipe,uri) })
+                            MainScreen(
+                                recipeDataInput = extractedData,
+                                image,
+                                { deleteRecipe() },
+                                { recipe, uri,linking -> finishRecipe(recipe, uri,linking) })
                         }
                     }
+
                 }
+                image.value = downloader.GetImage("/image/", loadedRecipeName!!)
             }
 
-        }
-        else{
+        } else {
             setContent {
                 RezepteTheme {
-                    MainScreen(recipeDataInput = GetEmptyRecipe(), { deleteRecipe() }, { recipe, uri -> finishRecipe(recipe,uri) })
+                    MainScreen(
+                        recipeDataInput = GetEmptyRecipe(),
+                        image,
+                        { deleteRecipe() },
+                        { recipe, uri,linking -> finishRecipe(recipe, uri,linking) })
                 }
             }
         }
 
 
     }
-    private fun deleteRecipe(){
+
+    private fun deleteRecipe() {
         //comfirm delete
 
-        if ( recipeName != null && !intent.extras!!.getBoolean("creating")) //only need to delete files if it was save before
+        if (loadedRecipeName != null && !intent.extras!!.getBoolean("creating")) //only need to delete files if it was save before
         {
             AlertDialog.Builder(this)
                 .setTitle("Delete Recipe")
@@ -199,9 +213,9 @@ class CreateActivity : ComponentActivity()
                         val downloader = DownloadTask(DropboxClient.getClient(token))
                         GlobalScope.launch {
                             //remove xml
-                            downloader.RemoveFile("/xml/", "$recipeName.xml")
+                            downloader.RemoveFile("/xml/", "$loadedRecipeName.xml")
                             //remove image
-                            downloader.RemoveImage("/image/", recipeName!!)
+                            downloader.RemoveImage("/image/", loadedRecipeName!!)
                         }
                         //go home
                         val intent = Intent(this, MainActivity::class.java)
@@ -209,25 +223,27 @@ class CreateActivity : ComponentActivity()
                     })
 
                 .setNegativeButton(android.R.string.no, null).show()
-        }
-        else //otherwise just return home
+        } else //otherwise just return home
         {
             //go home
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent);
         }
     }
-    private fun finishRecipe(recipe: Recipe, image : Uri?){
-        val recipeName = intent.extras?.getString("recipe name")
 
-        Toast.makeText(this, "New Recipe Added", Toast.LENGTH_SHORT).show()
+    private fun finishRecipe(recipe: Recipe, image: Uri?,linking : Boolean) {
 
+
+        //make sure there is a name for the recipe else don't ext
+        if (recipe.data.name == ""){
+            return
+        }
         //export saved recipe
-        val data: String= parseData(recipe)
+        val data: String = parseData(recipe)
 
         //get image if one is set
-        var file : File? = null
-        if (image != null){
+        var file: File? = null
+        if (image != null) {
             file = File(URI_to_Path.getPath(application, image!!))
         }
 
@@ -239,9 +255,15 @@ class CreateActivity : ComponentActivity()
                 MODE_PRIVATE
             )
         ).retrieveAccessToken()
-        UploadTask(DropboxClient.getClient(token), file, applicationContext,name.toString(),data.toString()).execute()
+        UploadTask(
+            DropboxClient.getClient(token),
+            file,
+            applicationContext,
+            name.toString(),
+            data.toString()
+        ).execute()
         //if the name has changed delete old files
-        if ( name != recipeName && recipeName != null){
+        if (name != loadedRecipeName && loadedRecipeName != null) {
             val token = DbTokenHandling( //get token
                 getSharedPreferences(
                     "com.example.rezepte.dropboxintegration",
@@ -251,17 +273,29 @@ class CreateActivity : ComponentActivity()
             val downloader = DownloadTask(DropboxClient.getClient(token))
             GlobalScope.launch {
                 //remove xml
-                downloader.RemoveFile("/xml/", "$recipeName.xml")
+                downloader.RemoveFile("/xml/", "$loadedRecipeName.xml")
                 //remove image
-                downloader.RemoveImage("/image/", recipeName)
+                downloader.RemoveImage("/image/", loadedRecipeName!!)
 
             }
         }
+        //if linking move to the link page else go home
+        if (linking){
+            val intent = Intent(this, LinkStepsToInstructions::class.java)
+            intent.putExtra("data",data)
+            startActivity(intent)
+        }
+        else{
+            //move to home
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
 
-        //move to home
-        val intent = Intent(this,MainActivity::class.java)
-        startActivity(intent);
+
+
+
     }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -269,161 +303,157 @@ class CreateActivity : ComponentActivity()
     }
 
 
+}
+    fun parseData(recipe : Recipe): String    {
+    //get info from layout
 
-    private fun selectImage() {
-        //Select image to upload
-        val intent = Intent()
-        intent.type = "image/*"
-        intent.action = Intent.ACTION_GET_CONTENT
-        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-        startActivityForResult(
-            Intent.createChooser(
-                intent,
-                "Upload to Dropbox"
-            ), IMAGE_REQUEST_CODE
-        )
-    }
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK || data == null) return
-        // Check which request we're responding to
-        if (requestCode == IMAGE_REQUEST_CODE) {
-            // Make sure the request was successful
-            if (resultCode == RESULT_OK) {
-                if (data != null){
-                    imageUri = data.data!!
-                    //set recipie image to selected image
-                    val output = findViewById<ImageView>(R.id.RecipeImage) as ImageView
-                    output.setImageURI(imageUri)
+    val recipe = xml("recipe") {
+        "data" {
+            "name" {
+                - recipe.data.name
+            }
+            "author" {
+                - recipe.data.author
+            }
+            "servings" {
+                - recipe.data.serves
+            }
+            "cookingSteps" {
+                "list" {
 
+                    for ( step in recipe.data.cookingSteps.list){
+                        "entry" {
+                            attribute("index", step.index)
+                            "time"{
+                                - step.time
+                            }
+                            "cookingStage"{
+                                - step.type.toString()
+                            }
+                            if( step.container != null){
+                                "cookingStepContainer"{
+                                    "type"{
+                                        - step.container!!.type.toString()
+                                    }
+                                    if ( step.container!!.size != null){
+                                        "tinSize"{
+                                            - step.container!!.size.toString()
+                                        }
+                                    }
+
+                                }
+                            }
+                            if (step.cookingTemperature != null){
+                                "cookingStepTemperature"{
+                                    if(step.cookingTemperature!!.temperature != null){
+                                        "temperature"{
+                                            - step.cookingTemperature!!.temperature.toString()
+                                        }
+                                    }
+                                    "hobTemperature"{
+                                        - step.cookingTemperature!!.hobTemperature.toString()
+                                    }
+                                    if(step.cookingTemperature!!.isFan != null){
+                                        "isFan"{
+                                            - step.cookingTemperature!!.isFan.toString()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                 }
             }
-        }
-    }
-    private fun parseData(recipe : Recipe): String    {
-        //get info from layout
-
-        val recipe = xml("recipe") {
-            "data" {
-                "name" {
-                    - recipe.data.name
+            if ( recipe.data.website != null){
+                "website"{
+                    - recipe.data.website!!
                 }
-                "author" {
-                    - recipe.data.author
-                }
-                "servings" {
-                    - recipe.data.serves
-                }
-                "cookingSteps" {
+            }
+            if( recipe.data.linked != null){
+                "linkedRecipes"{
                     "list" {
-
-                        for ( step in recipe.data.cookingSteps.list){
+                        for (linkedRecipe in recipe.data.linked!!.list) {
                             "entry" {
-                                attribute("index", step.index)
-                                "time"{
-                                    - step.time
-                                }
-                                "cookingStage"{
-                                    - step.type.toString()
-                                }
-                                if( step.container != null){
-                                    "cookingStepContainer"{
-                                        "type"{
-                                            - step.container!!.type.toString()
-                                        }
-                                        if ( step.container!!.size != null){
-                                            "tinSize"{
-                                                - step.container!!.size.toString()
-                                            }
-                                        }
-
-                                    }
-                                }
-                                if (step.cookingTemperature != null){
-                                    "cookingStepTemperature"{
-                                        if(step.cookingTemperature!!.temperature != null){
-                                            "temperature"{
-                                                - step.cookingTemperature!!.temperature.toString()
-                                            }
-                                        }
-                                        "hobTemperature"{
-                                            - step.cookingTemperature!!.hobTemperature.toString()
-                                        }
-                                        if(step.cookingTemperature!!.isFan != null){
-                                            "isFan"{
-                                                - step.cookingTemperature!!.isFan.toString()
-                                            }
-                                        }
-                                    }
+                                "value" {
+                                    -linkedRecipe.name
                                 }
                             }
                         }
+                    }
 
-                    }
-                }
-                if ( recipe.data.website != null){
-                    "website"{
-                        - recipe.data.website!!
-                    }
-                }
-                if( recipe.data.linked != null){
-                    "linkedRecipes"{
-                        "list" {
-                            for (linkedRecipe in recipe.data.linked!!.list) {
-                                "entry" {
-                                    "value" {
-                                        -linkedRecipe.name
-                                    }
-                                }
-                            }
-                        }
-
-                    }
                 }
             }
-            "ingredients" {
-                "list" {
-                    for (ingredient in recipe.ingredients.list) {
-                        "entry" {
-                            attribute("index", ingredient.index)
-                            "value" {
-                                -ingredient.text
-                            }
-                        }
-
-                    }
-                }
-            }
-            "instructions" {
-                "list" {
-                    for (instruction in recipe.instructions.list) {
-                        "entry" {
-                            attribute("index", instruction.index)
-                            "value" {
-                                -instruction.text
-                            }
-                        }
-                    }
-                }
-            }
-
-
         }
+        "ingredients" {
+            "list" {
+                for (ingredient in recipe.ingredients.list) {
+                    "entry" {
+                        attribute("index", ingredient.index)
+                        "value" {
+                            -ingredient.text
+                        }
+                    }
 
-        return recipe.toString(true)
+                }
+            }
+        }
+        "instructions" {
+            "list" {
+                for (instruction in recipe.instructions.list) {
+                    "entry" {
+                        attribute("index", instruction.index)
+                        "value" {
+                            -instruction.text
+                        }
+                        if (instruction.linkedCookingStepIndex != null){
+                            "linkedStep"{
+                                -instruction.linkedCookingStepIndex.toString()!!
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
 
 
     }
 
-
+    return recipe.toString(true)
 
 
 }
 
+
+
+
+
+
 data class MyExtractedData(
     var text: String = "",
 )
+@Composable
+fun ErrorDialog(errorTitle: String,errorBody: String){ //this is not working for some reason and i can not even use it where i want so ?
+    val openDialog = remember { mutableStateOf(true) }
+
+    if (openDialog.value) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                // Dismiss the dialog when the user clicks outside the dialog or on the back
+                // button. If you want to disable that functionality, simply use an empty
+                // onDismissRequest.
+                openDialog.value = false
+            },
+            confirmButton = { openDialog.value = false},
+            title = {Text(text = errorTitle, style = MaterialTheme.typography.titleLarge)},
+            text = { Text(text = errorBody,style = MaterialTheme.typography.bodyMedium)},
+            icon = {Icon(Icons.Filled.Info,"error icon")}
+
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleInput(data : MutableState<Recipe>){
@@ -442,12 +472,20 @@ fun TitleInput(data : MutableState<Recipe>){
     )
 }
 @Composable
-fun ImageInput(data : MutableState<Recipe>, image : MutableState<Uri?>){
+fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
     // Fetching the Local Context
     val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         image.value = uri
 
     }
+    val model = if (savedBitmap.value == null || image.value != null) (ImageRequest.Builder(LocalContext.current)
+        .data(image.value)
+        //.placeholder(R.drawable.book) //todo get better place holder
+        .build())
+        else (ImageRequest.Builder(LocalContext.current)
+        .data(savedBitmap.value)
+        //.placeholder(R.drawable.book) //todo get better place holder
+        .build())
     Surface(
         shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
         modifier = Modifier
@@ -459,10 +497,7 @@ fun ImageInput(data : MutableState<Recipe>, image : MutableState<Uri?>){
         ) {
 
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(image.value)
-                //.placeholder(R.drawable.book) //todo get better place holder
-                .build(),
+            model = model,
             contentDescription = "",
             modifier = Modifier
                 .clip(RoundedCornerShape(5.dp))
@@ -476,7 +511,7 @@ fun ImageInput(data : MutableState<Recipe>, image : MutableState<Uri?>){
         )
 
         Row{
-            if (image.value == null){
+            if (image.value == null || savedBitmap.value != null){
                 Text (text = "Image", modifier = Modifier.align(Alignment.CenterVertically),   style = MaterialTheme.typography.titleLarge )
                 Spacer(
                     Modifier
@@ -488,7 +523,7 @@ fun ImageInput(data : MutableState<Recipe>, image : MutableState<Uri?>){
                 }
                 ,modifier = Modifier.padding(5.dp)
             ) {
-                Icon(if (image.value == null) Icons.Filled.Add else Icons.Filled.Edit, "contentDescription")
+                Icon(if (image.value == null || savedBitmap.value != null) Icons.Filled.Add else Icons.Filled.Edit, "contentDescription")
 
 
             }
@@ -499,7 +534,7 @@ fun ImageInput(data : MutableState<Recipe>, image : MutableState<Uri?>){
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DataInput(data : MutableState<Recipe>){
+fun DataInput(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>){
     Surface(
         shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
         modifier = Modifier
@@ -534,7 +569,7 @@ fun DataInput(data : MutableState<Recipe>){
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                 label = { Text("Servings") }
             )
-            CookingStepsInput(data)
+            CookingStepsInput(data,updatedSteps)
             LinkedRecipesInput(data)
             TextField(
                 value = if (data.value.data.website == null) "" else data.value.data.website!!,
@@ -677,6 +712,7 @@ fun LinkedRecipe(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> U
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize()
+            .padding(5.dp)
         ) {
         Row{
             Text(text = data.value.data.linked!!.list[index].name, modifier = Modifier.padding(5.dp))
@@ -697,7 +733,7 @@ fun LinkedRecipe(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> U
     }
 }
 @Composable
-fun CookingStepsInput(data : MutableState<Recipe>){
+fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Boolean>){
     var steps by remember { mutableStateOf(data.value.data.cookingSteps.list) }
     var stepCount by remember{ mutableStateOf(data.value.data.cookingSteps.list.count()) }
     var isExpanded by remember { mutableStateOf(false)}
@@ -738,28 +774,27 @@ fun CookingStepsInput(data : MutableState<Recipe>){
                         temp -= 1
                         CookingStep(data, step.index) { index ->
                             steps.removeAt(index)
-                            println(index)
                             steps.forEach { edit -> if (edit.index > index) edit.index -= 1 }
                             data.value.data.cookingSteps.list = steps
                             stepCount -= 1
+                            updatedSteps.value = true
                         }
                     }
                     //add new stage button
                     Button(
                         onClick = {
-
                             steps.add(
                                 CookingStep(
                                     data.value.data.cookingSteps.list.count(),
                                     "",
                                     CookingStage.oven,
                                     null,
-                                    null
+                                    CookingStepTemperature(0,HobOption.zero,false) //starts as oven so need temp set up
                                 )
-
                             )
                             stepCount = steps.count()
                             data.value.data.cookingSteps.list = steps
+                            updatedSteps.value = true
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -823,6 +858,9 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
                     else if (data.value.data.cookingSteps.list[index].type == CookingStage.hob){
                         data.value.data.cookingSteps.list[index].cookingTemperature = CookingStepTemperature(null,HobOption.zero,null)
                     }
+                    else {
+                        data.value.data.cookingSteps.list[index].cookingTemperature = null
+                    }
                 }
                 //if it is oven or pan enable cooking temp options
                 if (data.value.data.cookingSteps.list[index].type == CookingStage.oven){
@@ -831,13 +869,7 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
                             value = cookingTemp,
                             onValueChange = { value ->
                                 cookingTemp = value
-                                data.value.data.cookingSteps.list[index].cookingTemperature?.temperature =
-                                    try {
-                                        value.toInt()
-                                    } finally {
-                                        null
-                                    }
-
+                                data.value.data.cookingSteps.list[index].cookingTemperature?.temperature = value.toIntOrNull()
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                             textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
@@ -848,8 +880,7 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
                         FilterChip(
                             onClick = {
                                 isFan = !isFan
-                                data.value.data.cookingSteps.list[index].cookingTemperature?.isFan =
-                                    isFan
+                                data.value.data.cookingSteps.list[index].cookingTemperature?.isFan = isFan
                             },
                             label = {
                                 Text("Fan Oven")
@@ -949,10 +980,7 @@ inline fun <reified T> MenuItemWithDropDown(textLabel: String, value: String, va
         Text(
             text = "$textLabel: $changedValue",
             //
-
             style = MaterialTheme.typography.titleLarge,
-
-
             )
         Spacer(
             Modifier
@@ -1019,7 +1047,7 @@ fun IngredientsInput(data : MutableState<Recipe>){
                 //save value to data
                 val ingredients : MutableList<Ingredient> = mutableListOf()
                 for ( (index, ingredient) in value.split("\n").withIndex()){
-                    ingredients.add(Ingredient(index,ingredient,false))
+                    ingredients.add(Ingredient(index,ingredient))
                 }
                 data.value.ingredients = Ingredients(ingredients)
             },
@@ -1058,7 +1086,7 @@ fun InstructionsInput(data : MutableState<Recipe>){
                 val instructions : MutableList<Instruction> = mutableListOf()
                 for ( (index, instruction) in value.split("\n").withIndex()){
                     if (instruction != ""){
-                        instructions.add(Instruction(index,instruction,false))
+                        instructions.add(Instruction(index,instruction,null))
                     }
 
                 }
@@ -1072,7 +1100,7 @@ fun InstructionsInput(data : MutableState<Recipe>){
     }
 }
 @Composable
-fun DeleteAndFinishButtons(data : MutableState<Recipe>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?) -> Unit,imageUri : MutableState<Uri?>){
+fun DeleteAndFinishButtons(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?,Boolean) -> Unit,imageUri : MutableState<Uri?>){
     Row{
         Button(onClick = onDeleteClick,
             modifier = Modifier.padding(all = 5.dp)) {
@@ -1088,37 +1116,98 @@ fun DeleteAndFinishButtons(data : MutableState<Recipe>,onDeleteClick: () -> Unit
                 .width(10.dp)
         )
 
-        Button(onClick = {
-            onFinishClick(data.value,imageUri.value)
-        },
-            modifier = Modifier.padding(all = 5.dp)) {
-            Text(
-                "Finish",
-                modifier = Modifier
-                    .padding(all = 2.dp)
-                    .weight(1f),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
+        FinishButton(data, imageUri,updatedSteps,onFinishClick)
     }
 }
 @Composable
-fun MainScreen(recipeDataInput: Recipe,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?) -> Unit){
+fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: MutableState<Boolean>,onFinish: (Recipe, Uri?,Boolean) -> Unit){
+    Card(
+        modifier = Modifier
+            .padding(5.dp)
+            .animateContentSize()
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(50.dp)),
+
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+        )){
+        //buttons
+        Row(modifier = Modifier
+            .padding(8.dp)
+            .height(IntrinsicSize.Min)) {
+            if (update.value) update.value = false
+            if (data.value.data.cookingSteps.list.isNotEmpty()){
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+                Text(text = "Finish ",style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier
+                        .clickable {
+                            onFinish(data.value, image.value, false)
+                        }
+                        .padding(2.dp))
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+                Divider(
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .fillMaxHeight()  //fill the max height
+                        .width(1.dp)
+                )
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+                Text(text = " Link",style = MaterialTheme.typography.titleLarge
+                ,modifier = Modifier
+                        .clickable { onFinish(data.value, image.value, true) }
+                        .padding(2.dp))
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+            }
+            else{
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+                Text(text = "Finish",style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier
+                        .clickable { onFinish(data.value, image.value, false) }
+                        .padding(2.dp)
+                    )
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+
+            }
+        }
+    }
+}
+
+@Composable
+private fun MainScreen(recipeDataInput: Recipe,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?,Boolean) -> Unit){
     var recipeDataInput = remember { mutableStateOf(recipeDataInput) }
     var imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
+    var updatedSteps = remember { mutableStateOf(false) }
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         TitleInput(recipeDataInput)
-        ImageInput(recipeDataInput,imageUri)
-        DataInput(recipeDataInput)
+        ImageInput(imageUri,image)
+        DataInput(recipeDataInput,updatedSteps)
         IngredientsInput(recipeDataInput)
         InstructionsInput(recipeDataInput)
-        DeleteAndFinishButtons(recipeDataInput,onDeleteClick,onFinishClick,imageUri)
+        DeleteAndFinishButtons(recipeDataInput,updatedSteps,onDeleteClick,onFinishClick,imageUri)
 
     }
 
 }
 
+@SuppressLint("UnrememberedMutableState")
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
     showBackground = true,
@@ -1127,7 +1216,7 @@ fun MainScreen(recipeDataInput: Recipe,onDeleteClick: () -> Unit,onFinishClick: 
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen(GetEmptyRecipe(),{},{recipe, uri -> })
+        MainScreen(GetEmptyRecipe(), mutableStateOf(null),{},{ recipe, uri, linking -> })
     }
 }
 

@@ -6,6 +6,9 @@ import android.util.Base64
 import com.dropbox.core.v2.DbxClientV2
 import com.dropbox.core.v2.files.GetThumbnailBatchResultEntry
 import com.dropbox.core.v2.files.ThumbnailArg
+import com.dropbox.core.v2.files.ThumbnailFormat
+import com.dropbox.core.v2.files.ThumbnailMode
+import com.dropbox.core.v2.files.ThumbnailSize
 import java.io.BufferedReader
 import java.util.LinkedList
 import java.util.Queue
@@ -80,7 +83,7 @@ class DownloadTask(client: DbxClientV2)  {
         dbxClient.files().deleteV2(GetImagePath(dir,name))
 
     }
-    fun GetThumbnails(dir: String,fileNames: List<String>): Map<String,Bitmap?>{
+    fun GetThumbnails(dir: String,fileNames: List<String>): Map<out String, Bitmap?>{
         //set bitmap options
         val options = BitmapFactory.Options()
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
@@ -92,7 +95,7 @@ class DownloadTask(client: DbxClientV2)  {
         for (name in fileNames){
             val path = GetImagePathFromList(dir,name,actualFileNames)
             if (path != null){
-                val arg = ThumbnailArg(path)
+                val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W64H64,ThumbnailMode.BESTFIT)
                 args.add(arg)
                 names.add(name)
             }
@@ -104,7 +107,7 @@ class DownloadTask(client: DbxClientV2)  {
         {
             if (thumbNail.tag() == GetThumbnailBatchResultEntry.Tag.SUCCESS){
                 val temp = Base64.decode(thumbNail.successValue.thumbnail,Base64.DEFAULT)
-                output[names.remove()] = (BitmapFactory.decodeByteArray(temp,0, temp.size))
+                output[names.remove()] = BitmapFactory.decodeByteArray(temp,0, temp.size)
             }
         }
 

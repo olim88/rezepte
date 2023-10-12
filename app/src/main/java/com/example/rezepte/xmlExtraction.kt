@@ -44,7 +44,7 @@ data class CookingStepTemperature( var temperature : Int?, var hobTemperature: H
     companion object {
         fun xml(k: Konsumer): CookingStepTemperature {
 
-            return CookingStepTemperature(k.childTextOrNull("temperature")?.toInt(),enumValueOf(k.childText("hobTemperature")),k.childText("isFan")=="true")
+            return CookingStepTemperature(k.childTextOrNull("temperature")?.toInt(),enumValueOf(k.childText("hobTemperature")),k.childTextOrNull("isFan")=="true")
         }
 
     }
@@ -91,11 +91,11 @@ data class LinkedRecipes(var list: MutableList<LinkedRecipe>){
     }
 }
 
-data class Ingredient(var index: Int, var text : String, var striked: Boolean){
+data class Ingredient(var index: Int, var text : String){
     companion object {
         fun xml(k: Konsumer): Ingredient {
 
-            return Ingredient(k.attributes["index"].toInt(),k.childText("value"),false)
+            return Ingredient(k.attributes["index"].toInt(),k.childText("value"))
         }
 
     }
@@ -109,11 +109,11 @@ data class Ingredients(var list: List<Ingredient>){
 
     }
 }
-data class Instruction(var index: Int, var text: String, var striked: Boolean){
+data class Instruction(var index: Int, var text: String, var linkedCookingStepIndex: Int?){
     companion object {
         fun xml(k: Konsumer): Instruction {
 
-            return Instruction(k.attributes["index"].toInt(),k.childText("value"),false)
+            return Instruction(k.attributes["index"].toInt(),k.childText("value"),k.childTextOrNull("linkedStep")?.toIntOrNull())
         }
 
     }
@@ -172,7 +172,7 @@ fun GetEmptyRecipe() : Recipe{
             "",
             "",
             "",
-            CookingSteps(mutableListOf() ),//CookingStep(0,"",CookingStage.fridge,null,null)
+            CookingSteps(mutableListOf() ),
             null,
             null
         ),
