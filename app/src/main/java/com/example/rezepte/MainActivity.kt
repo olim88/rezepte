@@ -1,23 +1,54 @@
 package com.example.rezepte
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Button
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.dropbox.core.v2.users.FullAccount
 import com.example.rezepte.DropboxClient.getClient
 import com.example.rezepte.UserAccountTask.TaskDelegate
 import com.example.rezepte.ui.theme.RezepteTheme
-import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : ComponentActivity() {
@@ -32,12 +63,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.homelayout);
 
-        findViewById<Button>(R.id.btnCreate).setOnClickListener{
-            Toast.makeText(this, "Create Recipe", Toast.LENGTH_SHORT).show()
-            //move to create activity
-            val intent = Intent(this,CreateActivity::class.java)
-            startActivity(intent);
-        }
 
         findViewById<Button>(R.id.btnCreateWebsite).setOnClickListener{
             Toast.makeText(this, "Create Recipe", Toast.LENGTH_SHORT).show()
@@ -49,14 +74,8 @@ class MainActivity : ComponentActivity() {
             startActivity(intent);
         }
 
-        //setup search
-        findViewById<Button>(R.id.btnSearch).setOnClickListener{
-            val intent = Intent(this,SearchActivity::class.java)
-            startActivity(intent);
-        }
 
         //dropbox account handling
-
         val login = DbTokenHandling(getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE))
 
         if (login.refreshIfExpired()) {
@@ -65,21 +84,21 @@ class MainActivity : ComponentActivity() {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
+        setContent {
+            RezepteTheme {
+                MainScreen()
+            }
+        }
 
-        ACCESS_TOKEN = retrieveAccessToken()
+        ACCESS_TOKEN = DbTokenHandling(
+            getSharedPreferences(
+                "com.example.rezepte.dropboxintegration",
+                MODE_PRIVATE
+            )
+        ).retrieveAccessToken()
         getUserAccount()
 
-        //logout button
-        findViewById<Button>(R.id.btnLogout).setOnClickListener{
-            Toast.makeText(this, "Logging out...", Toast.LENGTH_SHORT).show()
 
-            val prefs = getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE)
-            prefs.edit().clear().apply()
-
-            //Back to LoginActivity
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-        }
 
 
 
@@ -97,7 +116,7 @@ class MainActivity : ComponentActivity() {
                 Log.d("User", account!!.email)
                 Log.d("User", account.name.displayName)
                 Log.d("User", account.accountType.name)
-                updateUI(account)
+
             }
 
             override fun onError(error: Exception?) {
@@ -106,63 +125,12 @@ class MainActivity : ComponentActivity() {
         }).execute()
 
     }
-    private fun updateUI(account: FullAccount) {
-        val output = findViewById<View>(R.id.dropBoxInfo) as TextView
-        output.text = "Name: " + account.name.displayName + " Email:" + account!!.email
 
-    }
-    private fun tokenExists(): Boolean {
-        val prefs = getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE)
-        val accessToken = prefs.getString("access-token", null)
-        return accessToken != null
-    }
 
-    private fun retrieveAccessToken(): String? {
-        //check if ACCESS_TOKEN is stored on previous app launches
-        val prefs = getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE)
-        val accessToken = prefs.getString("access-token", null)
-        return if (accessToken == null) {
-            Log.d("AccessToken Status", "No token found")
-            null
-        } else {
-            //accessToken already exists
-            Log.d("AccessToken Status", "Token exists")
-            accessToken
-        }
-    }
-    private fun upload() {
-        if (ACCESS_TOKEN == null) return
-        //Select image to upload
-        val intent = Intent()
-        intent.type = "image/*"
-        intent.action = Intent.ACTION_GET_CONTENT
-        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-        startActivityForResult(
-            Intent.createChooser(
-                intent,
-                "Upload to Dropbox"
-            ), IMAGE_REQUEST_CODE
-        )
-    }
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK || data == null) return
-        // Check which request we're responding to
-        if (requestCode == IMAGE_REQUEST_CODE) {
-            // Make sure the request was successful
-            if (resultCode == RESULT_OK) {
-                if (data != null){
-                    val dataURI : Uri = data.data!!;
-                    //Image URI received
-                    val file = File(URI_to_Path.getPath(application, dataURI))
-                    if (file != null) {
-                        //Initialize UploadTask
-                        //UploadTask(getClient(ACCESS_TOKEN), file, applicationContext,"testname").execute() //unused
-                    }
-                }
-            }
-        }
-    }
+
+
+
+
 
 
 
@@ -170,17 +138,151 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+private fun MainScreen() {
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+    Column(modifier = Modifier.padding(10.dp).fillMaxWidth().fillMaxHeight().verticalScroll(rememberScrollState()),horizontalAlignment = Alignment.CenterHorizontally){
+        //logo
+        Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.fillMaxHeight(0.6f).fillMaxWidth().weight(1f))
+        //main options
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(30.dp,5.dp)
+                .animateContentSize()
+        ) {
+            //create buttons
+            CreateButtonOptions()
+            //search button
+            Button(onClick = {
+                val intent = Intent(mContext,SearchActivity::class.java)
+                mContext.startActivity(intent);
+            }, modifier = Modifier.padding(5.dp,0.dp,5.dp,5.dp).fillMaxWidth()) {
+                Text(text = "Search")
+            }
+        }
+        //dropbox text and button
+        Spacer(
+            Modifier
+                .weight(0.9f)
+        )
+        DropboxInfo()
+
+    }
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DropboxInfo() {
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(5.dp)
+            .animateContentSize()
+    ) {
+        Row {
+            TextField(
+                value = "email",//todo
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Dropbox Account") },
+                modifier = Modifier.padding(5.dp).width(220.dp)
+            )
+            Spacer(
+                Modifier
+                    .weight(1f)
+            )
+            Button(onClick = {
+                Toast.makeText(mContext, "Logging out...", Toast.LENGTH_SHORT).show()
+
+                val prefs = mContext.getSharedPreferences("com.example.rezepte.dropboxintegration",
+                    ComponentActivity.MODE_PRIVATE
+                )
+                prefs.edit().clear().apply()
+                //Back to LoginActivity
+                val intent = Intent(mContext, LoginActivity::class.java)
+                mContext.startActivity(intent)
+
+            }, modifier = Modifier.padding(5.dp).align(Alignment.CenterVertically)) {
+                Text(text = "Logout", textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateButtonOptions() {
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+    var urlInput by remember { mutableStateOf(false)}
+    var urlValue by remember { mutableStateOf("")}
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(5.dp,5.dp)) {
+
+        Button(onClick = {
+            Toast.makeText(mContext, "Create Recipe", Toast.LENGTH_SHORT).show()
+            //move to create activity
+            val intent = Intent(mContext,CreateActivity::class.java)
+            mContext.startActivity(intent)
+        }, modifier = Modifier.padding(0.dp,0.dp).fillMaxWidth()) {
+            Text(text =  "Create")
+        }
+        Row{
+            Button(onClick = { urlInput = !urlInput},
+                modifier = Modifier.padding(0.dp,5.dp)) {
+                Text(text =  "Scrape Website", textAlign = TextAlign.Center)
+            }
+            Spacer(
+                Modifier
+                    .weight(1f)
+            )
+            Button(onClick = {
+                //todo
+            }, modifier = Modifier.padding(0.dp,5.dp)) {
+                Text(text =  "Scrape Image", textAlign = TextAlign.Center)
+            }
+        }
+        if (urlInput){
+            TextField(
+                value = urlValue,
+                onValueChange = { value ->
+                    urlValue = value //update its value
+                },
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        GlobalScope.launch {
+                            val recipe = DownloadWebsite.main(urlValue)
+                            withContext(Dispatchers.Main) {
+                                //move to create activity
+                                val intent = Intent(mContext,CreateActivity::class.java)
+                                intent.putExtra("data",parseData(recipe.first))
+                                intent.putExtra("imageData",recipe.second)
+                                mContext.startActivity(intent)
+                            }
+                            //clear the url and reset
+                            urlValue= ""
+                            urlInput= false
+                    } }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth(),
+                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                singleLine = true,
+                shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
+                label = { Text("website") }
+
+            )
+        }
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun homePreview() {
     RezepteTheme {
-        Greeting("Android")
+        MainScreen()
     }
 }

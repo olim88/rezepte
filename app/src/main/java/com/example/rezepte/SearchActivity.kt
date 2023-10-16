@@ -13,10 +13,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -164,12 +166,13 @@ fun RecipieCard(name: String,thumbNail : Bitmap?,getName : Boolean){
 
                 )
             }
-            Column {
+            Column (modifier = Modifier.fillMaxWidth().weight(1f)){
                 //recipe name
                 Text(
                     "$name",
                     modifier = Modifier.padding(all = 2.dp),
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    softWrap = true,
                 )
                 //recipe details
                 if (isExpanded) {
@@ -201,7 +204,6 @@ fun RecipieCard(name: String,thumbNail : Bitmap?,getName : Boolean){
             if (isExpanded) {
                 Spacer(
                     Modifier
-                        .weight(1f)
                 )
                 Button(onClick = {
                     if (getName){ //if returning a name to createing
@@ -217,7 +219,7 @@ fun RecipieCard(name: String,thumbNail : Bitmap?,getName : Boolean){
                         mContext.startActivity(intent)
                     }
                 },
-                    modifier = Modifier.padding(all = 5.dp)) {
+                    modifier = Modifier.padding(all = 5.dp).requiredWidth(IntrinsicSize.Max)) {
                     Text(
                         if (getName) "Link" else "Make",
                         modifier = Modifier.padding(all = 2.dp),

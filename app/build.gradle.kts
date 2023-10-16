@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    kotlin("plugin.serialization") version "1.8.10"
 }
 
 android {
@@ -82,8 +83,9 @@ dependencies {
     implementation("com.fasterxml.woodstox:woodstox-core:5.0.2")
     implementation("org.redundent:kotlin-xml-builder:1.8.0")
     implementation("com.gitlab.mvysny.konsume-xml:konsume-xml:1.0")
-    implementation("it.skrape:skrapeit:1.2.2")
+    implementation("org.jsoup:jsoup:1.16.1")
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     
 
 }

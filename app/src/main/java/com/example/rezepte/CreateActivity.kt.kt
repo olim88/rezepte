@@ -96,50 +96,32 @@ class CreateActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        /*
-        setContentView(R.layout.createlayout);
 
-        //if there is a recipe to load the data of
-        val extras = intent.extras
-        var recipeName: String? = null
-        var preloadOption: String? = null
-        var preloadData: String? = null
-        if (extras != null) {
-            recipeName = extras.getString("recipe name")
-            preloadOption = extras.getString("preload option")
-            preloadData = extras.getString("preload data")
-        }
-        //if there is a preload option get ready to preload data
-        if (preloadOption != null){
-            if (preloadOption == "website"){
-                //scrape the website for to recipe information and auto fill the categorise
-                val data = skrape(HttpFetcher) {
-                    request {
-                        // Tell skrape{it} which URL to fetch data from
-                        if (preloadData != null) {
-                            url = preloadData
-                        }
-                    }
+        loadedRecipeName = intent.extras?.getString("recipe name")
+        val recipe = intent.extras?.getString("data") //if a recipe has been sent as a xml to load
+        val recipeLinkedImage = intent.extras?.getString("imageData")
+        var image: MutableState<Bitmap?> = mutableStateOf(null)
 
-
-                    // Main function where you'll parse web data
-                    extractIt<MyExtractedData> { it ->
-                    htmlDocument{
-                            // Main function where you'll parse web data
-                       //todo get good
-
-                        }
-
-                    }
-
+        //check if there is preloaded recipe then name then just load empty recipe if neither is true
+        if ( recipe != null){
+            val extractedData = xmlExtraction().GetData(recipe)
+            setContent {
+                RezepteTheme {
+                    MainScreen(
+                        recipeDataInput = extractedData,
+                        image,
+                        { deleteRecipe() },
+                        { recipe, uri,linking -> finishRecipe(recipe, uri,linking) })
                 }
-
+            }
+            //if there is a link to an image download it to bitmap to add to the recipe
+            if (recipeLinkedImage != null){
+            GlobalScope.launch {
+                    image.value = DownloadWebsite.downloadImageToBitmap(recipeLinkedImage)
+                }
             }
         }
-         */
-        loadedRecipeName = intent.extras?.getString("recipe name")
-        var image: MutableState<Bitmap?> = mutableStateOf(null)
-        if (loadedRecipeName != null) {
+        else if (loadedRecipeName != null) {
             //get token
             val token = DbTokenHandling(
                 getSharedPreferences(
@@ -231,7 +213,7 @@ class CreateActivity : ComponentActivity() {
         }
     }
 
-    private fun finishRecipe(recipe: Recipe, image: Uri?,linking : Boolean) {
+    private fun finishRecipe(recipe: Recipe, image: Uri?,linking : Boolean) { //todo save image bitmap from website
 
 
         //make sure there is a name for the recipe else don't ext
@@ -946,9 +928,7 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
                         value =  tinSize,
                         onValueChange = { value ->
                             tinSize = value
-                            data.value.data.cookingSteps.list[index].container?.size = try {
-                                value.toInt()
-                            }finally{null}
+                            data.value.data.cookingSteps.list[index].container?.size = value.toIntOrNull()
 
                         },
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1046,8 +1026,13 @@ fun IngredientsInput(data : MutableState<Recipe>){
                 ingredientsInput = value
                 //save value to data
                 val ingredients : MutableList<Ingredient> = mutableListOf()
-                for ( (index, ingredient) in value.split("\n").withIndex()){
-                    ingredients.add(Ingredient(index,ingredient))
+                var index = 0
+                for ( ingredient in value.split("\n")){
+                    if (!ingredient.matches("\\s*".toRegex())) {
+                        ingredients.add(Ingredient(index, ingredient))
+                        index += 1
+
+                    }
                 }
                 data.value.ingredients = Ingredients(ingredients)
             },
@@ -1084,9 +1069,11 @@ fun InstructionsInput(data : MutableState<Recipe>){
                 instructionsInput = value
                 //save value to data
                 val instructions : MutableList<Instruction> = mutableListOf()
-                for ( (index, instruction) in value.split("\n").withIndex()){
-                    if (instruction != ""){
+                var index = 0
+                for (  instruction in value.split("\n")){
+                    if (!instruction.matches("\\s*".toRegex())){
                         instructions.add(Instruction(index,instruction,null))
+                        index += 1
                     }
 
                 }

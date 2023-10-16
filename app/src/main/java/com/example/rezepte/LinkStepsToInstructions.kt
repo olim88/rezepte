@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -78,7 +80,7 @@ class LinkStepsToInstructions: AppCompatActivity()
 
 @Composable
 private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
-    Column {
+    Column (modifier = Modifier.verticalScroll(rememberScrollState())){
         var stepIndex by remember {mutableStateOf(0)}
         var recipeData by remember { mutableStateOf(data)}
         var updateInstruction by remember{mutableStateOf(false)}
@@ -109,8 +111,15 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
                 }
             }
         }
-        //next / finish button
+        //next / finish button and reset button
         Row{
+            Button(onClick = {
+                stepIndex = 0
+                recipeData.instructions.list.forEach { instruction -> instruction.linkedCookingStepIndex = null  }
+                updateInstruction = true
+            }) {
+                Text(text =  "Reset")
+            }
             Spacer(
                 Modifier
                     .weight(1f)
