@@ -73,7 +73,7 @@ class MakeActivity : AppCompatActivity()
         val downloader = DownloadTask(DropboxClient.getClient(token))
         GlobalScope.launch {
             //get data
-            val data: String = downloader.GetXml("/xml/$recipeName.xml")
+            val data: String = downloader.getXml("/xml/$recipeName.xml")
             val extractedData = xmlExtraction().GetData(data)
 
             withContext(Dispatchers.Main) {
@@ -83,7 +83,7 @@ class MakeActivity : AppCompatActivity()
                     }
                 }
             }
-            image.value = downloader.GetImage("/image/",recipeName!!)
+            image.value = downloader.getImage("/image/",recipeName!!)
         }
 
         /*if the keyboad is closed remove the focus on the input

@@ -135,7 +135,7 @@ class CreateActivity : ComponentActivity() {
             val downloader = DownloadTask(DropboxClient.getClient(token))
             GlobalScope.launch {
                 //get data
-                val data: String = downloader.GetXml("/xml/$loadedRecipeName.xml")
+                val data: String = downloader.getXml("/xml/$loadedRecipeName.xml")
                 val extractedData = xmlExtraction().GetData(data)
 
                 withContext(Dispatchers.Main) {
@@ -150,7 +150,7 @@ class CreateActivity : ComponentActivity() {
                     }
 
                 }
-                image.value = downloader.GetImage("/image/", loadedRecipeName!!)
+                image.value = downloader.getImage("/image/", loadedRecipeName!!)
             }
 
         } else {

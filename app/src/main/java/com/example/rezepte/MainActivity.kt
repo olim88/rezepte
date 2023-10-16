@@ -1,8 +1,8 @@
 package com.example.rezepte
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -25,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,8 +43,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dropbox.core.v2.users.FullAccount
-import com.example.rezepte.DropboxClient.getClient
-import com.example.rezepte.UserAccountTask.TaskDelegate
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -53,9 +52,7 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
-    //login handling
-    private var ACCESS_TOKEN: String? = null
-    private val IMAGE_REQUEST_CODE = 101
+
 
 
 
@@ -84,19 +81,26 @@ class MainActivity : ComponentActivity() {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
-        setContent {
-            RezepteTheme {
-                MainScreen()
-            }
-        }
-
-        ACCESS_TOKEN = DbTokenHandling(
+        //get token
+        val token = DbTokenHandling(
             getSharedPreferences(
                 "com.example.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         ).retrieveAccessToken()
-        getUserAccount()
+        var accountData : MutableState<FullAccount?> = mutableStateOf(null)
+        setContent {
+            RezepteTheme {
+                MainScreen(accountData)
+            }
+        }
+        //get account data
+        GlobalScope.launch {
+            accountData.value = DownloadTask(DropboxClient.getClient(token)).getUserAccount()
+        }
+
+
+
 
 
 
@@ -106,25 +110,7 @@ class MainActivity : ComponentActivity() {
 
     }
 
-    private fun getUserAccount() {
 
-        if (ACCESS_TOKEN == null) return
-
-        UserAccountTask(getClient(ACCESS_TOKEN), object : TaskDelegate {
-            override fun onAccountReceived(account: FullAccount?) {
-                //Print account's info
-                Log.d("User", account!!.email)
-                Log.d("User", account.name.displayName)
-                Log.d("User", account.accountType.name)
-
-            }
-
-            override fun onError(error: Exception?) {
-                Log.d("User", "Error receiving account details.")
-            }
-        }).execute()
-
-    }
 
 
 
@@ -138,13 +124,17 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun MainScreen() {
+private fun MainScreen(accountData: MutableState<FullAccount?>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     Column(modifier = Modifier.padding(10.dp).fillMaxWidth().fillMaxHeight().verticalScroll(rememberScrollState()),horizontalAlignment = Alignment.CenterHorizontally){
         //logo
         Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.fillMaxHeight(0.6f).fillMaxWidth().weight(1f))
         //main options
+        Spacer(
+            Modifier
+                .width(10.dp)
+        )
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -166,7 +156,7 @@ private fun MainScreen() {
             Modifier
                 .weight(0.9f)
         )
-        DropboxInfo()
+        DropboxInfo(accountData)
 
     }
 
@@ -174,7 +164,7 @@ private fun MainScreen() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropboxInfo() {
+fun DropboxInfo(accountData : MutableState<FullAccount?>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     Card(
@@ -184,13 +174,16 @@ fun DropboxInfo() {
             .animateContentSize()
     ) {
         Row {
-            TextField(
-                value = "email",//todo
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Dropbox Account") },
-                modifier = Modifier.padding(5.dp).width(220.dp)
-            )
+            if (accountData.value != null){
+                TextField(
+                    value = "Account Name:${accountData.value!!.name.displayName}\n${accountData.value!!.email}",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Dropbox Account") },
+                    modifier = Modifier.padding(5.dp).width(220.dp)
+                )
+            }
+
             Spacer(
                 Modifier
                     .weight(1f)
@@ -279,10 +272,11 @@ fun CreateButtonOptions() {
     }
 }
 
+@SuppressLint("UnrememberedMutableState")
 @Preview(showBackground = true)
 @Composable
 fun homePreview() {
     RezepteTheme {
-        MainScreen()
+        MainScreen(mutableStateOf(null))
     }
 }

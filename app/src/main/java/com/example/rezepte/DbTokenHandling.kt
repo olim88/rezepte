@@ -43,8 +43,7 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
         }
     }
 
-     fun refreshIfExpired() : Boolean { 
-
+     fun refreshIfExpired() : Boolean {
         val accessToken = retrieveSavedData("access-token") ?: return true
 
         val refreshToken = retrieveSavedData("refresh-token")
@@ -52,8 +51,6 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
         val appKey = retrieveSavedData("app-key")
 
          if (accessToken != null && refreshToken != null && expiresAt != null && appKey != null) {
-
-
              val cred = DbxCredential(accessToken, expiresAt.toLong(), refreshToken, appKey)
 
              GlobalScope.launch {
@@ -70,12 +67,6 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
          else {
              return true
          }
-
-
-
-
-
-
         return false
     }
 }

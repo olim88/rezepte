@@ -106,7 +106,7 @@ class SearchActivity : ComponentActivity() {
 
             }
 
-            thumbnails.putAll(downloader.GetThumbnails("/image/", data))
+            thumbnails.putAll(downloader.getThumbnails("/image/", data))
             hasThumbnals.value = true
 
 
