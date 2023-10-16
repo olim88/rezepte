@@ -69,7 +69,7 @@ class LinkStepsToInstructions: AppCompatActivity()
                 MODE_PRIVATE
             )
         ).retrieveAccessToken()
-        UploadTask(DropboxClient.getClient(token), null, applicationContext,name,data).execute()
+        UploadTask(DropboxClient.getClient(token)).uploadXml(data,"/xml/$name.xml")
 
 
         //move to home

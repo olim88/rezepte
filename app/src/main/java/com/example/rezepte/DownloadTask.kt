@@ -74,15 +74,7 @@ class DownloadTask(client: DbxClientV2)  {
         if (fullName.isEmpty()) return null
         return "$dir${fullName[0]}"
     }
-    fun RemoveFile(dir: String, name:String){
-        dbxClient.files().deleteV2("$dir$name")
-    }
 
-    fun RemoveImage(dir: String, name:String){
-        if (GetImagePath(dir,name) == null) return
-        dbxClient.files().deleteV2(GetImagePath(dir,name))
-
-    }
     fun GetThumbnails(dir: String,fileNames: List<String>): Map<out String, Bitmap?>{
         //set bitmap options
         val options = BitmapFactory.Options()
@@ -95,7 +87,7 @@ class DownloadTask(client: DbxClientV2)  {
         for (name in fileNames){
             val path = GetImagePathFromList(dir,name,actualFileNames)
             if (path != null){
-                val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W64H64,ThumbnailMode.BESTFIT)
+                val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W128H128,ThumbnailMode.BESTFIT)
                 args.add(arg)
                 names.add(name)
             }

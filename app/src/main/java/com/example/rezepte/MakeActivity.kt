@@ -480,6 +480,7 @@ private fun MainScreen(recipeData: Recipe, image : MutableState<Bitmap?>){
             contentDescription = "",
             modifier = Modifier
                 .clip(RoundedCornerShape(5.dp))
+                .fillMaxWidth()
                 .animateContentSize(),
             contentScale = ContentScale.FillWidth
         )

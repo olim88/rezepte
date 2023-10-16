@@ -111,7 +111,7 @@ class CreateActivity : ComponentActivity() {
                         recipeDataInput = extractedData,
                         image,
                         { deleteRecipe() },
-                        { recipe, uri,linking -> finishRecipe(recipe, uri,linking) })
+                        { recipe, uri, bitmap,linking -> finishRecipe(recipe, uri,bitmap,linking) })
                 }
             }
             //if there is a link to an image download it to bitmap to add to the recipe
@@ -145,7 +145,7 @@ class CreateActivity : ComponentActivity() {
                                 recipeDataInput = extractedData,
                                 image,
                                 { deleteRecipe() },
-                                { recipe, uri,linking -> finishRecipe(recipe, uri,linking) })
+                                { recipe, uri, bitmap,linking -> finishRecipe(recipe, uri,bitmap,linking) })
                         }
                     }
 
@@ -160,7 +160,7 @@ class CreateActivity : ComponentActivity() {
                         recipeDataInput = GetEmptyRecipe(),
                         image,
                         { deleteRecipe() },
-                        { recipe, uri,linking -> finishRecipe(recipe, uri,linking) })
+                        { recipe, uri, bitmap,linking -> finishRecipe(recipe, uri,bitmap,linking) })
                 }
             }
         }
@@ -192,12 +192,12 @@ class CreateActivity : ComponentActivity() {
                                 MODE_PRIVATE
                             )
                         ).retrieveAccessToken()
-                        val downloader = DownloadTask(DropboxClient.getClient(token))
+                        val uploader = UploadTask(DropboxClient.getClient(token))
                         GlobalScope.launch {
                             //remove xml
-                            downloader.RemoveFile("/xml/", "$loadedRecipeName.xml")
+                            uploader.removeFile("/xml/$loadedRecipeName.xml")
                             //remove image
-                            downloader.RemoveImage("/image/", loadedRecipeName!!)
+                            uploader.removeImage("/image/$loadedRecipeName")
                         }
                         //go home
                         val intent = Intent(this, MainActivity::class.java)
@@ -213,14 +213,14 @@ class CreateActivity : ComponentActivity() {
         }
     }
 
-    private fun finishRecipe(recipe: Recipe, image: Uri?,linking : Boolean) { //todo save image bitmap from website
+    private fun finishRecipe(recipe: Recipe, image: Uri?,bitmapImage : Bitmap?,linking : Boolean) { //todo save image bitmap from website
 
 
         //make sure there is a name for the recipe else don't ext
         if (recipe.data.name == ""){
             return
         }
-        //export saved recipe
+        //convert saved recipe to xml
         val data: String = parseData(recipe)
 
         //get image if one is set
@@ -229,21 +229,34 @@ class CreateActivity : ComponentActivity() {
             file = File(URI_to_Path.getPath(application, image!!))
         }
 
-
+        //get the name of the recipe to save
         var name = recipe.data.name
+        //get dropbox token and upload image and xml to dropbox
         val token = DbTokenHandling( //get token
             getSharedPreferences(
                 "com.example.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         ).retrieveAccessToken()
-        UploadTask(
-            DropboxClient.getClient(token),
-            file,
-            applicationContext,
-            name.toString(),
-            data.toString()
-        ).execute()
+        //upload xml and images
+        GlobalScope.launch {
+            val uploadClient = UploadTask(DropboxClient.getClient(token))
+            //upload recipe data
+            uploadClient.uploadXml(data,"/xml/$name.xml")
+            //if there is a uri image upload that
+            if (file != null){
+                uploadClient.uploadFile(file,"/image/$name")
+            }
+            //otherwise upload the bitmap image if there is one
+            else if (bitmapImage != null){
+                uploadClient.uploadBitmap(bitmapImage,"/image/$name")
+            }
+            //if there is no image make sure that any saved image is deleted
+            else{
+                uploadClient.removeImage("/image/$name")
+            }
+
+        }
         //if the name has changed delete old files
         if (name != loadedRecipeName && loadedRecipeName != null) {
             val token = DbTokenHandling( //get token
@@ -252,12 +265,12 @@ class CreateActivity : ComponentActivity() {
                     MODE_PRIVATE
                 )
             ).retrieveAccessToken()
-            val downloader = DownloadTask(DropboxClient.getClient(token))
+            val uploader = UploadTask(DropboxClient.getClient(token))
             GlobalScope.launch {
                 //remove xml
-                downloader.RemoveFile("/xml/", "$loadedRecipeName.xml")
+                uploader.removeFile("/xml/$loadedRecipeName.xml")
                 //remove image
-                downloader.RemoveImage("/image/", loadedRecipeName!!)
+                uploader.removeImage("/image/$loadedRecipeName")
 
             }
         }
@@ -458,15 +471,15 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
     // Fetching the Local Context
     val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         image.value = uri
+        //set bitmap to nothing
+        savedBitmap.value = null
 
     }
     val model = if (savedBitmap.value == null || image.value != null) (ImageRequest.Builder(LocalContext.current)
         .data(image.value)
-        //.placeholder(R.drawable.book) //todo get better place holder
         .build())
         else (ImageRequest.Builder(LocalContext.current)
         .data(savedBitmap.value)
-        //.placeholder(R.drawable.book) //todo get better place holder
         .build())
     Surface(
         shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
@@ -1087,7 +1100,7 @@ fun InstructionsInput(data : MutableState<Recipe>){
     }
 }
 @Composable
-fun DeleteAndFinishButtons(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?,Boolean) -> Unit,imageUri : MutableState<Uri?>){
+fun DeleteAndFinishButtons(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit,imageUri : MutableState<Uri?>,imageBitmap: MutableState<Bitmap?>){
     Row{
         Button(onClick = onDeleteClick,
             modifier = Modifier.padding(all = 5.dp)) {
@@ -1103,11 +1116,11 @@ fun DeleteAndFinishButtons(data : MutableState<Recipe>,updatedSteps:MutableState
                 .width(10.dp)
         )
 
-        FinishButton(data, imageUri,updatedSteps,onFinishClick)
+        FinishButton(data, imageUri,updatedSteps,onFinishClick,imageBitmap)
     }
 }
 @Composable
-fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: MutableState<Boolean>,onFinish: (Recipe, Uri?,Boolean) -> Unit){
+fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: MutableState<Boolean>,onFinish: (Recipe, Uri?, Bitmap?,Boolean) -> Unit,imageBitmap: MutableState<Bitmap?>){
     Card(
         modifier = Modifier
             .padding(5.dp)
@@ -1131,7 +1144,7 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
                 Text(text = "Finish ",style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .clickable {
-                            onFinish(data.value, image.value, false)
+                            onFinish(data.value, image.value,imageBitmap.value, false)
                         }
                         .padding(2.dp))
                 Spacer(
@@ -1150,7 +1163,7 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
                 )
                 Text(text = " Link",style = MaterialTheme.typography.titleLarge
                 ,modifier = Modifier
-                        .clickable { onFinish(data.value, image.value, true) }
+                        .clickable { onFinish(data.value, image.value,imageBitmap.value, true) }
                         .padding(2.dp))
                 Spacer(
                     Modifier
@@ -1164,7 +1177,7 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
                 )
                 Text(text = "Finish",style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
-                        .clickable { onFinish(data.value, image.value, false) }
+                        .clickable { onFinish(data.value, image.value,imageBitmap.value, false) }
                         .padding(2.dp)
                     )
                 Spacer(
@@ -1178,7 +1191,7 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
 }
 
 @Composable
-private fun MainScreen(recipeDataInput: Recipe,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?,Boolean) -> Unit){
+private fun MainScreen(recipeDataInput: Recipe,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit){
     var recipeDataInput = remember { mutableStateOf(recipeDataInput) }
     var imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
     var updatedSteps = remember { mutableStateOf(false) }
@@ -1188,7 +1201,7 @@ private fun MainScreen(recipeDataInput: Recipe,image : MutableState<Bitmap?>,onD
         DataInput(recipeDataInput,updatedSteps)
         IngredientsInput(recipeDataInput)
         InstructionsInput(recipeDataInput)
-        DeleteAndFinishButtons(recipeDataInput,updatedSteps,onDeleteClick,onFinishClick,imageUri)
+        DeleteAndFinishButtons(recipeDataInput,updatedSteps,onDeleteClick,onFinishClick,imageUri,image)
 
     }
 
@@ -1203,7 +1216,7 @@ private fun MainScreen(recipeDataInput: Recipe,image : MutableState<Bitmap?>,onD
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen(GetEmptyRecipe(), mutableStateOf(null),{},{ recipe, uri, linking -> })
+        MainScreen(GetEmptyRecipe(), mutableStateOf(null),{},{ recipe, uri, bitmap, linking -> })
     }
 }
 
