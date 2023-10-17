@@ -3,7 +3,6 @@ package com.example.rezepte
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -58,18 +57,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.homelayout);
-
-
-        findViewById<Button>(R.id.btnCreateWebsite).setOnClickListener{
-            Toast.makeText(this, "Create Recipe", Toast.LENGTH_SHORT).show()
-            //move to create activity
-            val intent = Intent(this,CreateActivity::class.java)
-            intent.putExtra("recipe name","thi") //todo remove
-            intent.putExtra("preload option","website")
-            intent.putExtra("preload data","http://www.yummly.com/recipe/Yogurt-Coffee-Cake-473376?prm-v1")//todo get website from user
-            startActivity(intent);
-        }
 
 
         //dropbox account handling
@@ -81,22 +68,24 @@ class MainActivity : ComponentActivity() {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
-        //get token
-        val token = DbTokenHandling(
-            getSharedPreferences(
-                "com.example.rezepte.dropboxintegration",
-                MODE_PRIVATE
-            )
-        ).retrieveAccessToken()
-        var accountData : MutableState<FullAccount?> = mutableStateOf(null)
-        setContent {
-            RezepteTheme {
-                MainScreen(accountData)
+        else {
+            //get token
+            val token = DbTokenHandling(
+                getSharedPreferences(
+                    "com.example.rezepte.dropboxintegration",
+                    MODE_PRIVATE
+                )
+            ).retrieveAccessToken()
+            var accountData: MutableState<FullAccount?> = mutableStateOf(null)
+            setContent {
+                RezepteTheme {
+                    MainScreen(accountData)
+                }
             }
-        }
-        //get account data
-        GlobalScope.launch {
-            accountData.value = DownloadTask(DropboxClient.getClient(token)).getUserAccount()
+            //get account data
+            GlobalScope.launch {
+                accountData.value = DownloadTask(DropboxClient.getClient(token)).getUserAccount()
+            }
         }
 
 
@@ -131,14 +120,10 @@ private fun MainScreen(accountData: MutableState<FullAccount?>) {
         //logo
         Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.fillMaxHeight(0.6f).fillMaxWidth().weight(1f))
         //main options
-        Spacer(
-            Modifier
-                .width(10.dp)
-        )
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(30.dp,5.dp)
+                .padding(30.dp,15.dp)
                 .animateContentSize()
         ) {
             //create buttons
@@ -176,7 +161,7 @@ fun DropboxInfo(accountData : MutableState<FullAccount?>) {
         Row {
             if (accountData.value != null){
                 TextField(
-                    value = "Account Name:${accountData.value!!.name.displayName}\n${accountData.value!!.email}",
+                    value = "${accountData.value!!.email}",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Dropbox Account") },

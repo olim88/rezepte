@@ -1126,6 +1126,7 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
             .padding(5.dp)
             .animateContentSize()
             .fillMaxWidth()
+            .clickable { if(data.value.data.cookingSteps.list.isEmpty()) onFinish(data.value, image.value,imageBitmap.value, false) }
             .clip(RoundedCornerShape(50.dp)),
 
         colors = CardDefaults.cardColors(
@@ -1177,7 +1178,6 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
                 )
                 Text(text = "Finish",style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
-                        .clickable { onFinish(data.value, image.value,imageBitmap.value, false) }
                         .padding(2.dp)
                     )
                 Spacer(

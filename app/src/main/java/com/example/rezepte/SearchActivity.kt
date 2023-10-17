@@ -128,7 +128,7 @@ class SearchActivity : ComponentActivity() {
 }
 
 @Composable
-fun RecipieCard(name: String,thumbNail : Bitmap?,getName : Boolean){
+fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
 
     // Fetching the Local Context
     val mContext = LocalContext.current
@@ -315,7 +315,7 @@ fun RecipeList(names: List<String>, thumbnails: MutableMap<String,Bitmap?>, stat
 
         items(filteredNames) { name ->
 
-            RecipieCard(name, thumbnails[name], getName)
+            RecipeCard(name, thumbnails[name], getName)
 
         }
     }
@@ -433,7 +433,7 @@ fun TopBarPreview() {
 fun previewRecipeCard(){
     RezepteTheme {
         Surface {
-            RecipieCard(name = "Carrot Cake",null,false)
+            RecipeCard(name = "Carrot Cake",null,false)
 
         }
     }}
