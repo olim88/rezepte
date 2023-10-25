@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.rezepte.ui.theme.RezepteTheme
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class LinkStepsToInstructions: AppCompatActivity()
 {
@@ -69,8 +71,9 @@ class LinkStepsToInstructions: AppCompatActivity()
                 MODE_PRIVATE
             )
         ).retrieveAccessToken()
-        UploadTask(DropboxClient.getClient(token)).uploadXml(data,"/xml/$name.xml")
-
+        GlobalScope.launch {
+            UploadTask(DropboxClient.getClient(token)).uploadXml(data, "/xml/$name.xml")
+        }
 
         //move to home
         val intent = Intent(this,MainActivity::class.java)

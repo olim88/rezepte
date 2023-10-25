@@ -341,15 +341,15 @@ fun cookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
     ){
         Column {
             var text = when (step.type){
-                CookingStage.prep ->  "prepare for ${step.time}"
-                CookingStage.wait -> "wait for ${step.time}"
-                CookingStage.hob -> "on the hob for ${step.time}"
-                else -> "In the ${step.type.text} for ${step.time}"
+                CookingStage.prep ->  "prepare${if (step.time != "")" for " else ""}${step.time}"
+                CookingStage.wait -> "wait${if (step.time != "")" for " else ""}${step.time}"
+                CookingStage.hob -> "on the hob${if (step.time != "")" for " else ""}${step.time}"
+                else -> "In the ${step.type.text}${if (step.time != "")" for " else ""}${step.time}"
             }
 
             //if there is a container
             if (step.container != null){
-                text += " in a ${if (step.container!!.size != null) "${step.container!!.size}\"" else ""} ${step.container!!.type.text}"
+                text += " in a${if (step.container!!.size != null) " ${step.container!!.size}\"" else ""} ${step.container!!.type.text}"
             }
             //if there is a temperature
             if (step.cookingTemperature != null){
@@ -475,7 +475,6 @@ private fun MainScreen(recipeData: Recipe, image : MutableState<Bitmap?>){
         AsyncImage(
             model = (ImageRequest.Builder(LocalContext.current)
                 .data(image.value)
-                //.placeholder(R.drawable.book) //todo get better place holder
                 .build()),
             contentDescription = "",
             modifier = Modifier

@@ -14,13 +14,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -88,26 +94,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-
-
-
-
-
-
-
-
-
     }
-
-
-
-
-
-
-
-
-
-
 
 
 }
@@ -116,14 +103,22 @@ class MainActivity : ComponentActivity() {
 private fun MainScreen(accountData: MutableState<FullAccount?>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
-    Column(modifier = Modifier.padding(10.dp).fillMaxWidth().fillMaxHeight().verticalScroll(rememberScrollState()),horizontalAlignment = Alignment.CenterHorizontally){
+
+    Column(modifier = Modifier
+        .padding(10.dp)
+        .fillMaxWidth()
+        .fillMaxHeight()
+        .verticalScroll(rememberScrollState()),horizontalAlignment = Alignment.CenterHorizontally){
         //logo
-        Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.fillMaxHeight(0.6f).fillMaxWidth().weight(1f))
+        Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier
+            .fillMaxHeight(0.6f)
+            .fillMaxWidth()
+            .weight(1f))
         //main options
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(30.dp,15.dp)
+                .padding(30.dp, 15.dp)
                 .animateContentSize()
         ) {
             //create buttons
@@ -132,7 +127,9 @@ private fun MainScreen(accountData: MutableState<FullAccount?>) {
             Button(onClick = {
                 val intent = Intent(mContext,SearchActivity::class.java)
                 mContext.startActivity(intent);
-            }, modifier = Modifier.padding(5.dp,0.dp,5.dp,5.dp).fillMaxWidth()) {
+            }, modifier = Modifier
+                .padding(5.dp, 0.dp, 5.dp, 5.dp)
+                .fillMaxWidth()) {
                 Text(text = "Search")
             }
         }
@@ -143,6 +140,21 @@ private fun MainScreen(accountData: MutableState<FullAccount?>) {
         )
         DropboxInfo(accountData)
 
+    }
+    //settings button
+    Row {
+        Spacer(modifier = Modifier.weight(1f))
+        IconButton(onClick = {
+            val intent = Intent(mContext,SettingsActivity::class.java)
+            mContext.startActivity(intent)
+        }) {
+            Icon(
+                Icons.Filled.Settings, "settings",
+                Modifier
+                    .padding(10.dp)
+                    .size(24.dp),
+                tint =  MaterialTheme.colorScheme.primary)
+        }
     }
 
 }
@@ -165,7 +177,9 @@ fun DropboxInfo(accountData : MutableState<FullAccount?>) {
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Dropbox Account") },
-                    modifier = Modifier.padding(5.dp).width(220.dp)
+                    modifier = Modifier
+                        .padding(5.dp)
+                        .width(220.dp)
                 )
             }
 
@@ -184,7 +198,9 @@ fun DropboxInfo(accountData : MutableState<FullAccount?>) {
                 val intent = Intent(mContext, LoginActivity::class.java)
                 mContext.startActivity(intent)
 
-            }, modifier = Modifier.padding(5.dp).align(Alignment.CenterVertically)) {
+            }, modifier = Modifier
+                .padding(5.dp)
+                .align(Alignment.CenterVertically)) {
                 Text(text = "Logout", textAlign = TextAlign.Center)
             }
         }
@@ -198,14 +214,18 @@ fun CreateButtonOptions() {
     val mContext = LocalContext.current
     var urlInput by remember { mutableStateOf(false)}
     var urlValue by remember { mutableStateOf("")}
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(5.dp,5.dp)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
+        .fillMaxWidth()
+        .padding(5.dp, 5.dp)) {
 
         Button(onClick = {
             Toast.makeText(mContext, "Create Recipe", Toast.LENGTH_SHORT).show()
             //move to create activity
             val intent = Intent(mContext,CreateActivity::class.java)
             mContext.startActivity(intent)
-        }, modifier = Modifier.padding(0.dp,0.dp).fillMaxWidth()) {
+        }, modifier = Modifier
+            .padding(0.dp, 0.dp)
+            .fillMaxWidth()) {
             Text(text =  "Create")
         }
         Row{

@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateContentSize
@@ -82,7 +81,12 @@ class SearchActivity : ComponentActivity() {
 
 
         //set access token
-        ACCESS_TOKEN = retrieveAccessToken()
+        ACCESS_TOKEN = DbTokenHandling(
+            getSharedPreferences(
+                "com.example.rezepte.dropboxintegration",
+                MODE_PRIVATE
+            )
+        ).retrieveAccessToken()
 
         val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
         var thumbnails = mutableMapOf<String,Bitmap?>()
@@ -103,36 +107,21 @@ class SearchActivity : ComponentActivity() {
                         MainScreen(data, thumbnails,returnName,hasThumbnals)
                     }
                 }
-
             }
-
             thumbnails.putAll(downloader.getThumbnails("/image/", data))
             hasThumbnals.value = true
 
-
-                  }    }
-
-    private fun retrieveAccessToken(): String? { //todo put access token handling into one class
-        //check if ACCESS_TOKEN is stored on previous app launches
-        val prefs = getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE)
-        val accessToken = prefs.getString("access-token", null)
-        return if (accessToken == null) {
-            Log.d("AccessToken Status", "No token found")
-            null
-        } else {
-            //accessToken already exists
-            Log.d("AccessToken Status", "Token exists")
-            accessToken
-        }
+            }
     }
+
 }
+
 
 @Composable
 fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
 
     // Fetching the Local Context
     val mContext = LocalContext.current
-
     var isExpanded by remember { mutableStateOf(false) }
     Surface(
         shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
