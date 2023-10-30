@@ -12,6 +12,7 @@ import com.dropbox.core.v2.files.ThumbnailMode
 import com.dropbox.core.v2.files.ThumbnailSize
 import com.dropbox.core.v2.users.FullAccount
 import java.io.BufferedReader
+import java.util.Date
 import java.util.LinkedList
 import java.util.Queue
 
@@ -20,8 +21,13 @@ class DownloadTask(client: DbxClientV2)  {
 
     private val dbxClient: DbxClientV2 = client
 
-    fun listDir (dir : String) : List<String> {
-        val results = dbxClient.files().listFolder(dir) //todo error handling
+    suspend fun listDir (dir : String) : List<String>? {
+        val results = try {
+            dbxClient.files().listFolder(dir)
+        } catch (e: DbxException) {
+            e.printStackTrace()
+            return null
+        }
 
         var output = ArrayList<String>()
 
@@ -32,33 +38,32 @@ class DownloadTask(client: DbxClientV2)  {
         return output
 
     }
-    fun getUserAccount(): FullAccount?{
+    suspend fun getUserAccount(): FullAccount?{
         val error = try {
             //get the users FullAccount
             return dbxClient.users().currentAccount
         } catch (e: DbxException) {
             e.printStackTrace()
         }
+
         return null
     }
-    fun getXml(dir :String) : String{
+    suspend fun getXml(dir :String) : Pair<String, Date>{
         val results = dbxClient.files().download(dir)
-
+        val time = results.result.serverModified //last modified time
         val reader = BufferedReader(results.inputStream.reader())
         val content = StringBuilder()
-        try {
+        reader.use { reader ->
             var line = reader.readLine()
             while (line != null) {
                 content.append(line)
                 line = reader.readLine()
             }
-        } finally {
-            reader.close()
         }
 
-        return content.toString()
+        return Pair(content.toString() ,time)
     }
-    fun getImage(dir: String, name :String): Bitmap? {
+    suspend fun getImage(dir: String, name :String): Bitmap? {
         if (GetImagePath(dir,name) == null) return null
         val results = dbxClient.files().download(GetImagePath(dir,name))
 
@@ -68,25 +73,25 @@ class DownloadTask(client: DbxClientV2)  {
 
         return BitmapFactory.decodeStream(results.inputStream)
     }
-    private fun GetImagePath(dir: String, name :String): String? {
-        val nameOptions = listDir(dir)
+    suspend fun GetImagePath(dir: String, name :String): String? {
+        val nameOptions = listDir(dir) ?: return  null
         val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
         if (fullName.isEmpty()) return null
         return "$dir${fullName[0]}"
     }
-    private fun getImagePathFromList(dir: String, name :String, nameOptions:List<String>): String? {
+    suspend private fun getImagePathFromList(dir: String, name :String, nameOptions:List<String>): String? {
         val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
         if (fullName.isEmpty()) return null
         return "$dir${fullName[0]}"
     }
 
-    fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>{
+    suspend fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>?{
         //set bitmap options
         val options = BitmapFactory.Options()
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
 
         //create arguments for each thumbnail
-        val actualFileNames = listDir(dir)
+        val actualFileNames = listDir(dir) ?: return  null
         val names : Queue<String> = LinkedList()
         var args = mutableListOf<ThumbnailArg>()
         for (name in fileNames){

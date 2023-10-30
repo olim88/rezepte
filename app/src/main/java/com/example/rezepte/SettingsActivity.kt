@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -49,9 +50,11 @@ import com.example.rezepte.ui.theme.RezepteTheme
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val settings = loadSettings(getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE))
         setContent{
             RezepteTheme {
-                MainScreen()
+                MainScreen(settings)
             }
         }
 
@@ -60,51 +63,91 @@ class SettingsActivity : ComponentActivity() {
 
 
     companion object {
-        fun loadSettings(sharedPreference: SharedPreferences) : UserSettings {
+        fun loadSettings(sharedPreference: SharedPreferences) : Map<String,String> {
+            var settingDictionary  = mutableMapOf<String,String> ()
 
-            if (sharedPreference.contains("metric")) {//load settings if there are settings save else return default settings
-                val metric = sharedPreference.getBoolean("metric", false)
-                val cookingStepGenerationPreference = CookingStepGenerationPreference.valueOf(sharedPreference.getString("cookingStepGenerationPreference","")!!)
-
-
-                return UserSettings(metric, cookingStepGenerationPreference)
+            for (setting in sharedPreference.all){
+                settingDictionary[setting.key] = setting.value.toString()
             }
-            else{
-                return UserSettings.newSettings()
+            return if (settingDictionary.isEmpty()){//return default setting
+                convertToDictionary(createSettingsMenu(),"")
+            } else{
+                settingDictionary
             }
         }
-        fun saveSettings(sharedPreference: SharedPreferences, settings: UserSettings){
-            sharedPreference.edit().putBoolean("metric",settings.metric).apply()
-            sharedPreference.edit().putString("cookingStepGenerationPreference",settings.cookingStepGenerationPreference.toString()).apply()
+        fun saveSettings(sharedPreference: SharedPreferences, settings: Map<String,String>){
+            
+            for (setting in settings){
+                sharedPreference.edit().putString(setting.key,setting.value).apply()
+            }
 
-            sharedPreference.edit().apply()
         }
-
-        data class UserSettings ( val metric: Boolean, val cookingStepGenerationPreference : CookingStepGenerationPreference){
-            companion object {
-                fun newSettings(): UserSettings{ //return user settings with default values
-
-                    return UserSettings(true, CookingStepGenerationPreference.Button)
+        fun convertToDictionary(settings : List<SettingOptionInterface>, start: String) : Map<String,String>{
+            var settingDictionary  = mutableMapOf<String,String> ()
+            for (setting in settings){
+                if (setting is SettingsOptionToggle) {//if its a toggle save bool
+                   settingDictionary[start+setting.name] = setting.state.value.toString()
+                }
+                if (setting is SettingsOptionDropDown) {//if it is a drop down save value at index
+                    settingDictionary[start+setting.name] = setting.options[setting.currentOptionIndex.value]
+                }
+                if (setting is SettingsSubMenu) {
+                    settingDictionary += convertToDictionary(setting.subSettings,start+setting.name+".")
                 }
             }
-        }
-        enum class CookingStepGenerationPreference{
-            Off,
-            Button,
-            Automatic,
+            return  settingDictionary
 
         }
+
+        fun loadToOptions(settings: Map<String,String>, options: List<SettingOptionInterface>, start: String): List<SettingOptionInterface>{
+            var editedOptions = options.toMutableList()
+            try {
+                for (option in editedOptions){
+                    val key = start + option.name
+                    if (option is SettingsOptionToggle) {//if its a toggle save bool
+                        option.state = mutableStateOf((settings[key]!! == "true"))
+                    }
+                    if (option is SettingsOptionDropDown) {//if it is a drop down save value at index
+                        option.currentOptionIndex = mutableStateOf(option.options.indexOf(settings[key]!!))
+                    }
+                    if (option is SettingsSubMenu) {
+                        option.subSettings = loadToOptions(settings,option.subSettings,start + option.name + ".")
+                    }
+                }
+            } catch (e : Exception){
+                //if it dose not work probably updated the settings or something just return options
+                return options
+            }
+            return  editedOptions
+        }
+
+
+
+
     }
 }
 
 fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout and values for the settings menu
 
-    var visibleSettings : MutableList<SettingOptionInterface> = mutableListOf()
-    visibleSettings.add(SettingsOptionToggle("test","testing", mutableStateOf(false)))
-    visibleSettings.add(SettingsOptionDropDown("test","testing", mutableStateOf(0), listOf("option1","option2","option3")))
-    visibleSettings.add(SettingsOptionToggle("test","testing", mutableStateOf(false)))
-    visibleSettings.add(SettingsSubMenu("test","",listOf(SettingsOptionToggle("test","testing", mutableStateOf(false)))))
-    return visibleSettings
+
+    return listOf(
+        SettingsSubMenu("Units","",listOf(
+            SettingsOptionDropDown("Weight","unit for weight", mutableStateOf(0), listOf("metric","imperial")),
+            SettingsOptionDropDown("Volume","unit for volume", mutableStateOf(0), listOf("metric","imperial")),
+            SettingsOptionDropDown("Size","unit for size", mutableStateOf(0), listOf("metric","imperial")),
+            SettingsOptionDropDown("Temperature","unit for temperature", mutableStateOf(0), listOf("metric","imperial")),
+            SettingsOptionToggle("Fractional Numbers","display measurements as fractions or decimals", mutableStateOf(true)),
+            )),
+        SettingsSubMenu("Creation","",listOf(
+            SettingsSubMenu("Website Loading","",listOf(
+                SettingsOptionToggle("Generate cooking steps","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false)),
+                SettingsOptionToggle("Split instruction","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false))
+            )),
+            SettingsOptionToggle("Separate Ingredients","show each line as a different colour", mutableStateOf(true)),
+            SettingsOptionToggle("Separate Instructions","show each line as a different colour", mutableStateOf(true)),
+        )),
+        SettingsOptionToggle("Search Menu View","display search menu as list", mutableStateOf(true)),
+        )
 }
 
 
@@ -113,10 +156,10 @@ interface SettingOptionInterface{
     val name : String
     val description: String
 }
-data class SettingsOptionToggle (override val name : String,override  val description: String, val state: MutableState<Boolean>) : SettingOptionInterface
-data class SettingsOptionDropDown (override val name : String,override  val description: String, val currentOptionIndex : MutableState<Int>, val options: List<String>) : SettingOptionInterface
+data class SettingsOptionToggle (override val name : String, override  val description: String, var state: MutableState<Boolean>) : SettingOptionInterface
+data class SettingsOptionDropDown (override val name : String, override  val description: String, var currentOptionIndex : MutableState<Int>, val options: List<String>) : SettingOptionInterface
 
-data class SettingsSubMenu (override val name : String,override  val description: String, val subSettings: List<SettingOptionInterface>) : SettingOptionInterface
+data class SettingsSubMenu (override val name : String, override  val description: String, var subSettings: List<SettingOptionInterface>) : SettingOptionInterface
 @Composable
 private fun settingsHeader(header: String,onclick: () -> Unit){
     Surface(
@@ -150,12 +193,12 @@ private fun settingsMenuSubMenuButton(header: String, body: String, onclick : ()
 }
 @Composable
 private fun settingsMenuToggle(header: String, body: String, state: MutableState<Boolean>){
-    Row (modifier = Modifier.padding(5.dp)){
-        Column {
+    Row (modifier = Modifier.padding(5.dp).clickable { state.value = ! state.value }){
+        Column (modifier = Modifier.fillMaxWidth().weight(1f)) {
             Text(text = header,style = MaterialTheme.typography.titleMedium)
             Text(text = body,style = MaterialTheme.typography.bodyMedium)
         }
-        Spacer(modifier = Modifier.weight(1f))
+
         Switch(checked = state.value,
             onCheckedChange = { state.value = ! state.value })
     }
@@ -201,21 +244,45 @@ private fun settingsMenuDropDown(header: String, body: String,index : MutableSta
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-private fun MainScreen(){
+private fun MainScreen(loadedSettings : Map<String,String>){
     // Fetching the Local Context
     val mContext = LocalContext.current
     //get the layout and data
-    val allSettingsMenuData = createSettingsMenu()
+    val allSettingsMenuData = SettingsActivity.loadToOptions(loadedSettings, createSettingsMenu(),"")
+    //update ui when stack is changed
     var update by remember {mutableStateOf(true)}
     //the direction the menu is going
     var direction by remember { mutableStateOf(false)} //false left true right
     var settingsMenuStack by remember { mutableStateOf(mutableListOf(Pair("Settings",allSettingsMenuData)))}//treating the list like a stack
+    //make the back gesture do the same as the back button
+    BackHandler(enabled = true, onBack = {
+        if (settingsMenuStack.size == 1){
+            //save settings
+            SettingsActivity.saveSettings(mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE),SettingsActivity.convertToDictionary(settingsMenuStack.last().second,""))
+            //go to main menu
+            val intent = Intent(mContext,MainActivity::class.java)
+            intent.flags =
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            mContext.startActivity(intent)
+
+        }
+        else {
+            settingsMenuStack.removeAt(settingsMenuStack.size - 1) //pop
+            update = true
+            direction = false
+        }
+        })
+
     Column {
         if (update) {
         }  //make sure ui is updated
+        //set the header and when the back arrow on the header is pressed either move up in the settings or save the settings and exit
         settingsHeader(settingsMenuStack.last().first) {
             if (settingsMenuStack.size == 1){
-                val intent = Intent(mContext,MainActivity::class.java) //todo fix e.g. finish or somthing like that
+                //save settings
+                SettingsActivity.saveSettings(mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE),SettingsActivity.convertToDictionary(settingsMenuStack.last().second,""))
+                //go to main menu
+                val intent = Intent(mContext,MainActivity::class.java)
                 intent.flags =
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 mContext.startActivity(intent)
@@ -269,7 +336,6 @@ private fun MainScreen(){
                             settingsMenuSubMenuButton(header = menu.name, body = menu.description) {
                                 //when clicked add to the stack
                                 settingsMenuStack.add(Pair(menu.name, menu.subSettings))
-                                println(settingsMenuStack)
                                 update = true
                                 direction = true
                             }
@@ -291,7 +357,7 @@ private fun MainScreen(){
 @Composable
 fun settingsPreview(){
     RezepteTheme {
-        MainScreen()
+        MainScreen(mapOf())
     }
 }
 @SuppressLint("UnrememberedMutableState")

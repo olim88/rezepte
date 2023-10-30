@@ -73,15 +73,15 @@ class UploadTask (private val client: DbxClientV2){
         client.files().deleteV2(path)
     }
 
-    fun removeImage(path: String){
+    suspend fun removeImage(path: String){
         val imageName = path.split("/").last()
         val dir = path.removeSuffix(imageName)
         if (getImagePath(dir,imageName) == null) return
         client.files().deleteV2(getImagePath(dir,imageName))
 
     }
-    private fun getImagePath(dir: String, name :String): String? {
-        val nameOptions = DownloadTask(client).listDir(dir)
+    private suspend fun getImagePath(dir: String, name :String): String? {
+        val nameOptions = DownloadTask(client).listDir(dir) ?: return null
         val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
         if (fullName.isEmpty()) return null
         return "$dir${fullName[0]}"

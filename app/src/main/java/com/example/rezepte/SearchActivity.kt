@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateContentSize
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,10 +63,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.rezepte.ui.theme.RezepteTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
 
 
@@ -88,28 +89,49 @@ class SearchActivity : ComponentActivity() {
             )
         ).retrieveAccessToken()
 
+        val data : MutableState<List<String>> = mutableStateOf(mutableListOf())
+        //load local save list
+        val localList = LocalFilesTask.loadFile("${this.filesDir}","listOfRecipes.xml")
+        if (localList != null){
+            data.value = localList.first.replace(".xml","").split("\n")
+        }
+
         val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
-        var thumbnails = mutableMapOf<String,Bitmap?>()
-        var hasThumbnals = mutableStateOf(false)
-        GlobalScope.launch {
+        val thumbnails = mutableMapOf<String,Bitmap?>()
+        val hasThumbnails = mutableStateOf(false)
+
+        //set the content of the window
+        setContent {
+            RezepteTheme {
+                MainScreen(data, thumbnails,returnName,hasThumbnails)
+            }
+        }
+
+
+        CoroutineScope(Dispatchers.IO).launch {
             //get data
-            val data = downloader.listDir("/xml/").toMutableList()
+            val list = downloader.listDir("/xml/") ?: listOf()
+            if( list == null ) Toast.makeText(this@SearchActivity, "can't reach dropbox", Toast.LENGTH_LONG).show()
+            val onlineList = list.toMutableList()
             //clean data
-            val iterate = data.listIterator()
+            val iterate = onlineList.listIterator()
             while (iterate.hasNext()) {
                 val oldValue = iterate.next()
                 iterate.set(oldValue.removeSuffix(".xml"))
             }
-            //get thumbnails
-            withContext(Dispatchers.Main) {
-                setContent {
-                    RezepteTheme {
-                        MainScreen(data, thumbnails,returnName,hasThumbnals)
-                    }
-                }
+            if (localList == null || onlineList != localList.first.replace(".xml","").split("\n")){ //if the lists are different use the online version and save to to local
+                data.value = onlineList
+                LocalFilesTask.saveFile(onlineList.joinToString ("\n") , "${this@SearchActivity.filesDir}","listOfRecipes.xml")
             }
-            thumbnails.putAll(downloader.getThumbnails("/image/", data))
-            hasThumbnals.value = true
+
+
+            //get thumbnails
+            val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
+            if (thumbnailsDownloaded != null){
+                thumbnails.putAll(thumbnailsDownloaded)
+                hasThumbnails.value = true
+            }
+
 
             }
     }
@@ -128,6 +150,7 @@ fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
         modifier = Modifier
             .padding(all = 5.dp)
             .fillMaxWidth()
+            .requiredHeightIn(63.dp)
             .clickable { isExpanded = !isExpanded }
             .animateContentSize()
             .padding(1.dp),
@@ -283,16 +306,16 @@ fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
 
 
 @Composable
-fun RecipeList(names: List<String>, thumbnails: MutableMap<String,Bitmap?>, state: MutableState<TextFieldValue>,getName : Boolean){
+fun RecipeList(names: MutableState<List<String>>, thumbnails: MutableMap<String,Bitmap?>, state: MutableState<TextFieldValue>,getName : Boolean){
     var filteredNames: List<String>
 
     LazyColumn {
         val searchedText = state.value.text
         filteredNames = if (searchedText.isEmpty()) {
-            names
+            names.value
         } else {
             val resultList = mutableListOf<String>()
-            for (name in names) {
+            for (name in names.value) {
                 if (name.lowercase(Locale.getDefault())
                         .contains(searchedText.lowercase(Locale.getDefault()))
                 ) {
@@ -362,7 +385,7 @@ fun SearchView(state: MutableState<TextFieldValue>) {
     )
 }
 @Composable
-private fun MainScreen(names: List<String>, thumbnails: MutableMap<String,Bitmap?>,getName : Boolean, updatedThumbnail : MutableState<Boolean>) {
+private fun MainScreen(names: MutableState<List<String>>, thumbnails: MutableMap<String,Bitmap?>,getName : Boolean, updatedThumbnail : MutableState<Boolean>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     Column {
         SearchView(textState)
@@ -382,7 +405,7 @@ private fun MainScreen(names: List<String>, thumbnails: MutableMap<String,Bitmap
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen((listOf("Carrot Cake", "other Cake")), hashMapOf(),false, mutableStateOf(false))
+        MainScreen((mutableStateOf(listOf("Carrot Cake", "other Cake"))), hashMapOf(),false, mutableStateOf(false))
     }
 }
 @Preview(
@@ -426,6 +449,7 @@ fun previewRecipeCard(){
 
         }
     }}
+@SuppressLint("UnrememberedMutableState")
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
     showBackground = true,
@@ -436,6 +460,6 @@ fun previewRecipeCards(){
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     RezepteTheme {
         Surface {
-            RecipeList( (listOf("Carrot Cake", "other Cake" )), hashMapOf(),textState,false)
+            RecipeList( (mutableStateOf(listOf("Carrot Cake", "other Cake" ))), hashMapOf(),textState,false)
         }
     }}

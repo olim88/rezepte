@@ -3,9 +3,10 @@ package com.example.rezepte
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import com.dropbox.core.DbxException
 import com.dropbox.core.oauth.DbxCredential
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -50,18 +51,23 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
         val expiresAt = retrieveSavedData("expired-at")
         val appKey = retrieveSavedData("app-key")
 
-         if (accessToken != null && refreshToken != null && expiresAt != null && appKey != null) {
+         if (refreshToken != null && expiresAt != null && appKey != null) {
              val cred = DbxCredential(accessToken, expiresAt.toLong(), refreshToken, appKey)
-
-             GlobalScope.launch {
+             CoroutineScope(Dispatchers.IO).launch {
                  val client = DropboxClient.getClient(cred)
-                 val tokens = client.refreshAccessToken()
+                 val tokens = try{
+                     client.refreshAccessToken()
+                 }catch (e : DbxException){
+                     null
+                 }
                  withContext(Dispatchers.Main) {
                      //resave new data
-                     prefs.edit().putString("expired-at", tokens.expiresAt.toString()).apply()
-                     prefs.edit().putString("access-token", tokens.accessToken).apply()
-                 }
+                     if (tokens!= null){//if its not null
+                         prefs.edit().putString("expired-at", tokens.expiresAt.toString()).apply()
+                         prefs.edit().putString("access-token", tokens.accessToken).apply()
+                     }
 
+                 }
              }
          }
          else {

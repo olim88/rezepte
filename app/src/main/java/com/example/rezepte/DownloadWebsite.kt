@@ -3,6 +3,7 @@ package com.example.rezepte
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import com.example.rezepte.ui.theme.CreateAutomations
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -19,7 +20,7 @@ class DownloadWebsite {
             ignoreUnknownKeys = true
         }
 
-        fun main(websiteUrl: String): Pair<Recipe,String> {
+        fun main(websiteUrl: String,settings : Map<String,String>): Pair<Recipe,String> {
             var recipe = GetEmptyRecipe()
             var imageLink = ""
             //set the website of the recipe
@@ -175,19 +176,26 @@ class DownloadWebsite {
 
 
             }
+            //check settings to see if extra needs to be done
+            if (settings["Creation.Website Loading.Generate cooking steps"] == "true")
+            {
+                val stepsAndLinks = CreateAutomations.autoGenerateStepsFromInstructions(recipe.instructions)
+                recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
+                recipe.instructions = stepsAndLinks.second
+            }
             //return the recipe and image link if there is one
             return Pair(recipe,imageLink)
         }
         fun downloadImageToBitmap(url: String): Bitmap? {
-            var mIcon11: Bitmap? = null
+            var image: Bitmap? = null
             try {
                 val input = URL(url).openStream()
-                mIcon11 = BitmapFactory.decodeStream(input)
+                image = BitmapFactory.decodeStream(input)
             } catch (e: Exception) {
                 Log.e("Error", e.message!!)
                 e.printStackTrace()
             }
-            return mIcon11
+            return image
         }
     }
     }

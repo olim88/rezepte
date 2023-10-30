@@ -69,8 +69,13 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,8 +84,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.rezepte.ui.theme.CreateAutomations
 import com.example.rezepte.ui.theme.RezepteTheme
 import com.google.android.material.internal.ContextUtils.getActivity
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -91,8 +98,7 @@ import java.io.File
 
 class CreateActivity : ComponentActivity() {
     private var loadedRecipeName: String? = null
-    private val IMAGE_REQUEST_CODE = 10
-    private var imageUri: Uri? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,7 +106,15 @@ class CreateActivity : ComponentActivity() {
         loadedRecipeName = intent.extras?.getString("recipe name")
         val recipe = intent.extras?.getString("data") //if a recipe has been sent as a xml to load
         val recipeLinkedImage = intent.extras?.getString("imageData")
-        var image: MutableState<Bitmap?> = mutableStateOf(null)
+        val image: MutableState<Bitmap?> = mutableStateOf(null)
+
+        //get the users settings
+        val settings = SettingsActivity.loadSettings(
+            getSharedPreferences(
+                "com.example.rezepte.settings",
+                MODE_PRIVATE
+            )
+        )
 
         //check if there is preloaded recipe then name then just load empty recipe if neither is true
         if ( recipe != null){
@@ -108,6 +122,7 @@ class CreateActivity : ComponentActivity() {
             setContent {
                 RezepteTheme {
                     MainScreen(
+                        settings,
                         recipeDataInput = extractedData,
                         image,
                         { deleteRecipe() },
@@ -116,7 +131,7 @@ class CreateActivity : ComponentActivity() {
             }
             //if there is a link to an image download it to bitmap to add to the recipe
             if (recipeLinkedImage != null){
-            GlobalScope.launch {
+                CoroutineScope(Dispatchers.IO).launch {
                     image.value = DownloadWebsite.downloadImageToBitmap(recipeLinkedImage)
                 }
             }
@@ -133,15 +148,16 @@ class CreateActivity : ComponentActivity() {
 
             //load saved data about recipe
             val downloader = DownloadTask(DropboxClient.getClient(token))
-            GlobalScope.launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 //get data
-                val data: String = downloader.getXml("/xml/$loadedRecipeName.xml")
+                val data: String = downloader.getXml("/xml/$loadedRecipeName.xml").first
                 val extractedData = xmlExtraction().GetData(data)
 
                 withContext(Dispatchers.Main) {
                     setContent {
                         RezepteTheme {
                             MainScreen(
+                                settings,
                                 recipeDataInput = extractedData,
                                 image,
                                 { deleteRecipe() },
@@ -157,6 +173,7 @@ class CreateActivity : ComponentActivity() {
             setContent {
                 RezepteTheme {
                     MainScreen(
+                        settings,
                         recipeDataInput = GetEmptyRecipe(),
                         image,
                         { deleteRecipe() },
@@ -193,15 +210,17 @@ class CreateActivity : ComponentActivity() {
                             )
                         ).retrieveAccessToken()
                         val uploader = UploadTask(DropboxClient.getClient(token))
-                        GlobalScope.launch {
+                        CoroutineScope(Dispatchers.IO).launch {
                             //remove xml
                             uploader.removeFile("/xml/$loadedRecipeName.xml")
                             //remove image
                             uploader.removeImage("/image/$loadedRecipeName")
                         }
+                        //remove local files
+                        LocalFilesTask.removeFile("${this.filesDir}/xml/","$loadedRecipeName.xml") //todo remove image
                         //go home
                         val intent = Intent(this, MainActivity::class.java)
-                        startActivity(intent);
+                        startActivity(intent)
                     })
 
                 .setNegativeButton(android.R.string.no, null).show()
@@ -209,7 +228,7 @@ class CreateActivity : ComponentActivity() {
         {
             //go home
             val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent);
+            startActivity(intent)
         }
     }
 
@@ -225,11 +244,11 @@ class CreateActivity : ComponentActivity() {
         //get image if one is set
         var file: File? = null
         if (image != null) {
-            file = File(URI_to_Path.getPath(application, image!!))
+            file = URI_to_Path.getPath(application, image)?.let { File(it) }
         }
 
         //get the name of the recipe to save
-        var name = recipe.data.name
+        val name = recipe.data.name
         //get dropbox token and upload image and xml to dropbox
         val token = DbTokenHandling( //get token
             getSharedPreferences(
@@ -238,7 +257,7 @@ class CreateActivity : ComponentActivity() {
             )
         ).retrieveAccessToken()
         //upload xml and images
-        GlobalScope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             val uploadClient = UploadTask(DropboxClient.getClient(token))
             //upload recipe data
             uploadClient.uploadXml(data,"/xml/$name.xml")
@@ -273,6 +292,10 @@ class CreateActivity : ComponentActivity() {
 
             }
         }
+
+        //save to device
+        LocalFilesTask.saveFile(data,"${this.filesDir}/xml/","$name.xml") //todo save image
+
         //if linking move to the link page else go home
         if (linking){
             val intent = Intent(this, LinkStepsToInstructions::class.java)
@@ -658,6 +681,9 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
                             LinkedRecipe(data, index) { index ->
                                 linkedRecipes!!.removeAt(index)
                                 recipeCount = recipeCount?.minus(1)
+                                if ( linkedRecipes!!.isEmpty()){ //if there are none left set the value to nulll
+                                    data.value.data.linked = null
+                                }
                             }
                         }
                     }
@@ -726,10 +752,11 @@ fun LinkedRecipe(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> U
 
     }
 }
+@SuppressLint("UnrememberedMutableState")
 @Composable
 fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Boolean>){
     var steps by remember { mutableStateOf(data.value.data.cookingSteps.list) }
-    var stepCount by remember{ mutableStateOf(data.value.data.cookingSteps.list.count()) }
+
     var isExpanded by remember { mutableStateOf(false)}
     val icon = if (isExpanded)
         Icons.Filled.KeyboardArrowUp
@@ -762,15 +789,16 @@ fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Bo
                         .size(24.dp))
             }
             if (isExpanded) {
+                if (updatedSteps.value ){println(steps)}
                 Column {
-                    var temp = stepCount
+
                     for (step in steps) {
-                        temp -= 1
-                        CookingStep(data, step.index) { index ->
+
+                        CookingStep(step,mutableStateOf(false)) { index ->
                             steps.removeAt(index)
                             steps.forEach { edit -> if (edit.index > index) edit.index -= 1 }
                             data.value.data.cookingSteps.list = steps
-                            stepCount -= 1
+
                             updatedSteps.value = true
                         }
                     }
@@ -790,7 +818,6 @@ fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Bo
                                     ) //starts as oven so need temp set up
                                 )
                             )
-                            stepCount = steps.count()
                             data.value.data.cookingSteps.list = steps
                             updatedSteps.value = true
                         },
@@ -809,10 +836,9 @@ fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Bo
                             onClick = {
                                 //get the value and then save that to the data
                                 val output =
-                                    autoGenerateStepsFromInstructions(data.value.instructions)
+                                    CreateAutomations.autoGenerateStepsFromInstructions(data.value.instructions)
                                 data.value.instructions = output.second
                                 steps = CookingSteps(output.first.toMutableList()).list
-                                stepCount = steps.count()
                                 data.value.data.cookingSteps.list = steps
                                 updatedSteps.value = true
 
@@ -829,20 +855,20 @@ fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Bo
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Unit){
-    var isExpanded by remember { mutableStateOf(false) }
-    var isFan by remember {  if (data.value.data.cookingSteps.list[index].cookingTemperature?.isFan == null) mutableStateOf(false) else mutableStateOf(data.value.data.cookingSteps.list[index].cookingTemperature?.isFan!!)}
-    var timeInput by remember { mutableStateOf(data.value.data.cookingSteps.list[index].time)}
-    var tinSize by remember { if (data.value.data.cookingSteps.list[index].container?.size == null) mutableStateOf("") else mutableStateOf(data.value.data.cookingSteps.list[index].container?.size.toString())}
-    var cookingTemp by remember { if (data.value.data.cookingSteps.list[index].cookingTemperature?.temperature == null) mutableStateOf("") else mutableStateOf(data.value.data.cookingSteps.list[index].cookingTemperature?.temperature.toString())}
+fun CookingStep(data : CookingStep, isExpanded : MutableState<Boolean>, onItemClick: (Int) -> Unit){
+
+    var isFan by remember {  if (data.cookingTemperature?.isFan == null) mutableStateOf(false) else mutableStateOf(data.cookingTemperature?.isFan!!)}
+    var timeInput by remember { mutableStateOf(data.time)}
+    var tinSize by remember { if (data.container?.size == null) mutableStateOf("") else mutableStateOf(data.container?.size.toString())}
+    var cookingTemp by remember { if (data.cookingTemperature?.temperature == null) mutableStateOf("") else mutableStateOf(data.cookingTemperature?.temperature.toString())}
     Card(modifier = Modifier
-        .clickable { isExpanded = !isExpanded }
+        .clickable { isExpanded.value = !isExpanded.value }
         .padding(3.dp)
         .animateContentSize()) {
-        if (!isExpanded) {
+        if (!isExpanded.value) {
             Row {
                 Text(
-                    text  = if (data.value.data.cookingSteps.list[index].time == "")"${data.value.data.cookingSteps.list[index].type}" else "${data.value.data.cookingSteps.list[index].type} for ${data.value.data.cookingSteps.list[index].time}",
+                    text  = if (data.time == "")"${data.type}" else "${data.type} for ${data.time}",
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .padding(7.dp)
@@ -851,7 +877,7 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
                     Modifier
                         .weight(1f)
                 )
-                Button(onClick = { onItemClick(index) }, modifier = Modifier.fillMaxHeight()) {
+                Button(onClick = { onItemClick(data.index) }, modifier = Modifier.fillMaxHeight()) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "",
@@ -867,26 +893,26 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
         }
         else{
             Column (modifier = Modifier.padding(3.dp)) {
-                MenuItemWithDropDown("Type",data.value.data.cookingSteps.list[index].type.toString(),CookingStage.values()) { value ->
-                    data.value.data.cookingSteps.list[index].type = enumValueOf(value)
-                    if (data.value.data.cookingSteps.list[index].type == CookingStage.oven){
-                        data.value.data.cookingSteps.list[index].cookingTemperature = CookingStepTemperature(0,HobOption.zero,false)
+                MenuItemWithDropDown("Type",data.type.toString(),CookingStage.values()) { value ->
+                    data.type = enumValueOf(value)
+                    if (data.type == CookingStage.oven){
+                        data.cookingTemperature = CookingStepTemperature(0,HobOption.zero,false)
                     }
-                    else if (data.value.data.cookingSteps.list[index].type == CookingStage.hob){
-                        data.value.data.cookingSteps.list[index].cookingTemperature = CookingStepTemperature(null,HobOption.zero,null)
+                    else if (data.type == CookingStage.hob){
+                        data.cookingTemperature = CookingStepTemperature(null,HobOption.zero,null)
                     }
                     else {
-                        data.value.data.cookingSteps.list[index].cookingTemperature = null
+                        data.cookingTemperature = null
                     }
                 }
                 //if it is oven or pan enable cooking temp options
-                if (data.value.data.cookingSteps.list[index].type == CookingStage.oven){
+                if (data.type == CookingStage.oven){
                     Row {
                         TextField(
                             value = cookingTemp,
                             onValueChange = { value ->
                                 cookingTemp = value
-                                data.value.data.cookingSteps.list[index].cookingTemperature?.temperature = value.toIntOrNull()
+                                data.cookingTemperature?.temperature = value.toIntOrNull()
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                             textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
@@ -897,7 +923,7 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
                         FilterChip(
                             onClick = {
                                 isFan = !isFan
-                                data.value.data.cookingSteps.list[index].cookingTemperature?.isFan = isFan
+                                data.cookingTemperature?.isFan = isFan
                             },
                             label = {
                                 Text("Fan Oven")
@@ -920,18 +946,18 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
 
 
                 }
-                if (data.value.data.cookingSteps.list[index].type == CookingStage.hob){
+                if (data.type == CookingStage.hob){
                     MenuItemWithDropDown("Hob Temperature",
-                        data.value.data.cookingSteps.list[index].cookingTemperature?.hobTemperature.toString(),
+                        data.cookingTemperature?.hobTemperature.toString(),
                         HobOption.values()) { value ->
-                        data.value.data.cookingSteps.list[index].cookingTemperature?.hobTemperature = enumValueOf(value)
+                        data.cookingTemperature?.hobTemperature = enumValueOf(value)
                     }
                 }
                 TextField(
                     value = timeInput,
                     onValueChange = { value ->
                         timeInput = value
-                        data.value.data.cookingSteps.list[index].time = value
+                        data.time = value
 
                     },
                     modifier = Modifier
@@ -942,28 +968,28 @@ fun CookingStep(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Un
                     label = { Text("Time") }
                 )
                 MenuItemWithDropDown("Container",
-                    if (data.value.data.cookingSteps.list[index].container == null) "none" else data.value.data.cookingSteps.list[index].container?.type.toString(),
+                    if (data.container == null) "none" else data.container?.type.toString(),
                     TinOrPanOptions.values()) { value ->
                     if (value == "none"){
-                        data.value.data.cookingSteps.list[index].container = null
+                        data.container = null
                     }
                     else{
-                        if (data.value.data.cookingSteps.list[index].container == null){
-                            data.value.data.cookingSteps.list[index].container = CookingStepContainer(enumValueOf(value),null)
+                        if (data.container == null){
+                            data.container = CookingStepContainer(enumValueOf(value),null)
                         }
                         else{
-                            data.value.data.cookingSteps.list[index].container?.type = enumValueOf(value)
+                            data.container?.type = enumValueOf(value)
                         }
                     }
 
                 }
                 //if the container is a tin enable the size input
-                if (data.value.data.cookingSteps.list[index].container?.type == TinOrPanOptions.roundTin ||data.value.data.cookingSteps.list[index].container?.type == TinOrPanOptions.rectangleTin){
+                if (data.container?.type == TinOrPanOptions.roundTin ||data.container?.type == TinOrPanOptions.rectangleTin){
                     TextField(
                         value =  tinSize,
                         onValueChange = { value ->
                             tinSize = value
-                            data.value.data.cookingSteps.list[index].container?.size = value.toIntOrNull()
+                            data.container?.size = value.toIntOrNull()
 
                         },
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1044,9 +1070,9 @@ fun getIngredients(data : MutableState<Recipe>) : String{
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun IngredientsInput(data : MutableState<Recipe>){
+fun IngredientsInput(userSettings: Map<String,String>,data : MutableState<Recipe>){
     var ingredientsInput by remember { mutableStateOf(getIngredients(data))}
-
+    val textLineColors = listOf(MaterialTheme.colorScheme.primary,MaterialTheme.colorScheme.secondary,MaterialTheme.colorScheme.tertiary)
     Surface(
         shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
         modifier = Modifier
@@ -1054,28 +1080,58 @@ fun IngredientsInput(data : MutableState<Recipe>){
             .fillMaxWidth()
             .animateContentSize()
         ) {
+        if (userSettings["Creation.Separate Ingredients"]== "true") { //only apply  different line colours if enabled in the settings
+            TextField(
+                value = ingredientsInput,
+                onValueChange = { value ->
+                    ingredientsInput = value
+                    //save value to data
+                    val ingredients: MutableList<Ingredient> = mutableListOf()
+                    var index = 0
+                    for (ingredient in value.split("\n")) {
+                        if (!ingredient.matches("\\s*".toRegex())) {
+                            ingredients.add(Ingredient(index, ingredient))
+                            index += 1
 
-        TextField(
-            value = ingredientsInput,
-            onValueChange = { value ->
-                ingredientsInput = value
-                //save value to data
-                val ingredients : MutableList<Ingredient> = mutableListOf()
-                var index = 0
-                for ( ingredient in value.split("\n")){
-                    if (!ingredient.matches("\\s*".toRegex())) {
-                        ingredients.add(Ingredient(index, ingredient))
-                        index += 1
-
+                        }
                     }
-                }
-                data.value.ingredients = Ingredients(ingredients)
-            },
-            modifier = Modifier
-                .fillMaxWidth(),
-            textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
-            label = { Text(text = "Ingredients")}
-        )
+                    data.value.ingredients = Ingredients(ingredients)
+                },
+                visualTransformation = {
+                    TransformedText(
+                        buildAnnotatedStringWithColors(ingredientsInput,textLineColors),
+                        OffsetMapping.Identity
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                label = { Text(text = "Ingredients") }
+            )
+        }
+        else{
+            TextField(
+                value = ingredientsInput,
+                onValueChange = { value ->
+                    ingredientsInput = value
+                    //save value to data
+                    val ingredients: MutableList<Ingredient> = mutableListOf()
+                    var index = 0
+                    for (ingredient in value.split("\n")) {
+                        if (!ingredient.matches("\\s*".toRegex())) {
+                            ingredients.add(Ingredient(index, ingredient))
+                            index += 1
+
+                        }
+                    }
+                    data.value.ingredients = Ingredients(ingredients)
+                },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                label = { Text(text = "Ingredients") }
+            )
+        }
     }
 }
 fun getInstructions(data : MutableState<Recipe>) : String{
@@ -1087,8 +1143,9 @@ fun getInstructions(data : MutableState<Recipe>) : String{
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InstructionsInput(data : MutableState<Recipe>){
+fun InstructionsInput(userSettings: Map<String,String>,data : MutableState<Recipe>){
     var instructionsInput by remember { mutableStateOf(getInstructions(data))}
+    val textLineColors = listOf(MaterialTheme.colorScheme.primary,MaterialTheme.colorScheme.secondary,MaterialTheme.colorScheme.tertiary)
 
     Surface(
         shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
@@ -1098,28 +1155,74 @@ fun InstructionsInput(data : MutableState<Recipe>){
             .animateContentSize()
     ) {
 
-        TextField(
-            value = instructionsInput,
-            onValueChange = { value ->
-                instructionsInput = value
-                //save value to data
-                val instructions : MutableList<Instruction> = mutableListOf()
-                var index = 0
-                for (  instruction in value.split("\n")){
-                    if (!instruction.matches("\\s*".toRegex())){
-                        instructions.add(Instruction(index,instruction,null))
-                        index += 1
-                    }
+        if (userSettings["Creation.Separate Instructions"]== "true"){ //only apply  different line colours if enabled in the settings
+            TextField(
+                value = instructionsInput,
+                onValueChange = { value ->
+                    instructionsInput = value
+                    //save value to data
+                    val instructions : MutableList<Instruction> = mutableListOf()
+                    var index = 0
+                    for (  instruction in value.split("\n")){
+                        if (!instruction.matches("\\s*".toRegex())){
+                            instructions.add(Instruction(index,instruction,null))
+                            index += 1
+                        }
 
-                }
-                data.value.instructions = Instructions(instructions)
-            },
-            modifier = Modifier
-                .fillMaxWidth(),
-            textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
-            label = { Text(text = "instructions")}
-        )
+                    }
+                    data.value.instructions = Instructions(instructions)
+                },
+                visualTransformation = {
+                    TransformedText(
+                        buildAnnotatedStringWithColors(instructionsInput,textLineColors),
+                        OffsetMapping.Identity
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                textStyle = TextStyle(color = Color.White, fontSize = 18.sp ),
+                label = { Text(text = "instructions")}
+            )
+        }
+        else{
+            TextField(
+                value = instructionsInput,
+                onValueChange = { value ->
+                    instructionsInput = value
+                    //save value to data
+                    val instructions : MutableList<Instruction> = mutableListOf()
+                    var index = 0
+                    for (  instruction in value.split("\n")){
+                        if (!instruction.matches("\\s*".toRegex())){
+                            instructions.add(Instruction(index,instruction,null))
+                            index += 1
+                        }
+
+                    }
+                    data.value.instructions = Instructions(instructions)
+                },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                textStyle = TextStyle(color = Color.White, fontSize = 18.sp ),
+                label = { Text(text = "instructions")}
+            )
+        }
     }
+}
+
+
+fun buildAnnotatedStringWithColors(text:String, colors:  List<Color>): AnnotatedString{
+    val lines = text.split("\n")
+    val builder = AnnotatedString.Builder()
+    for ((count, line) in lines.withIndex()) {
+        builder.withStyle(style = SpanStyle(color = colors[count%colors.count()])) {
+            append(line)
+            if (count!= lines.size-1){//do not add the extra /n
+                append("\n")
+            }
+        }
+    }
+    return builder.toAnnotatedString()
 }
 @Composable
 fun DeleteAndFinishButtons(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit,imageUri : MutableState<Uri?>,imageBitmap: MutableState<Bitmap?>){
@@ -1220,16 +1323,16 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
 }
 
 @Composable
-private fun MainScreen(recipeDataInput: Recipe,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit){
-    var recipeDataInput = remember { mutableStateOf(recipeDataInput) }
-    var imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
-    var updatedSteps = remember { mutableStateOf(false) }
+private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit){
+    val recipeDataInput = remember { mutableStateOf(recipeDataInput) }
+    val imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
+    val updatedSteps = remember { mutableStateOf(false) }
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         TitleInput(recipeDataInput)
         ImageInput(imageUri,image)
         DataInput(recipeDataInput,updatedSteps)
-        IngredientsInput(recipeDataInput)
-        InstructionsInput(recipeDataInput)
+        IngredientsInput(userSettings,recipeDataInput)
+        InstructionsInput(userSettings,recipeDataInput)
         DeleteAndFinishButtons(recipeDataInput,updatedSteps,onDeleteClick,onFinishClick,imageUri,image)
 
     }
@@ -1245,161 +1348,8 @@ private fun MainScreen(recipeDataInput: Recipe,image : MutableState<Bitmap?>,onD
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen(GetEmptyRecipe(), mutableStateOf(null),{},{ recipe, uri, bitmap, linking -> })
+        MainScreen(mapOf(),GetEmptyRecipe(), mutableStateOf(null),{},{ recipe, uri, bitmap, linking -> })
     }
 }
 
-fun autoGenerateStepsFromInstructions(instructions: Instructions) : Pair<List<CookingStep>,Instructions>{//todo often the recipe dose not like to split up instructions enough so sometimes multiple in one and that dose not work with this
-    var generatedSteps : MutableList<CookingStep> = mutableListOf()
-    var ovenStepIndex = -1
-    var lastStepStage : CookingStage? = null
-    for (instruction in instructions.list){
-        //look for oven related steps
-        val stage = getInstructionStage(instruction.text,lastStepStage)
-        //get the temperature
-        var temperature : CookingStepTemperature? = null
-        if (stage == CookingStage.oven || stage == CookingStage.hob){
-            temperature = getInstructionTemp(instruction.text,  stage == CookingStage.oven)
-        }
-        //get the time
-        val time = getInstructionTime(instruction.text)
-        //get the container
-        val container = getInstructionContainer(instruction.text)
-        //either link to existing or create step
-        if (ovenStepIndex>= 0 &&stage == CookingStage.oven){ //if its oven there is usually only one use of the oven so combine the data together
-            //if value dose not exist set it to the value for the found step
-            if(generatedSteps[ovenStepIndex].time== "") {generatedSteps[ovenStepIndex].time = time}
-            if(generatedSteps[ovenStepIndex].container== null) {generatedSteps[ovenStepIndex].container = container}
-            if(generatedSteps[ovenStepIndex].cookingTemperature== null) {generatedSteps[ovenStepIndex].cookingTemperature = temperature}
-            instruction.linkedCookingStepIndex = ovenStepIndex
-        }
-        else if ( lastStepStage!= null && stage == lastStepStage &&!(time != "" && generatedSteps[generatedSteps.size-1].time !="")){//if its the same type of stage as the one before it combine it if they do not have seperate times
-            if(generatedSteps[generatedSteps.size-1].time== "") {generatedSteps[generatedSteps.size-1].time = time}
-            if(generatedSteps[generatedSteps.size-1].container== null) {generatedSteps[generatedSteps.size-1].container = container}
-            if(generatedSteps[generatedSteps.size-1].cookingTemperature== null) {generatedSteps[generatedSteps.size-1].cookingTemperature = temperature}
-            instruction.linkedCookingStepIndex = generatedSteps.size-1
-        }
-        else{ //if there is not a step to link it to create a new step
-            generatedSteps.add(CookingStep(generatedSteps.size,time,stage,container,temperature))
-            //set values for the oven step if its the first one
-            if (stage == CookingStage.oven){
-                ovenStepIndex = generatedSteps.size-1
-            }
-            instruction.linkedCookingStepIndex = generatedSteps.size-1
-
-        }
-        //set value of last step
-        lastStepStage = stage
-
-
-    }
-
-
-
-
-
-
-    return  Pair(generatedSteps,instructions)
-}
-private fun getInstructionStage(text:String,lastStep: CookingStage?) : CookingStage {
-    val cleanText = getCleanText(text)
-    if (cleanText.contains(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil) ".toRegex())) { return CookingStage.hob}
-    if (cleanText.contains(" (oven)|(bake) ".toRegex())) { return CookingStage.oven}
-    if (cleanText.contains(" fridge ")) { return CookingStage.fridge}
-    if (cleanText.contains(" (wait)|(sit for)|(leave) ".toRegex())) { return CookingStage.wait}
-    //if the last stage was hob infer cook as hob else infer it as oven
-    if (cleanText.contains(" cook ")){
-        return if (lastStep == CookingStage.hob){
-            CookingStage.hob
-        } else{
-            CookingStage.oven
-        }
-    }
-    return  CookingStage.prep // most likely if can not find word hinting at what it is
-}
-private fun getInstructionTemp(text: String,isOven: Boolean) : CookingStepTemperature?{ //todo see if fan can be found if that is what the user wants
-    val words = getWords(text)
-    if (isOven) {//if looking for temerature for oven
-        for ((index, word) in words.withIndex()) {
-            if (word.matches("[0-9]+°*C".toRegex())) {//should be a temperature
-                if (index < words.count() - 1 && words[index + 1].lowercase() == "fan") {//if fan or not
-                    return CookingStepTemperature(
-                        word.replace("°*C".toRegex(), "").toInt(),
-                        HobOption.zero,
-                        true
-                    )
-                }
-                return CookingStepTemperature(
-                    word.replace("°*C".toRegex(), "").toInt(),
-                    HobOption.zero,
-                    false
-                )
-            }
-        }
-    }
-    else{ //if looking for temperature for hob
-        for ((index, word) in words.withIndex()) {
-            if(word.lowercase() == "heat" && index >0){//if it fits the key word and is not the first word
-                val value = try{
-                    HobOption.valueOf(words[index-1])
-                }catch (e : Exception){
-                    when(words[index-1]){//other descriptors that need converting into the format used
-                        "gently" -> HobOption.lowMedium
-                        "medium-low" -> HobOption.lowMedium
-                        "medium-high" -> HobOption.highMedium
-                        else -> HobOption.zero
-                    }
-                }
-                if (value != HobOption.zero){//only return if a value is found as there may be another place where it is said
-                    return CookingStepTemperature(null,value ,null)
-                }
-            }
-        }
-
-    }
-    return null
-}
-private fun getInstructionContainer(text: String) : CookingStepContainer?{
-    val cleanText = getCleanText(text)
-    val option = when{
-        cleanText.contains(" frying pan ") -> TinOrPanOptions.fryingPan
-        cleanText.contains("pan ") -> TinOrPanOptions.saucePan
-        cleanText.contains(" wok ") -> TinOrPanOptions.saucePan
-        cleanText.contains(" bowl ") -> TinOrPanOptions.bowl
-        cleanText.contains(" trays? ".toRegex()) -> TinOrPanOptions.tray
-        cleanText.contains(" rectangular tin ") -> TinOrPanOptions.rectangleTin
-        cleanText.contains(" tins? ".toRegex()) -> TinOrPanOptions.roundTin
-        else -> TinOrPanOptions.none
-    }
-
-    //if tin see if size can be found
-    var size : Int? = null
-    if (option == TinOrPanOptions.roundTin || option == TinOrPanOptions.rectangleTin){
-        val words = getWords(text)
-        for (word in words){
-            if (word.matches("[0-9]+cm".toRegex())){
-                size = word.removeSuffix("cm").toIntOrNull()
-            }
-        }
-    }
-    if ( option != TinOrPanOptions.none){
-        return CookingStepContainer(option,size)
-    }
-    return null
-}
-
-private fun getInstructionTime(text: String) : String{
-    val words = getWords(text)
-    for ((index,word) in words.withIndex()){
-        if (word!= "" && word.matches("(seconds)|(min(ute)?s?)|(hours?)".toRegex())){
-            println("${words[index-1]} $word")
-            return "${words[index-1]} $word"
-        }
-    }
-
-    return  ""
-}
-private fun getWords(text: String) : List<String> { return text.split("[\\s,/.;?]+".toRegex())}
-
-private  fun getCleanText(text: String) : String { return  text.lowercase().replace("\\.|;|\\,|\\(|\\)|/".toRegex()," ")}
 

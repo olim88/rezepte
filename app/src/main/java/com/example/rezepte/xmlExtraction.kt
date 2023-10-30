@@ -151,6 +151,7 @@ enum class TinOrPanOptions(val text: String){
     saucePan("sauce pan"),
     bowl("bowl"),
     tray("tray"),
+    roastingTin("roasting tin"),
     roundTin("round tin"),
     rectangleTin("rectangular tin"),
 

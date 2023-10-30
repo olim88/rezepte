@@ -59,21 +59,21 @@ class MainActivity : ComponentActivity() {
 
 
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
 
         //dropbox account handling
         val login = DbTokenHandling(getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE))
+        val needToLogIn = login.refreshIfExpired()
 
-        if (login.refreshIfExpired()) {
+        if (needToLogIn) {
             //No token
             //Back to LoginActivity
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
+
         else {
             //get token
             val token = DbTokenHandling(
@@ -91,6 +91,12 @@ class MainActivity : ComponentActivity() {
             //get account data
             GlobalScope.launch {
                 accountData.value = DownloadTask(DropboxClient.getClient(token)).getUserAccount()
+                withContext(Dispatchers.Main) {
+                    if (accountData.value == null) {
+                        Toast.makeText(this@MainActivity, "can't reach dropbox", Toast.LENGTH_LONG)
+                            .show()
+                    }
+                }
             }
         }
 
@@ -100,7 +106,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun MainScreen(accountData: MutableState<FullAccount?>) {
+private fun     MainScreen(accountData: MutableState<FullAccount?>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
 
@@ -252,7 +258,13 @@ fun CreateButtonOptions() {
                 keyboardActions = KeyboardActions(
                     onDone = {
                         GlobalScope.launch {
-                            val recipe = DownloadWebsite.main(urlValue)
+                            val settings = SettingsActivity.loadSettings( //todo already have this loaded
+                                mContext.getSharedPreferences(
+                                    "com.example.rezepte.settings",
+                                    ComponentActivity.MODE_PRIVATE
+                                )
+                            )
+                            val recipe = DownloadWebsite.main(urlValue,settings)
                             withContext(Dispatchers.Main) {
                                 //move to create activity
                                 val intent = Intent(mContext,CreateActivity::class.java)

@@ -52,13 +52,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.roundToInt
-
+import kotlin.math.abs
 
 class MakeActivity : AppCompatActivity()
 {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //get the users settings
+        val settings = SettingsActivity.loadSettings(
+            getSharedPreferences(
+                "com.example.rezepte.settings",
+                MODE_PRIVATE
+            )
+        )
         val recipeName = intent.extras?.getString("recipe name")
         var image: MutableState<Bitmap?> = mutableStateOf(null)
         val token = DbTokenHandling(
@@ -67,21 +74,48 @@ class MakeActivity : AppCompatActivity()
                     MODE_PRIVATE
                 )
                 ).retrieveAccessToken()
-
+        //create variable for recipe data
+        var extractedData : MutableState<Recipe> = mutableStateOf(GetEmptyRecipe())
+        //if local save load that data
+        val localData = LocalFilesTask.loadFile("${this.filesDir}/xml/","$recipeName.xml")
+        //if there is localy saved data load that to extracted data
+        if (localData != null){
+            extractedData.value =  xmlExtraction().GetData(localData.first)
+        }
+        //set the content
+        setContent {
+            RezepteTheme {
+                MainScreen(settings, extractedData,image)
+            }
+        }
 
         //load saved data about recipe
         val downloader = DownloadTask(DropboxClient.getClient(token))
         GlobalScope.launch {
-            //get data
-            val data: String = downloader.getXml("/xml/$recipeName.xml")
-            val extractedData = xmlExtraction().GetData(data)
+            //make sure most updated data else replace with online and save online to file
+            val data = downloader.getXml("/xml/$recipeName.xml")
+            //compare the data of save for local and dropbox save
+            if (localData != null){
+                if (data.second.toInstant().toEpochMilli()- localData.second.toInstant().toEpochMilli()>5000){//if local is more than 5 seconds behind
+                    LocalFilesTask.saveFile(data.first, "${this@MakeActivity.filesDir}/xml/","$recipeName.xml")
+                    extractedData.value = xmlExtraction().GetData(data.first)
+                }else if (data.second.toInstant().toEpochMilli()- localData.second.toInstant().toEpochMilli()>-5000) {//if local save is over 5 seconds newer
+                    //upload local to dropbox
+                    val uploadClient = UploadTask(DropboxClient.getClient(token))
+                    //upload recipe data
+                    uploadClient.uploadXml(localData.first, "/xml/$recipeName.xml")
+                }
+
+
+
+            } else { //if not saved locally save it and update ui version
+                LocalFilesTask.saveFile(data.first, "${this@MakeActivity.filesDir}/xml/","$recipeName.xml")
+                extractedData.value = xmlExtraction().GetData(data.first)
+            }
+
 
             withContext(Dispatchers.Main) {
-                setContent {
-                    RezepteTheme {
-                        MainScreen( extractedData,image)
-                    }
-                }
+
             }
             image.value = downloader.getImage("/image/",recipeName!!)
         }
@@ -108,34 +142,107 @@ private fun intToRoman(num: Int): String? {
     val I = arrayOf("", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX")
     return M[num / 1000] + C[num % 1000 / 100] + X[num % 100 / 10] + I[num % 10]
 }
+val Float.vulgarFraction: Pair<String, Float>
+    get() {
+        val whole = toInt()
+        val sign = if (whole < 0) -1 else 1
+        val fraction = this - whole
 
-private fun multiplyNumbersInString(string :String, multiplier: Float, rounding: RoundingOption) : String {
-    val numbers = Regex("[0-9]+(\\d*\\.)?[0-9]*").findAll(string)
+        for (i in 1 until fractions.size) {
+            if (abs(fraction) > (fractionValues[i] + fractionValues[i - 1]) / 2) {
+                return if (fractionValues[i - 1] == 1.0) {
+                    "${whole + sign}" to (whole + sign).toFloat()
+                } else if (whole != 0) {
+                    "$whole${fractions[i - 1]}" to whole + sign * fractionValues[i - 1].toFloat()
+                }else {
+                    "${fractions[i - 1]}" to  sign * fractionValues[i - 1].toFloat()
+                }
+
+            }
+        }
+        return "$whole" to whole.toFloat()
+    }
+val String.vulgarFraction : Float
+get() {
+    //split
+    val number = Regex("-?[0-9]+(/|\\d*\\.)?[0-9]*").find(this)
+    val fraction = if (number == null){
+        this
+    }else{
+        this.replace(number.value,"")
+    }
+    //convert fraction to number
+    val fractionalValue = if (fraction != ""){
+        fractionValues[fractions.indexOf(fraction)]
+    }else {
+        null
+    }
+    var output = 0f
+    if (number != null ) {
+        output += if (number.value.contains("/")){//if it is a fractional value work that out
+            val numbers = number.value.split("/")
+            numbers[0].toFloat()/numbers[1].toFloat()
+        }else {
+            number.value.toFloatOrNull() ?: 0f //convert to float but if its somehow invalid return 0
+
+        }
+    }
+    if (fractionalValue != null){
+        output += fractionalValue.toFloat()
+    }
+    return output
+}
+
+private val fractions = arrayOf(
+    "",                           // 16/16
+    "\u00B9\u2075/\u2081\u2086",  // 15/16
+    "\u215E",                     // 7/8
+    "\u00B9\u00B3/\u2081\u2086",  // 13/16
+    "\u00BE",                     // 3/4
+    "\u00B9\u00B9/\u2081\u2086",  // 11/16
+    "\u215D",                     // 5/8
+    "\u2079/\u2081\u2086",        // 9/16
+    "\u00BD",                     // 1/2
+    "\u2077/\u2081\u2086",        // 7/16
+    "\u215C",                     // 3/8
+    "\u2075/\u2081\u2086",        // 5/16
+    "\u00BC",                     // 1/4
+    "\u00B3/\u2081\u2086",        // 3/16
+    "\u215B",                     // 1/8
+    "\u00B9/\u2081\u2086",        // 1/16
+    ""                            // 0/16
+)
+
+private val fractionValues = arrayOf(
+    1.0,
+    15.0 / 16, 7.0 / 8, 13.0 / 16, 3.0 / 4, 11.0 / 16,
+    5.0 / 8, 9.0 / 16, 1.0 / 2, 7.0 / 16, 3.0 / 8,
+    5.0 / 16, 1.0 / 4, 3.0 / 16, 1.0 / 8, 1.0 / 16,
+    0.0
+)
+
+private fun multiplyNumbersInString(string :String, multiplier: Float, settings : Map<String,String>) : String {
+    //find all numbers
+    val numbers = Regex("([0-9]+(/|\\d*\\.)?[0-9]*([${fractions.joinToString("")}]?))|([${fractions.joinToString("")}])").findAll(string)
         .map(MatchResult::value)
         .toList()
     //replace numbers with multiplied value
     var output = string
     for (number in numbers){
-        var value = number.toFloat() * multiplier
-        when (rounding){
-            RoundingOption.Int -> value = value.roundToInt().toFloat()
-            RoundingOption.Little -> value = (value*10).roundToInt().toFloat()/10
-            RoundingOption.Some -> value = (value*100).roundToInt().toFloat()/1000
-            else -> continue
+        if (number== "/") continue
+        var value = number.vulgarFraction * multiplier
+        output = if (settings["Units.Fractional Numbers"]== "true"){
+            output.replace(number,value.vulgarFraction.first)
+        }else {
+            output.replace(number, (value.vulgarFraction.second).toString().replace(".0", ""))
         }
-        output = output.replace(number,(value).toString().replace(".0",""))
     }
     return output
 }
-enum class RoundingOption{
-    None,
-    Some,
-    Little,
-    Int,
-}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DataOutput(recipeData: Recipe,multiplier : MutableState<Float>){
+fun DataOutput(userSettings: Map<String,String>,recipeData: Recipe,multiplier : MutableState<Float>){
     var multiplierInput by remember { mutableStateOf("1")}
     Card(
         modifier = Modifier
@@ -155,7 +262,7 @@ fun DataOutput(recipeData: Recipe,multiplier : MutableState<Float>){
             )
             //servings
             TextField(
-                value = multiplyNumbersInString(recipeData.data.serves,multiplier.value,RoundingOption.Little),
+                value = multiplyNumbersInString(recipeData.data.serves,multiplier.value, userSettings),
                 onValueChange = {},
                 readOnly = true,
                 label = {Text("Servings")},
@@ -212,7 +319,7 @@ fun StepsOutput(recipeData: Recipe){
 
 
 @Composable
-fun IngredientsOutput(recipeData: Recipe, mutiplyer: MutableState<Float>){
+fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, mutiplyer: MutableState<Float>){
     var strikeIndex by remember {mutableStateOf(0)}
     Card(
         modifier = Modifier
@@ -224,7 +331,7 @@ fun IngredientsOutput(recipeData: Recipe, mutiplyer: MutableState<Float>){
                         if (strikeIndex > 0) strikeIndex -= 1
                     },
                     onTap = {
-                        if (strikeIndex < recipeData.ingredients.list.count()) strikeIndex += 1
+                        if (strikeIndex < recipeData.value.ingredients.list.count()) strikeIndex += 1
                     }
                 )
             }
@@ -244,8 +351,9 @@ fun IngredientsOutput(recipeData: Recipe, mutiplyer: MutableState<Float>){
                 )
             }
             //update the ingredients list
-            for ((index,ingredient) in recipeData.ingredients.list.withIndex()) {
+            for ((index,ingredient) in recipeData.value.ingredients.list.withIndex()) {
                 Ingredient(
+                    userSettings,
                     ingredient.text,
                     ingredient.index,
                     (index == strikeIndex),
@@ -257,10 +365,10 @@ fun IngredientsOutput(recipeData: Recipe, mutiplyer: MutableState<Float>){
     }
 }
 @Composable
-fun Ingredient (value : String,index : Int,isBig : Boolean, isStrike: Boolean, mutiplyer : MutableState<Float>){
+fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBig : Boolean, isStrike: Boolean, mutiplyer : MutableState<Float>){
     var style =  if (isBig) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall
     if (isStrike) style = style.copy(textDecoration = TextDecoration.LineThrough)
-    Text ( text = "${intToRoman(index+1)}: ${multiplyNumbersInString(value,mutiplyer.value,RoundingOption.Little)}",
+    Text ( text = "${intToRoman(index+1)}: ${multiplyNumbersInString(value,mutiplyer.value, userSettings)}",
         modifier = Modifier
             .padding(5.dp)
             .fillMaxWidth(),
@@ -280,7 +388,7 @@ fun getColor (index: Int?, default : androidx.compose.ui.graphics.Color) :  andr
 
 }
 @Composable
-fun InstructionsOutput(recipeData: Recipe){
+fun InstructionsOutput(recipeData: MutableState<Recipe>){
     var strikeIndex by remember {mutableStateOf(0)}
 
     Card(
@@ -293,7 +401,7 @@ fun InstructionsOutput(recipeData: Recipe){
                         if (strikeIndex > 0) strikeIndex -= 1
                     },
                     onTap = {
-                        if (strikeIndex < recipeData.instructions.list.count()) strikeIndex += 1
+                        if (strikeIndex < recipeData.value.instructions.list.count()) strikeIndex += 1
                     }
                 )
             }
@@ -313,7 +421,7 @@ fun InstructionsOutput(recipeData: Recipe){
                 )
             }
             //update the instructions list
-            for ((index,instruction) in recipeData.instructions.list.withIndex()) {
+            for ((index,instruction) in recipeData.value.instructions.list.withIndex()) {
                 instruction(
                     instruction.text,
                     instruction.index,
@@ -322,7 +430,7 @@ fun InstructionsOutput(recipeData: Recipe){
                     getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.onBackground)
                 )
                 if (index == strikeIndex && instruction.linkedCookingStepIndex != null){
-                    cookingStepDisplay(recipeData.data.cookingSteps.list[instruction.linkedCookingStepIndex!!],getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface))
+                    cookingStepDisplay(recipeData.value.data.cookingSteps.list[instruction.linkedCookingStepIndex!!],getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface))
                 }
 
             }
@@ -446,8 +554,8 @@ fun LinkedRecipesOutput(recipeData: Recipe){
 }
 
 @Composable
-private fun MainScreen(recipeData: Recipe, image : MutableState<Bitmap?>){
-    var recipeData by remember { mutableStateOf(recipeData) }
+private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, image : MutableState<Bitmap?>){
+
     var multiplier = remember {mutableStateOf(1f)}
     // Fetching the Local Context
     val mContext = LocalContext.current
@@ -463,7 +571,7 @@ private fun MainScreen(recipeData: Recipe, image : MutableState<Bitmap?>){
                     Modifier
                         .weight(1f)
                 )
-                Text(text = recipeData.data.name, style = MaterialTheme.typography.titleLarge,fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline, textAlign = TextAlign.Center)
+                Text(text = recipeData.value.data.name, style = MaterialTheme.typography.titleLarge,fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline, textAlign = TextAlign.Center)
                 Spacer(
                     Modifier
                         .weight(1f)
@@ -484,21 +592,21 @@ private fun MainScreen(recipeData: Recipe, image : MutableState<Bitmap?>){
             contentScale = ContentScale.FillWidth
         )
         //data
-        DataOutput(recipeData,multiplier)
+        DataOutput(userSettings,recipeData.value,multiplier)
         //instruction steps
-        StepsOutput(recipeData)
+        StepsOutput(recipeData.value)
         //ingredients
-        IngredientsOutput(recipeData,multiplier)
+        IngredientsOutput(userSettings,recipeData,multiplier)
         //instructions
         InstructionsOutput(recipeData)
         //linked recipes
-        LinkedRecipesOutput(recipeData)
+        LinkedRecipesOutput(recipeData.value)
         //edit and finish button
         Row{
             Button(onClick = {
                 val intent = Intent(mContext, CreateActivity::class.java)
                 intent.putExtra("creating", false)
-                intent.putExtra("recipe name", recipeData.data.name)
+                intent.putExtra("recipe name", recipeData.value.data.name)
                 mContext.startActivity(intent)
             }, modifier = Modifier.padding(5.dp)) {
                 Text (text = "Edit")
@@ -525,7 +633,7 @@ private fun MainScreen(recipeData: Recipe, image : MutableState<Bitmap?>){
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen(GetEmptyRecipe(), mutableStateOf(null))
+        MainScreen(mapOf(), mutableStateOf(GetEmptyRecipe()), mutableStateOf(null))
     }
 }
 
