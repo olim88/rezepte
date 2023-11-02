@@ -63,17 +63,18 @@ class DownloadTask(client: DbxClientV2)  {
 
         return Pair(content.toString() ,time)
     }
-    suspend fun getImage(dir: String, name :String): Bitmap? {
-        if (GetImagePath(dir,name) == null) return null
-        val results = dbxClient.files().download(GetImagePath(dir,name))
+    suspend fun getImage(dir: String, name :String): Pair<Bitmap, Date>? {
+        if (getImagePath(dir,name) == null) return null
+        val results = dbxClient.files().download(getImagePath(dir,name))
+        val time = results.result.serverModified //last modified time
 
         val options = BitmapFactory.Options()
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
 
 
-        return BitmapFactory.decodeStream(results.inputStream)
+        return Pair(BitmapFactory.decodeStream(results.inputStream),time)
     }
-    suspend fun GetImagePath(dir: String, name :String): String? {
+    private suspend fun getImagePath(dir: String, name :String): String? {
         val nameOptions = listDir(dir) ?: return  null
         val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
         if (fullName.isEmpty()) return null

@@ -51,7 +51,7 @@ class UploadTask (private val client: DbxClientV2){
     }
     fun uploadBitmap(bitmap : Bitmap, filepath: String){ //uploads a file to dropbox
         try {
-            //upload xml
+            //upload bitmap
             val bos = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.PNG,0,bos)
             val inputStream: InputStream = ByteArrayInputStream(bos.toByteArray())

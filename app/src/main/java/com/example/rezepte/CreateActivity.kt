@@ -168,7 +168,7 @@ class CreateActivity : ComponentActivity() {
                     }
 
                 }
-                image.value = downloader.getImage("/image/", loadedRecipeName!!)
+                image.value = downloader.getImage("/image/", loadedRecipeName!!)?.first
             }
 
         } else {
@@ -219,7 +219,8 @@ class CreateActivity : ComponentActivity() {
                             uploader.removeImage("/image/$loadedRecipeName")
                         }
                         //remove local files
-                        LocalFilesTask.removeFile("${this.filesDir}/xml/","$loadedRecipeName.xml") //todo remove image
+                        LocalFilesTask.removeFile("${this.filesDir}/xml/","$loadedRecipeName.xml")
+                        LocalFilesTask.removeFile("${this.filesDir}/image/","$loadedRecipeName.png")
                         //go home
                         val intent = Intent(this, MainActivity::class.java)
                         startActivity(intent)
@@ -300,8 +301,15 @@ class CreateActivity : ComponentActivity() {
         ))
         //save to device if setting enabled
         if (settings["Local Saves.Cache recipes"] == "true"){
-            LocalFilesTask.saveFile(data,"${this.filesDir}/xml/","$name.xml") //todo save image
-
+            LocalFilesTask.saveString(data,"${this.filesDir}/xml/","$name.xml")
+        }
+        if (settings["Local Saves.Cache recipe image"] == "full sized"){
+            if (file != null){
+                LocalFilesTask.saveFile(file,"${this.filesDir}/image/","$name.png")
+            }
+            else if (bitmapImage != null) {
+                LocalFilesTask.saveBitmap(bitmapImage,"${this.filesDir}/image/","$name.png")
+            }
         }
 
         //if linking move to the link page else go home
@@ -455,9 +463,7 @@ class CreateActivity : ComponentActivity() {
 
 
 
-data class MyExtractedData(
-    var text: String = "",
-)
+
 @Composable
 fun ErrorDialog(errorTitle: String,errorBody: String){ //this is not working for some reason and i can not even use it where i want so ?
     val openDialog = remember { mutableStateOf(true) }
@@ -689,7 +695,7 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
                             LinkedRecipe(data, index) { index ->
                                 linkedRecipes!!.removeAt(index)
                                 recipeCount = recipeCount?.minus(1)
-                                if ( linkedRecipes!!.isEmpty()){ //if there are none left set the value to nulll
+                                if ( linkedRecipes!!.isEmpty()){ //if there are none left set the value to null
                                     data.value.data.linked = null
                                 }
                             }

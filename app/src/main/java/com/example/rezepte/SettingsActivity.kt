@@ -155,7 +155,7 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
         SettingsSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet",listOf(
             SettingsOptionToggle("Cache recipes","save a copy of recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cache recipe names","save a copy of names", mutableStateOf(true)),
-            SettingsOptionToggle("Cache recipes images","save a copy of images (can use up more space )", mutableStateOf(false)),
+            SettingsOptionDropDown("Cache recipe image","save a copy of images (can use up more space )", mutableStateOf(0),listOf("none","thumbnail","full sized")),
         )),
         )
 }

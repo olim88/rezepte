@@ -130,7 +130,7 @@ class SearchActivity : ComponentActivity() {
                         .split("\n")) { //if the lists are different use the online version and save to to local if enabled
                     data.value = onlineList
                     if (settings["Local Saves.Cache recipe names"] == "true") {
-                        LocalFilesTask.saveFile(
+                        LocalFilesTask.saveString(
                             onlineList.joinToString("\n"),
                             "${this@SearchActivity.filesDir}",
                             "listOfRecipes.xml"

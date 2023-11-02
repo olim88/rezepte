@@ -52,7 +52,7 @@ class CreateAutomations {
                         instruction.linkedCookingStepIndex = ovenStepIndex
                     }
                 }
-                else if ( lastStepStage!= null && stage == lastStepStage &&!(time != "" && generatedSteps[generatedSteps.size-1].time !="")){//if its the same type of stage as the one before it combine it if they do not have seperate times
+                else if ( lastStepStage!= null && stage == lastStepStage &&!(time != "" && generatedSteps[generatedSteps.size-1].time !="")){//if its the same type of stage as the one before it combine it if they do not have separate times
                     if(generatedSteps[generatedSteps.size-1].time== "") {generatedSteps[generatedSteps.size-1].time = time}
                     if(generatedSteps[generatedSteps.size-1].container== null) {generatedSteps[generatedSteps.size-1].container = container}
                     if(generatedSteps[generatedSteps.size-1].cookingTemperature== null) {generatedSteps[generatedSteps.size-1].cookingTemperature = temperature}
@@ -98,7 +98,7 @@ class CreateAutomations {
         }
         private fun getInstructionTemp(text: String,isOven: Boolean) : CookingStepTemperature?{ //todo see if fan can be found if that is what the user wants
             val words = getWords(text)
-            if (isOven) {//if looking for temerature for oven
+            if (isOven) {//if looking for temperature for oven
                 for ((index, word) in words.withIndex()) {
                     if (word.matches("[0-9]+[°º]?c".toRegex())) {//should be a temperature
                         if (index < words.count() - 1 && words[index + 1].lowercase() == "fan") {//if fan or not
@@ -190,7 +190,7 @@ class CreateAutomations {
             when(strength ){
                 InstructionSplitStrength.Sentences -> {
                     //split at every full stop found in the instructions
-                    var newInstructions = mutableListOf<Instruction>() //create new list
+                    val newInstructions = mutableListOf<Instruction>() //create new list
                     var index = 0
                     for (instruction in instructions.list){
                         instruction.text.split(".").forEach {
@@ -204,7 +204,7 @@ class CreateAutomations {
                 }
                 InstructionSplitStrength.Intelligent -> {
                     //split at full stops only if criteria is met so instructions are not separated when they do not need to be
-                    var newInstructions = mutableListOf<Instruction>() //create new list
+                    val newInstructions = mutableListOf<Instruction>() //create new list
                     var index = 0
                     for (instruction in instructions.list){
                         val sentences = instruction.text.split(".")
@@ -242,7 +242,7 @@ class CreateAutomations {
 
 
         }
-        private fun getIsNewSentence(sentence : String) : Boolean{//todo not that smart yet need to examin more recipes to work out what i need to do
+        private fun getIsNewSentence(sentence : String) : Boolean{//todo not that smart yet need to examine more recipes to work out what i need to do
             if (sentence.length < 28) return false // to short to think about splitting off
             if (sentence.startsWith(")")) return false //if its ending inside a bracket do not split it
 
@@ -250,7 +250,6 @@ class CreateAutomations {
             return  true // if passes all checks return try
         }
         enum class InstructionSplitStrength {
-            Off,
             Intelligent,
             Sentences,
         }
