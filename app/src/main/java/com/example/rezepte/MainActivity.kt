@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -114,6 +115,7 @@ private fun     MainScreen(accountData: MutableState<FullAccount?>) {
         .padding(10.dp)
         .fillMaxWidth()
         .fillMaxHeight()
+        .background(MaterialTheme.colorScheme.background)
         .verticalScroll(rememberScrollState()),horizontalAlignment = Alignment.CenterHorizontally){
         //logo
         Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier

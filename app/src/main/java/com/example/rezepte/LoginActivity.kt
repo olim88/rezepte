@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -22,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -73,7 +75,7 @@ private fun MainScreen(){
     val mContext = LocalContext.current
     val webAuth = DbxPKCEWebAuth(DbxRequestConfig("examples-authorize"), DbxAppInfo("ktd7xc7sg55pb8d"))
     var linkValue by remember { mutableStateOf("")}
-    Column (modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
         //logo
         Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.align(Alignment.CenterHorizontally).fillMaxHeight().weight(0.5f))
         //login button

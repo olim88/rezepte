@@ -5,12 +5,13 @@ import com.example.rezepte.CookingStep
 import com.example.rezepte.CookingStepContainer
 import com.example.rezepte.CookingStepTemperature
 import com.example.rezepte.HobOption
+import com.example.rezepte.Instruction
 import com.example.rezepte.Instructions
 import com.example.rezepte.TinOrPanOptions
 
 class CreateAutomations {
     companion object {
-        fun autoGenerateStepsFromInstructions(instructions: Instructions) : Pair<List<CookingStep>, Instructions>{//todo often the recipe dose not like to split up instructions enough so sometimes multiple in one and that dose not work with this
+        fun autoGenerateStepsFromInstructions(instructions: Instructions) : Pair<List<CookingStep>, Instructions>{
             val generatedSteps : MutableList<CookingStep> = mutableListOf()
             var ovenStepIndex = -1
             var lastStepStage : CookingStage? = null
@@ -181,5 +182,77 @@ class CreateAutomations {
 
         private  fun getCleanText(text: String) : String { return  text.lowercase().replace("[.;,()|/]".toRegex()," ")}
 
+
+        fun autoSplitInstructions(instructions: Instructions,strength: InstructionSplitStrength) : Instructions{
+
+
+            //go though each instructions and split it in to the amount needed
+            when(strength ){
+                InstructionSplitStrength.Sentences -> {
+                    //split at every full stop found in the instructions
+                    var newInstructions = mutableListOf<Instruction>() //create new list
+                    var index = 0
+                    for (instruction in instructions.list){
+                        instruction.text.split(".").forEach {
+                            if (!it.matches("\\s*".toRegex())){
+                                newInstructions.add(Instruction(index,"$it.",null))
+                                index ++
+                            }
+                        }
+                    }
+                    return  Instructions(newInstructions)
+                }
+                InstructionSplitStrength.Intelligent -> {
+                    //split at full stops only if criteria is met so instructions are not separated when they do not need to be
+                    var newInstructions = mutableListOf<Instruction>() //create new list
+                    var index = 0
+                    for (instruction in instructions.list){
+                        val sentences = instruction.text.split(".")
+                        var nextInstruction = ""
+                        for (sentenceIndex in 0..sentences.count()-1){
+                            val sentence = sentences[sentenceIndex]//current sentence looking to split of from what is before it
+                            if (!sentence.matches("\\s*".toRegex())) {
+                                if (getIsNewSentence(sentence)) {
+                                    //add the next instruction to the instructions and start fresh with this sentence
+                                    if (nextInstruction != "") {
+                                        newInstructions.add(Instruction(index, nextInstruction, null))
+                                        index++
+                                    }
+                                    nextInstruction = ""
+                                }
+
+                                //add to next instruction
+                                nextInstruction += "$sentence."
+                            }
+                        }
+                        //output last bit of instruction if some left
+                        if (nextInstruction != "") {
+                            newInstructions.add(Instruction(index, nextInstruction, null))
+                            index++
+                        }
+                    }
+
+                    return  Instructions(newInstructions)
+
+                }
+                else -> {return instructions}
+            }
+
+
+
+
+        }
+        private fun getIsNewSentence(sentence : String) : Boolean{//todo not that smart yet need to examin more recipes to work out what i need to do
+            if (sentence.length < 28) return false // to short to think about splitting off
+            if (sentence.startsWith(")")) return false //if its ending inside a bracket do not split it
+
+
+            return  true // if passes all checks return try
+        }
+        enum class InstructionSplitStrength {
+            Off,
+            Intelligent,
+            Sentences,
+        }
     }
 }

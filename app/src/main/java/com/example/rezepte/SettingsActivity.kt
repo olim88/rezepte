@@ -108,7 +108,10 @@ class SettingsActivity : ComponentActivity() {
                         option.state = mutableStateOf((settings[key]!! == "true"))
                     }
                     if (option is SettingsOptionDropDown) {//if it is a drop down save value at index
-                        option.currentOptionIndex = mutableStateOf(option.options.indexOf(settings[key]!!))
+                        option.currentOptionIndex = mutableStateOf(option.options.indexOf(settings[key]))
+
+                        if (option.currentOptionIndex.value == -1) option.currentOptionIndex.value = 0 //of settings has updated and value can not be found
+
                     }
                     if (option is SettingsSubMenu) {
                         option.subSettings = loadToOptions(settings,option.subSettings,start + option.name + ".")
@@ -116,6 +119,7 @@ class SettingsActivity : ComponentActivity() {
                 }
             } catch (e : Exception){
                 //if it dose not work probably updated the settings or something just return options
+                println("test3")
                 return options
             }
             return  editedOptions
@@ -141,12 +145,18 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
         SettingsSubMenu("Creation","",listOf(
             SettingsSubMenu("Website Loading","",listOf(
                 SettingsOptionToggle("Generate cooking steps","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false)),
-                SettingsOptionToggle("Split instruction","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false))
+                SettingsOptionDropDown("Split instructions","when loading a website automatically split instructions into smaller parts", mutableStateOf(0),listOf("off","intelligent","sentences"))
             )),
             SettingsOptionToggle("Separate Ingredients","show each line as a different colour", mutableStateOf(true)),
             SettingsOptionToggle("Separate Instructions","show each line as a different colour", mutableStateOf(true)),
+            SettingsOptionToggle("Show split Instruction Buttons","show buttons to split instructions", mutableStateOf(true)),
         )),
         SettingsOptionToggle("Search Menu View","display search menu as list", mutableStateOf(true)),
+        SettingsSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet",listOf(
+            SettingsOptionToggle("Cache recipes","save a copy of recipes", mutableStateOf(true)),
+            SettingsOptionToggle("Cache recipe names","save a copy of names", mutableStateOf(true)),
+            SettingsOptionToggle("Cache recipes images","save a copy of images (can use up more space )", mutableStateOf(false)),
+        )),
         )
 }
 
@@ -204,7 +214,7 @@ private fun settingsMenuToggle(header: String, body: String, state: MutableState
     }
 }
 @Composable
-private fun settingsMenuDropDown(header: String, body: String,index : MutableState<Int>, options: List<String>){
+private fun SettingsMenuDropDown(header: String, body: String, index : MutableState<Int>, options: List<String>){
     var mExpanded by remember { mutableStateOf(false) }
     // Up Icon when expanded and down icon when collapsed
     val icon = if (mExpanded)
@@ -212,11 +222,11 @@ private fun settingsMenuDropDown(header: String, body: String,index : MutableSta
     else
         Icons.Filled.KeyboardArrowDown
     Row (modifier = Modifier.padding(5.dp)){
-        Column {
+        Column (modifier = Modifier.fillMaxWidth().weight(1f))  {
             Text(text = header,style = MaterialTheme.typography.titleMedium)
             Text(text = body,style = MaterialTheme.typography.bodyMedium)
         }
-        Spacer(modifier = Modifier.weight(1f))
+       
         Card (modifier = Modifier
             .align(Alignment.CenterVertically)
             .clickable { mExpanded = !mExpanded }) {
@@ -325,7 +335,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
                             )
                         }
                         if (menu is SettingsOptionDropDown) {//if it is a drop down show a dropdown option
-                            settingsMenuDropDown(
+                            SettingsMenuDropDown(
                                 header = menu.name,
                                 body = menu.description,
                                 index = menu.currentOptionIndex,
@@ -378,7 +388,7 @@ fun settingsTogglePreview(){
 )
 @Composable
 fun settingsDropDownPreview(){
-    settingsMenuDropDown("test","this is the test", mutableStateOf(0),listOf("option1","option2","option3"))
+    SettingsMenuDropDown("test","this is the test", mutableStateOf(0),listOf("option1","option2","option3"))
 }
 
 

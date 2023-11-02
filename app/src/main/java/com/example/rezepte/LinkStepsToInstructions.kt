@@ -6,10 +6,12 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -83,14 +85,23 @@ class LinkStepsToInstructions: AppCompatActivity()
 
 @Composable
 private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
-    Column (modifier = Modifier.verticalScroll(rememberScrollState())){
+    Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())){
         var stepIndex by remember {mutableStateOf(0)}
         var recipeData by remember { mutableStateOf(data)}
         var updateInstruction by remember{mutableStateOf(false)}
-        //label menu
-        Text(text = "Link steps", style = MaterialTheme.typography.titleLarge )
-        //describe menu
-        Text(text = "link the instructions to the steps:", style = MaterialTheme.typography.bodyMedium )
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(5.dp)) {
+            //label menu
+            Text(text = "Link steps", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(5.dp))
+            //describe menu
+            Text(
+                text = "link the instructions to the steps:",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(5.dp)
+            )
+        }
         //current step
         cookingStepDisplay(step = recipeData.data.cookingSteps.list[stepIndex] , color = getColor(stepIndex,MaterialTheme.colorScheme.surface) )
         //instructions left

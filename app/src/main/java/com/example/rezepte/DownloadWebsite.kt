@@ -177,6 +177,12 @@ class DownloadWebsite {
 
             }
             //check settings to see if extra needs to be done
+            when (settings["Creation.Website Loading.Split instructions"]){
+                "intelligent" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
+                "sentences" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,CreateAutomations.Companion.InstructionSplitStrength.Sentences)
+                else -> {}
+            }
+
             if (settings["Creation.Website Loading.Generate cooking steps"] == "true")
             {
                 val stepsAndLinks = CreateAutomations.autoGenerateStepsFromInstructions(recipe.instructions)

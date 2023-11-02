@@ -6,16 +6,17 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
@@ -79,7 +80,11 @@ class SearchActivity : ComponentActivity() {
         val extras = intent.extras
         var returnName =  (extras != null && extras.getBoolean("get recipe name"))
 
-
+        //get settings
+        val settings = SettingsActivity.loadSettings(getSharedPreferences(
+            "com.example.rezepte.settings",
+            MODE_PRIVATE
+        ))
 
         //set access token
         ACCESS_TOKEN = DbTokenHandling(
@@ -90,8 +95,10 @@ class SearchActivity : ComponentActivity() {
         ).retrieveAccessToken()
 
         val data : MutableState<List<String>> = mutableStateOf(mutableListOf())
-        //load local save list
-        val localList = LocalFilesTask.loadFile("${this.filesDir}","listOfRecipes.xml")
+        //load local save list if enabled in settings
+        val localList = if (settings["Local Saves.Cache recipe names"] == "true") {
+            LocalFilesTask.loadFile("${this.filesDir}","listOfRecipes.xml")
+        } else {null}
         if (localList != null){
             data.value = localList.first.replace(".xml","").split("\n")
         }
@@ -111,25 +118,33 @@ class SearchActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             //get data
             val list = downloader.listDir("/xml/") ?: listOf()
-            if( list == null ) Toast.makeText(this@SearchActivity, "can't reach dropbox", Toast.LENGTH_LONG).show()
-            val onlineList = list.toMutableList()
-            //clean data
-            val iterate = onlineList.listIterator()
-            while (iterate.hasNext()) {
-                val oldValue = iterate.next()
-                iterate.set(oldValue.removeSuffix(".xml"))
-            }
-            if (localList == null || onlineList != localList.first.replace(".xml","").split("\n")){ //if the lists are different use the online version and save to to local
-                data.value = onlineList
-                LocalFilesTask.saveFile(onlineList.joinToString ("\n") , "${this@SearchActivity.filesDir}","listOfRecipes.xml")
-            }
+            if( list.isNotEmpty()) {//if can get to dropbox
+                val onlineList = list.toMutableList()
+                //clean data
+                val iterate = onlineList.listIterator()
+                while (iterate.hasNext()) {
+                    val oldValue = iterate.next()
+                    iterate.set(oldValue.removeSuffix(".xml"))
+                }
+                if (localList == null || onlineList != localList.first.replace(".xml", "")
+                        .split("\n")) { //if the lists are different use the online version and save to to local if enabled
+                    data.value = onlineList
+                    if (settings["Local Saves.Cache recipe names"] == "true") {
+                        LocalFilesTask.saveFile(
+                            onlineList.joinToString("\n"),
+                            "${this@SearchActivity.filesDir}",
+                            "listOfRecipes.xml"
+                        )
+                    }
+                }
 
 
-            //get thumbnails
-            val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
-            if (thumbnailsDownloaded != null){
-                thumbnails.putAll(thumbnailsDownloaded)
-                hasThumbnails.value = true
+                //get thumbnails
+                val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
+                if (thumbnailsDownloaded != null) {
+                    thumbnails.putAll(thumbnailsDownloaded)
+                    hasThumbnails.value = true
+                }
             }
 
 
@@ -147,6 +162,7 @@ fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
     var isExpanded by remember { mutableStateOf(false) }
     Surface(
         shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier
             .padding(all = 5.dp)
             .fillMaxWidth()
@@ -351,7 +367,7 @@ fun SearchView(state: MutableState<TextFieldValue>) {
         },
         modifier = Modifier
             .fillMaxWidth(),
-        textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+        textStyle = TextStyle( fontSize = 18.sp),
         leadingIcon = {
             Icon(
                 Icons.Default.Search,
@@ -387,7 +403,7 @@ fun SearchView(state: MutableState<TextFieldValue>) {
 @Composable
 private fun MainScreen(names: MutableState<List<String>>, thumbnails: MutableMap<String,Bitmap?>,getName : Boolean, updatedThumbnail : MutableState<Boolean>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
-    Column {
+    Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)){
         SearchView(textState)
         RecipeList(names,thumbnails,textState,getName)
         if (updatedThumbnail.value){

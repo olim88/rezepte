@@ -8,10 +8,12 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -77,8 +79,10 @@ class MakeActivity : AppCompatActivity()
         //create variable for recipe data
         var extractedData : MutableState<Recipe> = mutableStateOf(GetEmptyRecipe())
         //if local save load that data
-        val localData = LocalFilesTask.loadFile("${this.filesDir}/xml/","$recipeName.xml")
-        //if there is localy saved data load that to extracted data
+        val localData = if (settings["Local Saves.Cache recipes"] == "true"){
+            LocalFilesTask.loadFile("${this.filesDir}/xml/","$recipeName.xml")
+        } else {null}
+        //if there is locally saved data load that to extracted data
         if (localData != null){
             extractedData.value =  xmlExtraction().GetData(localData.first)
         }
@@ -109,7 +113,9 @@ class MakeActivity : AppCompatActivity()
 
 
             } else { //if not saved locally save it and update ui version
-                LocalFilesTask.saveFile(data.first, "${this@MakeActivity.filesDir}/xml/","$recipeName.xml")
+                if (settings["Local Saves.Cache recipes"] == "true"){//if we are saving recipes
+                    LocalFilesTask.saveFile(data.first, "${this@MakeActivity.filesDir}/xml/","$recipeName.xml")
+                }
                 extractedData.value = xmlExtraction().GetData(data.first)
             }
 
@@ -559,7 +565,7 @@ private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState
     var multiplier = remember {mutableStateOf(1f)}
     // Fetching the Local Context
     val mContext = LocalContext.current
-    Column (modifier = Modifier.verticalScroll(rememberScrollState())) {
+    Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
         //title
         Card(
             modifier = Modifier

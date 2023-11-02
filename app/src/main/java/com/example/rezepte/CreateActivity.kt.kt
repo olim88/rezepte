@@ -15,6 +15,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -75,6 +76,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -292,9 +294,15 @@ class CreateActivity : ComponentActivity() {
 
             }
         }
+        val settings = SettingsActivity.loadSettings(getSharedPreferences(
+            "com.example.rezepte.settings",
+            MODE_PRIVATE
+        ))
+        //save to device if setting enabled
+        if (settings["Local Saves.Cache recipes"] == "true"){
+            LocalFilesTask.saveFile(data,"${this.filesDir}/xml/","$name.xml") //todo save image
 
-        //save to device
-        LocalFilesTask.saveFile(data,"${this.filesDir}/xml/","$name.xml") //todo save image
+        }
 
         //if linking move to the link page else go home
         if (linking){
@@ -481,7 +489,7 @@ fun TitleInput(data : MutableState<Recipe>){
         },
         modifier = Modifier
             .fillMaxWidth(),
-        textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+        textStyle = TextStyle( fontSize = 18.sp),
         singleLine = true,
         shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
         label = { Text("Name") }
@@ -553,7 +561,7 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
 @Composable
 fun DataInput(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>){
     Surface(
-        shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier
             .padding(all = 5.dp)
             .fillMaxWidth()
@@ -569,7 +577,7 @@ fun DataInput(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>){
                 },
                 modifier = Modifier
                     .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                textStyle = TextStyle( fontSize = 18.sp),
                 singleLine = true,
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                 label = { Text("Author") }
@@ -581,7 +589,7 @@ fun DataInput(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>){
                 },
                 modifier = Modifier
                     .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                textStyle = TextStyle( fontSize = 18.sp),
                 singleLine = true,
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                 label = { Text("Servings") }
@@ -600,7 +608,7 @@ fun DataInput(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>){
                 },
                 modifier = Modifier
                     .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                textStyle = TextStyle( fontSize = 18.sp),
                 singleLine = true,
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                 label = { Text("Website") }
@@ -915,7 +923,7 @@ fun CookingStep(data : CookingStep, isExpanded : MutableState<Boolean>, onItemCl
                                 data.cookingTemperature?.temperature = value.toIntOrNull()
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                            textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                            textStyle = TextStyle( fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                             label = { Text("Oven Temperature") }
@@ -962,7 +970,7 @@ fun CookingStep(data : CookingStep, isExpanded : MutableState<Boolean>, onItemCl
                     },
                     modifier = Modifier
                         .fillMaxWidth(),
-                    textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                    textStyle = TextStyle( fontSize = 18.sp),
                     singleLine = true,
                     shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                     label = { Text("Time") }
@@ -995,7 +1003,7 @@ fun CookingStep(data : CookingStep, isExpanded : MutableState<Boolean>, onItemCl
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth(),
-                        textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                        textStyle = TextStyle( fontSize = 18.sp),
                         singleLine = true,
                         shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                         label = { Text("Tin Size") }
@@ -1035,7 +1043,7 @@ inline fun <reified T> MenuItemWithDropDown(textLabel: String, value: String, va
         DropdownMenu(expanded = mExpanded,
             onDismissRequest = { mExpanded = false }) {
             values.forEach { label ->
-                if (label is CookingStage ) { //todo do not repeate the code
+                if (label is CookingStage ) { //todo do not repeat the code
                     DropdownMenuItem(onClick = {
                         onItemClick(label.name)
                         changedValue = label.text
@@ -1073,8 +1081,8 @@ fun getIngredients(data : MutableState<Recipe>) : String{
 fun IngredientsInput(userSettings: Map<String,String>,data : MutableState<Recipe>){
     var ingredientsInput by remember { mutableStateOf(getIngredients(data))}
     val textLineColors = listOf(MaterialTheme.colorScheme.primary,MaterialTheme.colorScheme.secondary,MaterialTheme.colorScheme.tertiary)
-    Surface(
-        shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
+    Card(
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier
             .padding(all = 5.dp)
             .fillMaxWidth()
@@ -1105,7 +1113,7 @@ fun IngredientsInput(userSettings: Map<String,String>,data : MutableState<Recipe
                 },
                 modifier = Modifier
                     .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                textStyle = TextStyle( fontSize = 18.sp),
                 label = { Text(text = "Ingredients") }
             )
         }
@@ -1128,7 +1136,7 @@ fun IngredientsInput(userSettings: Map<String,String>,data : MutableState<Recipe
                 },
                 modifier = Modifier
                     .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                textStyle = TextStyle( fontSize = 18.sp),
                 label = { Text(text = "Ingredients") }
             )
         }
@@ -1147,65 +1155,87 @@ fun InstructionsInput(userSettings: Map<String,String>,data : MutableState<Recip
     var instructionsInput by remember { mutableStateOf(getInstructions(data))}
     val textLineColors = listOf(MaterialTheme.colorScheme.primary,MaterialTheme.colorScheme.secondary,MaterialTheme.colorScheme.tertiary)
 
-    Surface(
-        shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
+    Card(
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier
             .padding(all = 5.dp)
             .fillMaxWidth()
             .animateContentSize()
     ) {
+        Column {
 
-        if (userSettings["Creation.Separate Instructions"]== "true"){ //only apply  different line colours if enabled in the settings
-            TextField(
-                value = instructionsInput,
-                onValueChange = { value ->
-                    instructionsInput = value
-                    //save value to data
-                    val instructions : MutableList<Instruction> = mutableListOf()
-                    var index = 0
-                    for (  instruction in value.split("\n")){
-                        if (!instruction.matches("\\s*".toRegex())){
-                            instructions.add(Instruction(index,instruction,null))
-                            index += 1
+            if (userSettings["Creation.Separate Instructions"] == "true") { //only apply  different line colours if enabled in the settings
+                TextField(
+                    value = instructionsInput,
+                    onValueChange = { value ->
+                        instructionsInput = value
+                        //save value to data
+                        val instructions: MutableList<Instruction> = mutableListOf()
+                        var index = 0
+                        for (instruction in value.split("\n")) {
+                            if (!instruction.matches("\\s*".toRegex())) {
+                                instructions.add(Instruction(index, instruction, null))
+                                index += 1
+                            }
+
                         }
+                        data.value.instructions = Instructions(instructions)
+                    },
+                    visualTransformation = {
+                        TransformedText(
+                            buildAnnotatedStringWithColors(instructionsInput, textLineColors),
+                            OffsetMapping.Identity
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    textStyle = TextStyle( fontSize = 18.sp),
+                    label = { Text(text = "instructions") }
+                )
+            } else {
+                TextField(
+                    value = instructionsInput,
+                    onValueChange = { value ->
+                        instructionsInput = value
+                        //save value to data
+                        val instructions: MutableList<Instruction> = mutableListOf()
+                        var index = 0
+                        for (instruction in value.split("\n")) {
+                            if (!instruction.matches("\\s*".toRegex())) {
+                                instructions.add(Instruction(index, instruction, null))
+                                index += 1
+                            }
 
-                    }
-                    data.value.instructions = Instructions(instructions)
-                },
-                visualTransformation = {
-                    TransformedText(
-                        buildAnnotatedStringWithColors(instructionsInput,textLineColors),
-                        OffsetMapping.Identity
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp ),
-                label = { Text(text = "instructions")}
-            )
-        }
-        else{
-            TextField(
-                value = instructionsInput,
-                onValueChange = { value ->
-                    instructionsInput = value
-                    //save value to data
-                    val instructions : MutableList<Instruction> = mutableListOf()
-                    var index = 0
-                    for (  instruction in value.split("\n")){
-                        if (!instruction.matches("\\s*".toRegex())){
-                            instructions.add(Instruction(index,instruction,null))
-                            index += 1
                         }
-
+                        data.value.instructions = Instructions(instructions)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    textStyle = TextStyle( fontSize = 18.sp),
+                    label = { Text(text = "instructions") }
+                )
+            }
+            if (userSettings["Creation.Show split Instruction Buttons"] == "true") {//show buttons to separate instructions if enabled
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(5.dp)) {
+                    Button(onClick = {
+                                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
+                                        instructionsInput = getInstructions(data)
+                                     },
+                        modifier = Modifier.weight(1f)) {
+                        Text(text = "Smart Split", textAlign = TextAlign.Center)
                     }
-                    data.value.instructions = Instructions(instructions)
-                },
-                modifier = Modifier
-                    .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp ),
-                label = { Text(text = "instructions")}
-            )
+                    Spacer(modifier = Modifier.weight(0.5f))
+                    Button(onClick = {
+                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,CreateAutomations.Companion.InstructionSplitStrength.Sentences)
+                        instructionsInput = getInstructions(data)
+                    },
+                        modifier = Modifier.weight(1f)) {
+                        Text(text = "Sentence Split", textAlign = TextAlign.Center)
+                    }
+                }
+            }
         }
     }
 }
@@ -1327,14 +1357,18 @@ private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,
     val recipeDataInput = remember { mutableStateOf(recipeDataInput) }
     val imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
     val updatedSteps = remember { mutableStateOf(false) }
-    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxHeight()
+        .verticalScroll(rememberScrollState())
+        .background(MaterialTheme.colorScheme.background)
+        ) {
         TitleInput(recipeDataInput)
         ImageInput(imageUri,image)
         DataInput(recipeDataInput,updatedSteps)
         IngredientsInput(userSettings,recipeDataInput)
         InstructionsInput(userSettings,recipeDataInput)
+        Spacer(modifier = Modifier.weight(1f))
         DeleteAndFinishButtons(recipeDataInput,updatedSteps,onDeleteClick,onFinishClick,imageUri,image)
-
+        Spacer(modifier = Modifier.height(10.dp))
     }
 
 }
