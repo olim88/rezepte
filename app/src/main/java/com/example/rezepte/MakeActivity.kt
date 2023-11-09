@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.animateContentSize
@@ -49,11 +50,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.dropbox.core.NetworkIOException
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.math.abs
+import kotlinx.coroutines.withContext
 
 class MakeActivity : AppCompatActivity()
 {
@@ -88,7 +90,7 @@ class MakeActivity : AppCompatActivity()
             LocalFilesTask.loadFile("${this.filesDir}/xml/","$recipeName.xml")
         } else {null}
         //if there is locally saved data load that to extracted data
-        if (localData != null){
+        if (localData != null ){
             extractedData.value =  xmlExtraction().GetData(localData.first)
         }
         //set the content
@@ -102,52 +104,84 @@ class MakeActivity : AppCompatActivity()
         val downloader = DownloadTask(DropboxClient.getClient(token))
         CoroutineScope(Dispatchers.IO).launch{
             //make sure most updated data else replace with online and save online to file
-            val data = downloader.getXml("/xml/$recipeName.xml")
-            //compare the data of save for local and dropbox save
-            if (localData != null){
-                if (data.second.toInstant().toEpochMilli()- localData.second.toInstant().toEpochMilli()>5000){//if local is more than 5 seconds behind
-                    LocalFilesTask.saveString(data.first, "${this@MakeActivity.filesDir}/xml/","$recipeName.xml")
+            try {
+                val data = downloader.getXml("/xml/$recipeName.xml")
+                //compare the data of save for local and dropbox save
+                if (localData != null) {
+                    if (data.second.toInstant().toEpochMilli() - localData.second.toInstant()
+                            .toEpochMilli() > 5000
+                    ) {//if local is more than 5 seconds behind
+                        LocalFilesTask.saveString(
+                            data.first,
+                            "${this@MakeActivity.filesDir}/xml/",
+                            "$recipeName.xml"
+                        )
+                        extractedData.value = xmlExtraction().GetData(data.first)
+                    } else if (data.second.toInstant().toEpochMilli() - localData.second.toInstant()
+                            .toEpochMilli() > -5000
+                    ) {//if local save is over 5 seconds newer
+                        //upload local to dropbox
+                        val uploadClient = UploadTask(DropboxClient.getClient(token))
+                        //upload recipe data
+                        uploadClient.uploadXml(localData.first, "/xml/$recipeName.xml")
+                    }
+
+
+                } else { //if not saved locally save it and update ui version
+                    if (settings["Local Saves.Cache recipes"] == "true") {//if we are saving recipes
+                        LocalFilesTask.saveString(
+                            data.first,
+                            "${this@MakeActivity.filesDir}/xml/",
+                            "$recipeName.xml"
+                        )
+                    }
                     extractedData.value = xmlExtraction().GetData(data.first)
-                }else if (data.second.toInstant().toEpochMilli()- localData.second.toInstant().toEpochMilli()>-5000) {//if local save is over 5 seconds newer
-                    //upload local to dropbox
-                    val uploadClient = UploadTask(DropboxClient.getClient(token))
-                    //upload recipe data
-                    uploadClient.uploadXml(localData.first, "/xml/$recipeName.xml")
                 }
+                val onlineImage = downloader.getImage("/image/", recipeName!!)
+                if (onlineImage != null) {
+                    if (settings["Local Saves.Cache recipe image"] == "full sized") {
+                        if (localImage != null) {
+                            if (data.second.toInstant()
+                                    .toEpochMilli() - localImage.second.toInstant()
+                                    .toEpochMilli() > 5000
+                            ) {//if local is more than 5 seconds behind
+                                //use online save and save to device
+                                image.value = onlineImage.first
+                                LocalFilesTask.saveBitmap(
+                                    onlineImage.first,
+                                    "${this@MakeActivity.filesDir}/image/",
+                                    "$recipeName.png"
+                                )
+                            } else if (data.second.toInstant()
+                                    .toEpochMilli() - localImage.second.toInstant()
+                                    .toEpochMilli() > -5000
+                            ) {//if local is more than 5 seconds behind
+                                //upload local to dropbox
+                                val uploadClient = UploadTask(DropboxClient.getClient(token))
+                                //upload recipe data
+                                uploadClient.uploadBitmap(localImage.first, "/xml/$recipeName.xml")
 
+                            }
 
-
-            } else { //if not saved locally save it and update ui version
-                if (settings["Local Saves.Cache recipes"] == "true"){//if we are saving recipes
-                    LocalFilesTask.saveString(data.first, "${this@MakeActivity.filesDir}/xml/","$recipeName.xml")
+                        } else { //if local is null save online to it
+                            LocalFilesTask.saveBitmap(
+                                onlineImage.first,
+                                "${this@MakeActivity.filesDir}/image/",
+                                "$recipeName.png"
+                            )
+                            image.value = onlineImage.first
+                        }
+                    } else {
+                        image.value = onlineImage.first
+                    }
                 }
-                extractedData.value = xmlExtraction().GetData(data.first)
             }
-            val onlineImage = downloader.getImage("/image/",recipeName!!)
-            if (onlineImage != null) {
-               if (settings["Local Saves.Cache recipe image"] == "full sized"){
-                   if (localImage != null) {
-                       if (data.second.toInstant().toEpochMilli()- localImage.second.toInstant().toEpochMilli()>5000) {//if local is more than 5 seconds behind
-                            //use online save and save to device
-                           image.value = onlineImage.first
-                           LocalFilesTask.saveBitmap(onlineImage.first,"${this@MakeActivity.filesDir}/image/","$recipeName.png")
-                       } else if (data.second.toInstant().toEpochMilli()- localImage.second.toInstant().toEpochMilli()>-5000) {//if local is more than 5 seconds behind
-                           //upload local to dropbox
-                           val uploadClient = UploadTask(DropboxClient.getClient(token))
-                           //upload recipe data
-                           uploadClient.uploadBitmap(localImage.first, "/xml/$recipeName.xml")
-
-                       }
-
-                   } else { //if local is null save online to it
-                       LocalFilesTask.saveBitmap(onlineImage.first,"${this@MakeActivity.filesDir}/image/","$recipeName.png")
-                       image.value = onlineImage.first
-                   }
-               }
-               else{
-                   image.value = onlineImage.first
-               }
-           }
+            catch (e : NetworkIOException){
+                //can not reach dropbox so can only go of local files
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MakeActivity, "can't reach dropbox", Toast.LENGTH_SHORT).show()
+                }
+            }
 
         }
 
@@ -173,108 +207,14 @@ private fun intToRoman(num: Int): String? {
     val I = arrayOf("", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX")
     return M[num / 1000] + C[num % 1000 / 100] + X[num % 100 / 10] + I[num % 10]
 }
-val Float.vulgarFraction: Pair<String, Float>
-    get() {
-        val whole = toInt()
-        val sign = if (whole < 0) -1 else 1
-        val fraction = this - whole
 
-        for (i in 1 until fractions.size) {
-            if (abs(fraction) > (fractionValues[i] + fractionValues[i - 1]) / 2) {
-                return if (fractionValues[i - 1] == 1.0) {
-                    "${whole + sign}" to (whole + sign).toFloat()
-                } else if (whole != 0) {
-                    "$whole${fractions[i - 1]}" to whole + sign * fractionValues[i - 1].toFloat()
-                }else {
-                    "${fractions[i - 1]}" to  sign * fractionValues[i - 1].toFloat()
-                }
 
-            }
-        }
-        return "$whole" to whole.toFloat()
-    }
-val String.vulgarFraction : Float
-get() {
-    //split
-    val number = Regex("-?[0-9]+(/|\\d*\\.)?[0-9]*").find(this)
-    val fraction = if (number == null){
-        this
-    }else{
-        this.replace(number.value,"")
-    }
-    //convert fraction to number
-    val fractionalValue = if (fraction != ""){
-        fractionValues[fractions.indexOf(fraction)]
-    }else {
-        null
-    }
-    var output = 0f
-    if (number != null ) {
-        output += if (number.value.contains("/")){//if it is a fractional value work that out
-            val numbers = number.value.split("/")
-            numbers[0].toFloat()/numbers[1].toFloat()
-        }else {
-            number.value.toFloatOrNull() ?: 0f //convert to float but if its somehow invalid return 0
 
-        }
-    }
-    if (fractionalValue != null){
-        output += fractionalValue.toFloat()
-    }
-    return output
-}
-
-private val fractions = arrayOf(
-    "",                           // 16/16
-    "\u00B9\u2075/\u2081\u2086",  // 15/16
-    "\u215E",                     // 7/8
-    "\u00B9\u00B3/\u2081\u2086",  // 13/16
-    "\u00BE",                     // 3/4
-    "\u00B9\u00B9/\u2081\u2086",  // 11/16
-    "\u215D",                     // 5/8
-    "\u2079/\u2081\u2086",        // 9/16
-    "\u00BD",                     // 1/2
-    "\u2077/\u2081\u2086",        // 7/16
-    "\u215C",                     // 3/8
-    "\u2075/\u2081\u2086",        // 5/16
-    "\u00BC",                     // 1/4
-    "\u00B3/\u2081\u2086",        // 3/16
-    "\u215B",                     // 1/8
-    "\u00B9/\u2081\u2086",        // 1/16
-    ""                            // 0/16
-)
-
-private val fractionValues = arrayOf(
-    1.0,
-    15.0 / 16, 7.0 / 8, 13.0 / 16, 3.0 / 4, 11.0 / 16,
-    5.0 / 8, 9.0 / 16, 1.0 / 2, 7.0 / 16, 3.0 / 8,
-    5.0 / 16, 1.0 / 4, 3.0 / 16, 1.0 / 8, 1.0 / 16,
-    0.0
-)
-
-private fun multiplyNumbersInString(string :String, multiplier: Float, settings : Map<String,String>) : String {
-    //find all numbers
-    val numbers = Regex("([0-9]+(/|\\d*\\.)?[0-9]*([${fractions.joinToString("")}]?))|([${fractions.joinToString("")}])").findAll(string)
-        .map(MatchResult::value)
-        .toList()
-    //replace numbers with multiplied value
-    var output = string
-    for (number in numbers){
-        if (number== "/") continue
-        var value = number.vulgarFraction * multiplier
-        output = if (settings["Units.Fractional Numbers"]== "true"){
-            output.replace(number,value.vulgarFraction.first)
-        }else {
-            output.replace(number, (value.vulgarFraction.second).toString().replace(".0", ""))
-        }
-    }
-    return output
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DataOutput(userSettings: Map<String,String>,recipeData: Recipe,multiplier : MutableState<Float>){
-    var multiplierInput by remember { mutableStateOf("1")}
+    var multiplierInput by remember { mutableStateOf("")}
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -293,7 +233,7 @@ fun DataOutput(userSettings: Map<String,String>,recipeData: Recipe,multiplier : 
             )
             //servings
             TextField(
-                value = multiplyNumbersInString(recipeData.data.serves,multiplier.value, userSettings),
+                value = MakeFormatting.getCorrectUnitsAndValues(recipeData.data.serves,multiplier.value, userSettings),
                 onValueChange = {},
                 readOnly = true,
                 label = {Text("Servings")},
@@ -399,7 +339,7 @@ fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<
 fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBig : Boolean, isStrike: Boolean, mutiplyer : MutableState<Float>){
     var style =  if (isBig) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall
     if (isStrike) style = style.copy(textDecoration = TextDecoration.LineThrough)
-    Text ( text = "${intToRoman(index+1)}: ${multiplyNumbersInString(value,mutiplyer.value, userSettings)}",
+    Text ( text = "${intToRoman(index+1)}: ${MakeFormatting.getCorrectUnitsAndValues(value,mutiplyer.value, userSettings)}",
         modifier = Modifier
             .padding(5.dp)
             .fillMaxWidth(),
@@ -590,7 +530,10 @@ private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState
     var multiplier = remember {mutableStateOf(1f)}
     // Fetching the Local Context
     val mContext = LocalContext.current
-    Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
+    Column (modifier = Modifier
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)
+        .verticalScroll(rememberScrollState())) {
         //title
         Card(
             modifier = Modifier

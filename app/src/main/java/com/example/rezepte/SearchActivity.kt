@@ -138,12 +138,41 @@ class SearchActivity : ComponentActivity() {
                     }
                 }
 
+                //if there are locally saved thumbnails load them
+                if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
+                    for (name in data.value){
+                        thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
+                    }
+                    hasThumbnails.value = true
+                }
 
                 //get thumbnails
                 val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
                 if (thumbnailsDownloaded != null) {
-                    thumbnails.putAll(thumbnailsDownloaded)
-                    hasThumbnails.value = true
+                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
+                        for (thumbnailKey in thumbnails.keys){
+                            if (thumbnailsDownloaded[thumbnailKey]?.sameAs(thumbnails[thumbnailKey]) == false){
+                                //if they are not the same save the thumbnail to device update the value and set hasThumbnails to true
+                                thumbnails[thumbnailKey] = thumbnailsDownloaded[thumbnailKey]
+                                hasThumbnails.value = true
+
+                                if (thumbnailsDownloaded[thumbnailKey] != null) {
+                                    LocalFilesTask.saveBitmap(
+                                        thumbnailsDownloaded[thumbnailKey]!!,
+                                        "${this@SearchActivity.filesDir}/thumbnail/",
+                                        "$thumbnailKey.png"
+                                    )
+                                } else {
+                                    //delete the file if not on dropbox
+                                    LocalFilesTask.removeFile("${this@SearchActivity.filesDir}/thumbnail/","$thumbnailKey.png")
+                                }
+                            }
+                        }
+                    }else {//if setting not enabled just load the thumbnails from dropbox
+                        thumbnails.putAll(thumbnailsDownloaded)
+                        hasThumbnails.value = true
+                    }
+
                 }
             }
 
@@ -408,6 +437,7 @@ private fun MainScreen(names: MutableState<List<String>>, thumbnails: MutableMap
         RecipeList(names,thumbnails,textState,getName)
         if (updatedThumbnail.value){
             //this will update the thumbnails
+            updatedThumbnail.value= false
         }
     }
 }

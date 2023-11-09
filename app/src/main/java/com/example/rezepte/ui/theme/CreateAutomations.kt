@@ -83,7 +83,7 @@ class CreateAutomations {
         private fun getInstructionStage(text:String,lastStep: CookingStage?) : CookingStage {
             val cleanText = getCleanText(text)
             if (cleanText.contains(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ".toRegex())) { return CookingStage.hob}
-            if (cleanText.contains(" (oven)|(bake) ".toRegex())) { return CookingStage.oven}
+            if (cleanText.contains(" (oven)|(bake)|(roast) ".toRegex())) { return CookingStage.oven}
             if (cleanText.contains(" fridge ")) { return CookingStage.fridge}
             if (cleanText.contains(" (wait)|(sit for)|(leave) ".toRegex())) { return CookingStage.wait}
             //if the last stage was hob infer cook as hob else infer it as oven
@@ -180,6 +180,8 @@ class CreateAutomations {
         }
         private fun getWords(text: String) : List<String> { return text.lowercase().split("[\\s,/.;?()]+".toRegex())}
 
+
+
         private  fun getCleanText(text: String) : String { return  text.lowercase().replace("[.;,()|/]".toRegex()," ")}
 
 
@@ -212,7 +214,7 @@ class CreateAutomations {
                         for (sentenceIndex in 0..sentences.count()-1){
                             val sentence = sentences[sentenceIndex]//current sentence looking to split of from what is before it
                             if (!sentence.matches("\\s*".toRegex())) {
-                                if (getIsNewSentence(sentence)) {
+                                if (getIsNewSentence(sentence.removePrefix(" "))) {
                                     //add the next instruction to the instructions and start fresh with this sentence
                                     if (nextInstruction != "") {
                                         newInstructions.add(Instruction(index, nextInstruction, null))
@@ -245,7 +247,7 @@ class CreateAutomations {
         private fun getIsNewSentence(sentence : String) : Boolean{//todo not that smart yet need to examine more recipes to work out what i need to do
             if (sentence.length < 28) return false // to short to think about splitting off
             if (sentence.startsWith(")")) return false //if its ending inside a bracket do not split it
-
+            if (sentence.startsWith("this",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
 
             return  true // if passes all checks return try
         }

@@ -14,14 +14,18 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.with
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -136,11 +140,15 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
 
     return listOf(
         SettingsSubMenu("Units","",listOf(
-            SettingsOptionDropDown("Weight","unit for weight", mutableStateOf(0), listOf("metric","imperial")),
-            SettingsOptionDropDown("Volume","unit for volume", mutableStateOf(0), listOf("metric","imperial")),
-            SettingsOptionDropDown("Size","unit for size", mutableStateOf(0), listOf("metric","imperial")),
-            SettingsOptionDropDown("Temperature","unit for temperature", mutableStateOf(0), listOf("metric","imperial")),
+            SettingsOptionToggle("Tea Spoons","show tea spoons in recipes", mutableStateOf(true)),
+            SettingsOptionToggle("Table Spoons","show table spoons in recipes", mutableStateOf(true)),
+            SettingsOptionToggle("Cups","show cups in recipes", mutableStateOf(true)),
+            SettingsOptionToggle("Temperature","show temperatures in °C", mutableStateOf(true)),
+            SettingsOptionToggle("metric Volume","use the metric system to display volumes", mutableStateOf(true)),
+            SettingsOptionToggle("metric Weight","use the metric system to display weights", mutableStateOf(true)),
+            SettingsOptionToggle("metric Lengths","use the metric system to display lengths", mutableStateOf(true)),
             SettingsOptionToggle("Fractional Numbers","display measurements as fractions or decimals", mutableStateOf(true)),
+            SettingsOptionToggle("Round Numbers","round larger numbers to the nearest whole number", mutableStateOf(true)),
             )),
         SettingsSubMenu("Creation","",listOf(
             SettingsSubMenu("Website Loading","",listOf(
@@ -283,7 +291,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
         }
         })
 
-    Column {
+    Column (modifier = Modifier.fillMaxHeight().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.background)) {
         if (update) {
         }  //make sure ui is updated
         //set the header and when the back arrow on the header is pressed either move up in the settings or save the settings and exit

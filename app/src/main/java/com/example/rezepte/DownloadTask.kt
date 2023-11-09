@@ -39,7 +39,7 @@ class DownloadTask(client: DbxClientV2)  {
 
     }
     suspend fun getUserAccount(): FullAccount?{
-        val error = try {
+        try {
             //get the users FullAccount
             return dbxClient.users().currentAccount
         } catch (e: DbxException) {

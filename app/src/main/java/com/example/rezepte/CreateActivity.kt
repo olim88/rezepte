@@ -221,6 +221,7 @@ class CreateActivity : ComponentActivity() {
                         //remove local files
                         LocalFilesTask.removeFile("${this.filesDir}/xml/","$loadedRecipeName.xml")
                         LocalFilesTask.removeFile("${this.filesDir}/image/","$loadedRecipeName.png")
+                        LocalFilesTask.removeFile("${this.filesDir}/thumbnail/","$loadedRecipeName.png")
                         //go home
                         val intent = Intent(this, MainActivity::class.java)
                         startActivity(intent)
@@ -488,10 +489,12 @@ fun ErrorDialog(errorTitle: String,errorBody: String){ //this is not working for
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleInput(data : MutableState<Recipe>){
+    var name by remember { mutableStateOf(data.value.data.name)}
     TextField(
-        value = data.value.data.name,
+        value = name,
         onValueChange = { value ->
-            data.value = data.value.copy(data = data.value.data.copy(name = value)) //update name
+            name = value
+            data.value.data.name = name.trim() //update name
         },
         modifier = Modifier
             .fillMaxWidth(),
