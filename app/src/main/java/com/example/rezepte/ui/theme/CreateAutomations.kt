@@ -82,10 +82,10 @@ class CreateAutomations {
         }
         private fun getInstructionStage(text:String,lastStep: CookingStage?) : CookingStage {
             val cleanText = getCleanText(text)
+            if (cleanText.contains(" (wait)|(sit for)|(leave)|(off the heat)|(allow to) ".toRegex())) { return CookingStage.wait}
             if (cleanText.contains(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ".toRegex())) { return CookingStage.hob}
             if (cleanText.contains(" (oven)|(bake)|(roast) ".toRegex())) { return CookingStage.oven}
             if (cleanText.contains(" fridge ")) { return CookingStage.fridge}
-            if (cleanText.contains(" (wait)|(sit for)|(leave) ".toRegex())) { return CookingStage.wait}
             //if the last stage was hob infer cook as hob else infer it as oven
             if (cleanText.contains(" cook ")){
                 return if (lastStep == CookingStage.hob){
@@ -100,7 +100,7 @@ class CreateAutomations {
             val words = getWords(text)
             if (isOven) {//if looking for temperature for oven
                 for ((index, word) in words.withIndex()) {
-                    if (word.matches("[0-9]+[°º]?c".toRegex())) {//should be a temperature
+                    if (word.matches("[0-9]+(([°º]?c)|℃)".toRegex())) {//should be a temperature
                         if (index < words.count() - 1 && words[index + 1].lowercase() == "fan") {//if fan or not
                             return CookingStepTemperature(
                                 word.replace("[°º]?c".toRegex(), "").toInt(),
@@ -109,7 +109,7 @@ class CreateAutomations {
                             )
                         }
                         return CookingStepTemperature(
-                            word.replace("[°º]?c".toRegex(), "").toInt(),
+                            word.replace("(([°º]?c)|℃)".toRegex(), "").toInt(),
                             HobOption.zero,
                             false
                         )
@@ -178,7 +178,7 @@ class CreateAutomations {
 
             return  ""
         }
-        private fun getWords(text: String) : List<String> { return text.lowercase().split("[\\s,/.;?()]+".toRegex())}
+         fun getWords(text: String) : List<String> { return text.lowercase().split("[\\s,/.;?()]+".toRegex())}
 
 
 
@@ -248,7 +248,10 @@ class CreateAutomations {
             if (sentence.length < 28) return false // to short to think about splitting off
             if (sentence.startsWith(")")) return false //if its ending inside a bracket do not split it
             if (sentence.startsWith("this",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
-
+            if (sentence.startsWith("there",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
+            if (sentence.startsWith("again",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
+            if (sentence.startsWith("you",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
+            if (sentence.startsWith("your",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
             return  true // if passes all checks return try
         }
         enum class InstructionSplitStrength {

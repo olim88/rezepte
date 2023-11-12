@@ -143,6 +143,11 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Tea Spoons","show tea spoons in recipes", mutableStateOf(true)),
             SettingsOptionToggle("Table Spoons","show table spoons in recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cups","show cups in recipes", mutableStateOf(true)),
+            SettingsSubMenu("Conversions","sizes to use for measurement",listOf(
+                SettingsOptionDropDown("Teaspoon volume","what teaspoon volume measurement do you want to use", mutableStateOf(0),listOf("metric(5ml)","us(4.9ml)","uk(3.6ml)")),
+                SettingsOptionDropDown("Tablespoon volume","what tablespoon volume measurement do you want to use", mutableStateOf(0),listOf("metric(15ml)","us(14.8ml)","uk(14.2ml)")),
+                SettingsOptionDropDown("Cup volume","what cup volume measurement do you want to use", mutableStateOf(0),listOf("metric(250ml)","us(237ml)","uk(284ml)"))
+            )),
             SettingsOptionToggle("Temperature","show temperatures in °C", mutableStateOf(true)),
             SettingsOptionToggle("metric Volume","use the metric system to display volumes", mutableStateOf(true)),
             SettingsOptionToggle("metric Weight","use the metric system to display weights", mutableStateOf(true)),
@@ -163,7 +168,7 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
         SettingsSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet",listOf(
             SettingsOptionToggle("Cache recipes","save a copy of recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cache recipe names","save a copy of names", mutableStateOf(true)),
-            SettingsOptionDropDown("Cache recipe image","save a copy of images (can use up more space )", mutableStateOf(0),listOf("none","thumbnail","full sized")),
+            SettingsOptionDropDown("Cache recipe image","save a copy of images (can use up more space )", mutableStateOf(1),listOf("none","thumbnail","full sized")),
         )),
         )
 }

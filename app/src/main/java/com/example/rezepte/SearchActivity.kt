@@ -12,6 +12,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -25,12 +26,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.rezepte.ui.theme.CreateAutomations
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -95,17 +101,28 @@ class SearchActivity : ComponentActivity() {
         ).retrieveAccessToken()
 
         val data : MutableState<List<String>> = mutableStateOf(mutableListOf())
+        val thumbnails = mutableMapOf<String,Bitmap?>()
+        val hasThumbnails = mutableStateOf(false)
         //load local save list if enabled in settings
         val localList = if (settings["Local Saves.Cache recipe names"] == "true") {
             LocalFilesTask.loadFile("${this.filesDir}","listOfRecipes.xml")
         } else {null}
         if (localList != null){
             data.value = localList.first.replace(".xml","").split("\n")
+
+            //if there are locally saved thumbnails load them if data is not empty
+            if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
+                for (name in data.value){
+                    thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
+                }
+                hasThumbnails.value = true
+            }
         }
 
         val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
-        val thumbnails = mutableMapOf<String,Bitmap?>()
-        val hasThumbnails = mutableStateOf(false)
+
+
+
 
         //set the content of the window
         setContent {
@@ -137,14 +154,18 @@ class SearchActivity : ComponentActivity() {
                         )
                     }
                 }
-
-                //if there are locally saved thumbnails load them
-                if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
-                    for (name in data.value){
-                        thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
+                //if there were no local saved names thumbnails need to be grabbed now
+                if (localList == null){
+                    //if there are locally saved thumbnails load them
+                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
+                        for (name in data.value){
+                            thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
+                        }
+                        hasThumbnails.value = true
                     }
-                    hasThumbnails.value = true
                 }
+
+
 
                 //get thumbnails
                 val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
@@ -351,24 +372,40 @@ fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
 
 
 @Composable
-fun RecipeList(names: MutableState<List<String>>, thumbnails: MutableMap<String,Bitmap?>, state: MutableState<TextFieldValue>,getName : Boolean){
+fun RecipeList(
+    names: MutableState<List<String>>,
+    thumbnails: MutableMap<String, Bitmap?>,
+    state: MutableState<TextFieldValue>,
+    filters: MutableState<Map<String, MutableState<Boolean>>>,
+    getName: Boolean
+){
     var filteredNames: List<String>
 
     LazyColumn {
         val searchedText = state.value.text
-        filteredNames = if (searchedText.isEmpty()) {
-            names.value
-        } else {
-            val resultList = mutableListOf<String>()
-            for (name in names.value) {
-                if (name.lowercase(Locale.getDefault())
-                        .contains(searchedText.lowercase(Locale.getDefault()))
-                ) {
+
+        val resultList = mutableListOf<String>()
+        for (name in names.value) {
+            if (name.lowercase(Locale.getDefault())
+                    .contains(searchedText.lowercase(Locale.getDefault()))
+            ) {
+                var filted = true
+                for (filter in filters.value){
+                    if (filter.value.value && !name.lowercase(Locale.getDefault())
+                            .contains(filter.key.lowercase(Locale.getDefault()))
+                    ){
+                        filted = false
+                    }
+                }
+                if (filted){
                     resultList.add(name)
                 }
+
             }
-            resultList
+
+
         }
+        filteredNames = resultList
 
         items(filteredNames) { name ->
 
@@ -429,12 +466,68 @@ fun SearchView(state: MutableState<TextFieldValue>) {
 
     )
 }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchFilters(filters : MutableState<Map<String,MutableState<Boolean>>>){
+
+    Row (modifier = Modifier.horizontalScroll(rememberScrollState())) {
+        for (filter in filters.value){
+            FilterChip(
+                onClick = { filter.value.value = !filter.value.value },
+                label = {
+                    Text(filter.key)
+                },
+                selected =  filter.value.value,
+                leadingIcon = if ( filter.value.value) {
+                    {
+                        Icon(
+                            imageVector = Icons.Filled.Done,
+                            contentDescription = "Done icon",
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
+                    }
+                } else {
+                    null
+                },
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+
+        }
+    }
+}
+fun getFilters (recipeNames: List<String>): Map<String,MutableState<Boolean>>{ //get common words to use as suggested filters
+    val popularWords = mutableMapOf<String,MutableState<Boolean>>()
+    val usedWordsCount = mutableMapOf<String,Int>()
+    for (name in recipeNames){
+        for (word in CreateAutomations.getWords(name)){
+            if (usedWordsCount[word] == null){
+                usedWordsCount[word] = 1
+            }else {
+                usedWordsCount[word] = usedWordsCount[word]!! + 1
+            }
+        }
+    }
+
+    for (word in usedWordsCount){
+        if (word.key == "and") continue //this is not a useful filter
+        if(word.value >=3){//todo settings for this value and filters atall
+            popularWords[word.key] = mutableStateOf(false)
+        }
+    }
+
+
+    return  popularWords
+}
 @Composable
 private fun MainScreen(names: MutableState<List<String>>, thumbnails: MutableMap<String,Bitmap?>,getName : Boolean, updatedThumbnail : MutableState<Boolean>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
-    Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)){
+    val filters = remember { mutableStateOf( getFilters(names.value))}
+    Column (modifier = Modifier
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)){
         SearchView(textState)
-        RecipeList(names,thumbnails,textState,getName)
+        SearchFilters(filters)
+        RecipeList(names,thumbnails,textState,filters,getName)
         if (updatedThumbnail.value){
             //this will update the thumbnails
             updatedThumbnail.value= false
@@ -504,8 +597,16 @@ fun previewRecipeCard(){
 @Composable
 fun previewRecipeCards(){
     val textState = remember { mutableStateOf(TextFieldValue("")) }
+    val filters = remember { mutableStateOf(mapOf(Pair("cake", mutableStateOf(false)),Pair("dffffffffffdf2", mutableStateOf(false)),Pair("fasdf", mutableStateOf(false)),Pair("asfdasdf", mutableStateOf(false))))}
+
     RezepteTheme {
         Surface {
-            RecipeList( (mutableStateOf(listOf("Carrot Cake", "other Cake" ))), hashMapOf(),textState,false)
+            RecipeList(
+                (mutableStateOf(listOf("Carrot Cake", "other Cake" ))),
+                hashMapOf(),
+                textState,
+                filters,
+                false
+            )
         }
     }}

@@ -210,6 +210,43 @@ class MakeFormatting {
             }
             return output
         }
+        private fun teaSpoonVolume(settings: Map<String, String>):Float{
+            val setting = settings["Units.Conversions.Teaspoon volum"] ?: return 0f
+
+            val output = when{
+                setting.startsWith("metric") -> 5f
+                setting.startsWith("us") -> 4.9289217f
+                setting.startsWith("uk") -> 5.919388f
+
+                else -> 0f //if setting is corrupted or thing
+            }
+            return output
+        }
+        private fun tableSpoonVolume(settings: Map<String, String>):Float{
+            val setting = settings["Units.Conversions.Tablespoon volume"] ?: return 0f
+
+            val output = when{
+                setting.startsWith("metric") -> 15f
+                setting.startsWith("us") -> 14.786765f
+                setting.startsWith("uk") -> 14.20654f
+
+                else -> 0f //if setting is corrupted or thing
+            }
+            return output
+        }
+        private fun cupVolume(settings: Map<String, String>):Float{
+            val setting = settings["Units.Conversions.Cup volume"] ?: return 0f
+
+            val output = when{
+                setting.startsWith("metric") -> 250f
+                setting.startsWith("us") -> 236.59f
+                setting.startsWith("uk") -> 284.1306f
+
+                else -> 0f //if setting is corrupted or thing
+            }
+            return output
+        }
+
         private fun fixUnits(wholeString: String, startingValue: String, cookingUnitType: CookingUnit, settings: Map<String, String>): String{
             //make sure unit is correct for the users settings
             var output = wholeString
@@ -217,53 +254,53 @@ class MakeFormatting {
                 CookingUnit.Teaspoon -> {
                     if (settings["Units.Tea Spoons"] == "true") return wholeString // unit is correct
                     //convert to volume
-                    output = output.replace(startingValue,(startingValue.vulgarFraction*4.9289217f).toString())
+                    output = output.replace(startingValue,(startingValue.vulgarFraction*teaSpoonVolume(settings)).toString())
 
                     //replace units
                     unitsLut[CookingUnit.Teaspoon]?.let { output = output.replace (it, "ml") }
                     //see if it can be turned into grams
-                    output = mlToWeight((startingValue.vulgarFraction*4.9289217f).toString(),output,settings["Units.metric Weight"] == "true" )
+                    output = mlToWeight((startingValue.vulgarFraction* teaSpoonVolume(settings)).toString(),output,settings["Units.metric Weight"] == "true" )
                     return  output
                 }
                 CookingUnit.Tablespoon -> {
                     if (settings["Units.Table Spoons"] == "true") return wholeString // unit is correct
                     //convert to volume
-                    output = output.replace(startingValue,(startingValue.vulgarFraction*14.786765f).toString())
+                    output = output.replace(startingValue,(startingValue.vulgarFraction* tableSpoonVolume(settings)).toString())
                     //replace units
                     unitsLut[CookingUnit.Tablespoon]?.let { output =  output.replace (it, "ml") }
                     //see if it can be turned into grams
-                    output = mlToWeight((startingValue.vulgarFraction*14.786765f).toString(),output,settings["Units.metric Weight"] == "true" )
+                    output = mlToWeight((startingValue.vulgarFraction*tableSpoonVolume(settings)).toString(),output,settings["Units.metric Weight"] == "true" )
                     return  output
                 }
                 CookingUnit.Cup -> {
                     if (settings["Units.Cups"] == "true") return wholeString // unit is correct
                     //convert to volume
-                    output = output.replace(startingValue,(startingValue.vulgarFraction*236.59f).toString())
+                    output = output.replace(startingValue,(startingValue.vulgarFraction* cupVolume(settings)).toString())
                     //replace units
                     unitsLut[CookingUnit.Cup]?.let { output =  output.replace (it, "ml") }
                     //see if it can be turned into grams
-                    output = mlToWeight((startingValue.vulgarFraction*236.59f).toString(),output,settings["Units.metric Weight"] == "true" )
+                    output = mlToWeight((startingValue.vulgarFraction*cupVolume(settings)).toString(),output,settings["Units.metric Weight"] == "true" )
                     return  output
                 }
                 CookingUnit.Milliliters -> {
                     //if could be converted to spoons or cups and that settings is enabled convert it
                     if(settings["Units.Tea Spoons"] == "true" && startingValue.vulgarFraction < 15f){
                         //convert to tea spoons and replace ml
-                        output = output.replace(startingValue,(startingValue.vulgarFraction*0.20288414f).toString())
+                        output = output.replace(startingValue,(startingValue.vulgarFraction*(1/teaSpoonVolume(settings))).toString())
                         //replace unit
                         unitsLut[CookingUnit.Milliliters]?.let { output =  output.replace (it, "teaspoons") }
                         return output
                     }
                     else if(settings["Units.Table Spoons"] == "true" && startingValue.vulgarFraction < 60f){
                         //convert to table spoons and replace ml
-                        output = output.replace(startingValue,(startingValue.vulgarFraction*0.06762804f).toString())
+                        output = output.replace(startingValue,(startingValue.vulgarFraction*(1/tableSpoonVolume(settings))).toString())
                         //replace unit
                         unitsLut[CookingUnit.Milliliters]?.let { output =  output.replace (it, "tablespoons") }
                         return output
                     }
                     else if(settings["Units.Cups"] == "true" ){
                         //convert to cup  and replace ml
-                        output = output.replace(startingValue,(startingValue.vulgarFraction*0.0042267214f).toString())
+                        output = output.replace(startingValue,(startingValue.vulgarFraction*(1/cupVolume(settings))).toString())
                         //replace unit
                         unitsLut[CookingUnit.Milliliters]?.let { output =  output.replace (it, "cups") }
                         return output
@@ -391,7 +428,7 @@ class MakeFormatting {
             return -1
         }
         //https://coolconversion.com/cooking-volume-weight/
-        private val volumeWeightLut = mapOf<String,Float> (
+        private val volumeWeightLut = mapOf(
             Pair("water", 1F),
             Pair("olive oil", 0.9F),
             Pair("coconut oil", 0.924F),
@@ -416,6 +453,7 @@ class MakeFormatting {
             Pair("cocoa powder", 0.507F),
             Pair("oats",  0.351F),
             Pair("honey", 1.437F),
+            Pair("golden syrup", 1.479F),
             Pair("peanut butter", 1.01F),
             Pair("cornstarch", 0.507F),
 

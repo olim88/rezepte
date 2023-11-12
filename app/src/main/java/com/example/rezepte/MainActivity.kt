@@ -3,6 +3,8 @@ package com.example.rezepte
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,8 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dropbox.core.v2.users.FullAccount
 import com.example.rezepte.ui.theme.RezepteTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -90,7 +92,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             //get account data
-            GlobalScope.launch {
+            CoroutineScope(Dispatchers.IO).launch{
                 accountData.value = DownloadTask(DropboxClient.getClient(token)).getUserAccount()
                 withContext(Dispatchers.Main) {
                     if (accountData.value == null) {
@@ -259,25 +261,38 @@ fun CreateButtonOptions() {
                 },
                 keyboardActions = KeyboardActions(
                     onDone = {
-                        GlobalScope.launch {
+                        CoroutineScope(Dispatchers.IO).launch{
                             val settings = SettingsActivity.loadSettings( //todo already have this loaded
                                 mContext.getSharedPreferences(
                                     "com.example.rezepte.settings",
                                     ComponentActivity.MODE_PRIVATE
                                 )
                             )
-                            val recipe = DownloadWebsite.main(urlValue,settings)
-                            withContext(Dispatchers.Main) {
-                                //move to create activity
-                                val intent = Intent(mContext,CreateActivity::class.java)
-                                intent.putExtra("data",parseData(recipe.first))
-                                intent.putExtra("imageData",recipe.second)
-                                mContext.startActivity(intent)
+                            try{
+                                val recipe = DownloadWebsite.main(urlValue,settings)
+                                withContext(Dispatchers.Main) {
+                                    //move to create activity
+                                    val intent = Intent(mContext,CreateActivity::class.java)
+                                    intent.putExtra("data",parseData(recipe.first))
+                                    intent.putExtra("imageData",recipe.second)
+                                    mContext.startActivity(intent)
+                                }
+                            } catch (_: Exception){
+                                //could not load the website
+                                Handler(Looper.getMainLooper()).post {
+                                    Toast.makeText(mContext, "Invalid website", Toast.LENGTH_SHORT)
+                                        .show()
+
+                                }
+
                             }
+
                             //clear the url and reset
                             urlValue= ""
                             urlInput= false
-                    } }
+                    }
+
+                    }
                 ),
                 modifier = Modifier
                     .fillMaxWidth(),
