@@ -164,7 +164,11 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Separate Instructions","show each line as a different colour", mutableStateOf(true)),
             SettingsOptionToggle("Show split Instruction Buttons","show buttons to split instructions", mutableStateOf(true)),
         )),
-        SettingsOptionToggle("Search Menu View","display search menu as list", mutableStateOf(true)),
+        SettingsSubMenu("Search menu","",listOf(
+            SettingsOptionToggle("Search Menu List","display search menu as list giving better readability", mutableStateOf(false)),
+            SettingsOptionToggle("Suggestion Filters","show list of suggestion word to filter by", mutableStateOf(true)),
+        )),
+
         SettingsSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet",listOf(
             SettingsOptionToggle("Cache recipes","save a copy of recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cache recipe names","save a copy of names", mutableStateOf(true)),

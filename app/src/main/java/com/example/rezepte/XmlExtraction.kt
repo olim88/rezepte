@@ -3,16 +3,29 @@ package com.example.rezepte
 import com.gitlab.mvysny.konsumexml.Konsumer
 import com.gitlab.mvysny.konsumexml.konsumeXml
 
-class xmlExtraction {
-    fun GetData(xmlData : String) : Recipe{
-        //extract data
-        var extractedData = xmlData.konsumeXml().use { k ->
-            k.child("recipe") {
-                Recipe.xml(this)
+class XmlExtraction {
+    companion object {
+        fun getData(xmlData: String): Recipe {
+            //extract data
+            val extractedData = xmlData.konsumeXml().use { k ->
+                k.child("recipe") {
+                    Recipe.xml(this)
 
+                }
             }
+            return extractedData
         }
-        return  extractedData
+
+        fun getSearchData(xmlData: String): SearchData {
+            //extract data
+            val extractedData = xmlData.konsumeXml().use { k ->
+                k.child("searchData") {
+                    SearchData.xml(this)
+
+                }
+            }
+            return extractedData
+        }
     }
 }
 
@@ -180,4 +193,24 @@ fun GetEmptyRecipe() : Recipe{
         Ingredients(listOf()),
         Instructions(listOf())
     )
+}
+
+data class SearchData(var data : MutableList<BasicData>){
+    companion object {
+        fun xml(k: Konsumer): SearchData {
+            k.checkCurrent("searchData")
+            return SearchData(k.child("list") { children("entry") { BasicData.xml(this) } }.toMutableList())
+        }
+    }
+}
+data class BasicData(var name: String, var servings:String, var author: String ){
+    companion object{
+        fun xml(k: Konsumer): BasicData {
+
+            return BasicData(k.childText("name"),k.childText("servings"),k.childText("author"))
+        }
+    }
+}
+fun getEmptySeachData():SearchData {
+    return SearchData(mutableListOf())
 }

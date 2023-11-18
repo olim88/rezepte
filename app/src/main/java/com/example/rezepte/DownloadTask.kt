@@ -21,7 +21,7 @@ class DownloadTask(client: DbxClientV2)  {
 
     private val dbxClient: DbxClientV2 = client
 
-    suspend fun listDir (dir : String) : List<String>? {
+    fun listDir (dir : String) : List<String>? {
         val results = try {
             dbxClient.files().listFolder(dir)
         } catch (e: DbxException) {
@@ -29,7 +29,7 @@ class DownloadTask(client: DbxClientV2)  {
             return null
         }
 
-        var output = ArrayList<String>()
+        val output = ArrayList<String>()
 
         for (value in results.entries){
             output.add(value.name)
@@ -38,7 +38,7 @@ class DownloadTask(client: DbxClientV2)  {
         return output
 
     }
-    suspend fun getUserAccount(): FullAccount?{
+    fun getUserAccount(): FullAccount?{
         try {
             //get the users FullAccount
             return dbxClient.users().currentAccount
@@ -48,7 +48,7 @@ class DownloadTask(client: DbxClientV2)  {
 
         return null
     }
-    suspend fun getXml(dir :String) : Pair<String, Date>{
+    fun getXml(dir :String) : Pair<String, Date>{
         val results = dbxClient.files().download(dir)
         val time = results.result.serverModified //last modified time
         val reader = BufferedReader(results.inputStream.reader())
@@ -80,7 +80,7 @@ class DownloadTask(client: DbxClientV2)  {
         if (fullName.isEmpty()) return null
         return "$dir${fullName[0]}"
     }
-    suspend private fun getImagePathFromList(dir: String, name :String, nameOptions:List<String>): String? {
+    private fun getImagePathFromList(dir: String, name :String, nameOptions:List<String>): String? {
         val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
         if (fullName.isEmpty()) return null
         return "$dir${fullName[0]}"
@@ -94,7 +94,7 @@ class DownloadTask(client: DbxClientV2)  {
         //create arguments for each thumbnail
         val actualFileNames = listDir(dir) ?: return  null
         val names : Queue<String> = LinkedList()
-        var args = mutableListOf<ThumbnailArg>()
+        val args = mutableListOf<ThumbnailArg>()
         for (name in fileNames){
             val path = getImagePathFromList(dir,name,actualFileNames)
             if (path != null){
@@ -105,7 +105,7 @@ class DownloadTask(client: DbxClientV2)  {
 
         }
         val thumbNails  = dbxClient.files().getThumbnailBatch(args)
-        var output = hashMapOf<String,Bitmap?>()
+        val output = hashMapOf<String,Bitmap?>()
         for (thumbNail in thumbNails.entries)
         {
             if (thumbNail.tag() == GetThumbnailBatchResultEntry.Tag.SUCCESS){

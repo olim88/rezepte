@@ -91,7 +91,7 @@ class MakeActivity : AppCompatActivity()
         } else {null}
         //if there is locally saved data load that to extracted data
         if (localData != null ){
-            extractedData.value =  xmlExtraction().GetData(localData.first)
+            extractedData.value =  XmlExtraction.getData(localData.first)
         }
         //set the content
         setContent {
@@ -116,7 +116,7 @@ class MakeActivity : AppCompatActivity()
                             "${this@MakeActivity.filesDir}/xml/",
                             "$recipeName.xml"
                         )
-                        extractedData.value = xmlExtraction().GetData(data.first)
+                        extractedData.value = XmlExtraction.getData(data.first)
                     } else if (data.second.toInstant().toEpochMilli() - localData.second.toInstant()
                             .toEpochMilli() > -5000
                     ) {//if local save is over 5 seconds newer
@@ -135,7 +135,7 @@ class MakeActivity : AppCompatActivity()
                             "$recipeName.xml"
                         )
                     }
-                    extractedData.value = xmlExtraction().GetData(data.first)
+                    extractedData.value = XmlExtraction.getData(data.first)
                 }
                 val onlineImage = downloader.getImage("/image/", recipeName!!)
                 if (onlineImage != null) {
@@ -350,7 +350,7 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
 @Composable
 fun getColor (index: Int?, default : androidx.compose.ui.graphics.Color) :  androidx.compose.ui.graphics.Color{
     if (index == null)  return default
-    return  when(index!!%3){
+    return  when(index %3){
         0 -> MaterialTheme.colorScheme.primary
         1 -> MaterialTheme.colorScheme.secondary
         2 -> MaterialTheme.colorScheme.tertiary

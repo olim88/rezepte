@@ -120,7 +120,7 @@ private fun     MainScreen(accountData: MutableState<FullAccount?>) {
         .background(MaterialTheme.colorScheme.background)
         .verticalScroll(rememberScrollState()),horizontalAlignment = Alignment.CenterHorizontally){
         //logo
-        Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier
+        Image(painter = painterResource(id = R.drawable.icon), contentDescription = "logo image", contentScale = ContentScale.Inside, modifier = Modifier
             .fillMaxHeight(0.6f)
             .fillMaxWidth()
             .weight(1f))
@@ -241,7 +241,7 @@ fun CreateButtonOptions() {
         Row{
             Button(onClick = { urlInput = !urlInput},
                 modifier = Modifier.padding(0.dp,5.dp)) {
-                Text(text =  "Scrape Website", textAlign = TextAlign.Center)
+                Text(text =  "Load Website", textAlign = TextAlign.Center)
             }
             Spacer(
                 Modifier
@@ -250,7 +250,7 @@ fun CreateButtonOptions() {
             Button(onClick = {
                 //todo
             }, modifier = Modifier.padding(0.dp,5.dp)) {
-                Text(text =  "Scrape Image", textAlign = TextAlign.Center)
+                Text(text =  "Load Image", textAlign = TextAlign.Center)
             }
         }
         if (urlInput){

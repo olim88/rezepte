@@ -91,7 +91,6 @@ import com.example.rezepte.ui.theme.RezepteTheme
 import com.google.android.material.internal.ContextUtils.getActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.redundent.kotlin.xml.xml
@@ -120,7 +119,7 @@ class CreateActivity : ComponentActivity() {
 
         //check if there is preloaded recipe then name then just load empty recipe if neither is true
         if ( recipe != null){
-            val extractedData = xmlExtraction().GetData(recipe)
+            val extractedData = XmlExtraction.getData(recipe)
             setContent {
                 RezepteTheme {
                     MainScreen(
@@ -153,7 +152,7 @@ class CreateActivity : ComponentActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 //get data
                 val data: String = downloader.getXml("/xml/$loadedRecipeName.xml").first
-                val extractedData = xmlExtraction().GetData(data)
+                val extractedData = XmlExtraction.getData(data)
 
                 withContext(Dispatchers.Main) {
                     setContent {
@@ -237,7 +236,10 @@ class CreateActivity : ComponentActivity() {
     }
 
     private fun finishRecipe(recipe: Recipe, image: Uri?,bitmapImage : Bitmap?,linking : Boolean) {
-
+        val settings = SettingsActivity.loadSettings(getSharedPreferences(
+            "com.example.rezepte.settings",
+            MODE_PRIVATE
+        ))
         //make sure there is a name for the recipe else don't ext
         if (recipe.data.name == ""){
             return
@@ -279,16 +281,48 @@ class CreateActivity : ComponentActivity() {
             }
 
         }
+        //update search data to include recipe
+        val downloader = DownloadTask(DropboxClient.getClient(token))
+        CoroutineScope(Dispatchers.IO).launch {
+            //get data
+            val searchData = try {
+                val searchDataXml: String = downloader.getXml("/searchData.xml").first
+                XmlExtraction.getSearchData(searchDataXml)
+            }catch (e : Exception){
+                //there is no existing data so create blank data
+                getEmptySeachData()
+            }
+
+            //remove old data
+            if (loadedRecipeName != null){
+                for (index in 0..searchData.data.size-1){
+                    if (searchData.data[index].name == loadedRecipeName){
+                        searchData.data.removeAt(index)
+                        break
+                    }
+                }
+            }
+
+            //add new data
+            searchData.data.add(BasicData(name,recipe.data.serves,recipe.data.author))
+            //convert to string to save
+            val uploader = UploadTask(DropboxClient.getClient(token))
+            val stringXml = parseSearchData(searchData)
+            uploader.uploadXml(stringXml,"/searchData.xml")
+            if (settings["Local Saves.Cache recipe names"] == "true") {
+                LocalFilesTask.saveString(
+                    stringXml,
+                    "${this@CreateActivity.filesDir}/",
+                    "searchData.xml"
+                )
+            }
+        }
+
         //if the name has changed delete old files
         if (name != loadedRecipeName && loadedRecipeName != null) {
-            val token = DbTokenHandling( //get token
-                getSharedPreferences(
-                    "com.example.rezepte.dropboxintegration",
-                    MODE_PRIVATE
-                )
-            ).retrieveAccessToken()
+
             val uploader = UploadTask(DropboxClient.getClient(token))
-            GlobalScope.launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 //remove xml
                 uploader.removeFile("/xml/$loadedRecipeName.xml")
                 //remove image
@@ -296,10 +330,7 @@ class CreateActivity : ComponentActivity() {
 
             }
         }
-        val settings = SettingsActivity.loadSettings(getSharedPreferences(
-            "com.example.rezepte.settings",
-            MODE_PRIVATE
-        ))
+
         //save to device if setting enabled
         if (settings["Local Saves.Cache recipes"] == "true"){
             LocalFilesTask.saveString(data,"${this.filesDir}/xml/","$name.xml")
@@ -338,10 +369,31 @@ class CreateActivity : ComponentActivity() {
 
 
 }
+fun parseSearchData(searchData: SearchData): String{
+    val recipeXml = xml("searchData") {
+        "list"{
+            for(data in searchData.data){
+                "entry"{
+                    "name"{
+                        -data.name
+                    }
+                    "servings"{
+                        -data.servings
+                    }
+                    "author"{
+                        -data.author
+                    }
+                }
+            }
+        }
+    }
+    return recipeXml.toString(true)
+}
+
     fun parseData(recipe : Recipe): String    {
     //get info from layout
 
-    val recipe = xml("recipe") {
+    val recipeXml = xml("recipe") {
         "data" {
             "name" {
                 - recipe.data.name
@@ -454,7 +506,7 @@ class CreateActivity : ComponentActivity() {
 
     }
 
-    return recipe.toString(true)
+    return recipeXml.toString(true)
 
 
 }

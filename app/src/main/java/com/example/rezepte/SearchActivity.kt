@@ -8,9 +8,19 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.with
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
@@ -19,13 +29,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,12 +57,14 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +83,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,7 +94,7 @@ import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.Locale
+import java.util.Random
 
 
 class SearchActivity : ComponentActivity() {
@@ -101,6 +122,7 @@ class SearchActivity : ComponentActivity() {
         ).retrieveAccessToken()
 
         val data : MutableState<List<String>> = mutableStateOf(mutableListOf())
+        val extraData : MutableMap<String,BasicData> = mutableMapOf()
         val thumbnails = mutableMapOf<String,Bitmap?>()
         val hasThumbnails = mutableStateOf(false)
         //load local save list if enabled in settings
@@ -111,11 +133,21 @@ class SearchActivity : ComponentActivity() {
             data.value = localList.first.replace(".xml","").split("\n")
 
             //if there are locally saved thumbnails load them if data is not empty
-            if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
+            if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized"){
                 for (name in data.value){
                     thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
                 }
                 hasThumbnails.value = true
+            }
+            //load local extra data
+            val searchDataXml = LocalFilesTask.loadFile("/","searchData.xml")
+            if (searchDataXml != null) {
+                val searchData = XmlExtraction.getSearchData(searchDataXml.first)
+
+                //convert to dictionary
+                for (recipeData in searchData.data) {
+                    extraData[recipeData.name] = recipeData
+                }
             }
         }
 
@@ -127,7 +159,7 @@ class SearchActivity : ComponentActivity() {
         //set the content of the window
         setContent {
             RezepteTheme {
-                MainScreen(data, thumbnails,returnName,hasThumbnails)
+                MainScreen(data,extraData, thumbnails,returnName,hasThumbnails,settings)
             }
         }
 
@@ -157,20 +189,39 @@ class SearchActivity : ComponentActivity() {
                 //if there were no local saved names thumbnails need to be grabbed now
                 if (localList == null){
                     //if there are locally saved thumbnails load them
-                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
+                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized"){
                         for (name in data.value){
                             thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
                         }
                         hasThumbnails.value = true
                     }
                 }
+                //load the extra search data
+                val seachData = try {
+                    val seachDataXml = downloader.getXml("/searchData.xml")
+                    XmlExtraction.getSearchData(seachDataXml.first)
+                }catch (e: Exception){
+                    getEmptySeachData()
+                }
+                //convert to dictionary
+                for(recipeData in seachData.data){
+                    extraData[recipeData.name] = recipeData
+                }
+                //if enabled save this to the device
+                if (settings["Local Saves.Cache recipe names"] == "true") {
+                    LocalFilesTask.saveString(parseSearchData(SearchData(extraData.values.toMutableList())),"${this@SearchActivity.filesDir}/","searchData.xml")
+                }
+
+
+
+
 
 
 
                 //get thumbnails
                 val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
                 if (thumbnailsDownloaded != null) {
-                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings[""]== "full sized"){
+                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized"){
                         for (thumbnailKey in thumbnails.keys){
                             if (thumbnailsDownloaded[thumbnailKey]?.sameAs(thumbnails[thumbnailKey]) == false){
                                 //if they are not the same save the thumbnail to device update the value and set hasThumbnails to true
@@ -204,8 +255,9 @@ class SearchActivity : ComponentActivity() {
 }
 
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
+fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName : Boolean) {
 
     // Fetching the Local Context
     val mContext = LocalContext.current
@@ -216,76 +268,175 @@ fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
         modifier = Modifier
             .padding(all = 5.dp)
             .fillMaxWidth()
-            .requiredHeightIn(63.dp)
+            .requiredHeightIn(60.dp)
             .clickable { isExpanded = !isExpanded }
             .animateContentSize()
             .padding(1.dp),
 
         ) {
-        if (isExpanded){
-            Row {
-                if (thumbNail != null) {
-                    val brush = Brush.horizontalGradient(colorStops = arrayOf(0.4f to Color.White, 1f to Color.Transparent))
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(thumbNail)
-                            .build(),
-                        contentDescription = "Contact profile picture",
-                        modifier = Modifier
-                            // Set image size to 50 dp
-                            .size(128.dp)
-                            // Clip image to be shaped as a circle
-                            .clip(RoundedCornerShape(5.dp))
-                            .align(Alignment.CenterVertically)
-                            .animateContentSize()
-                            .graphicsLayer { alpha = 0.99f }
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(brush, blendMode = BlendMode.DstIn)
-                            },
-                        contentScale = ContentScale.Crop,
+        //image section
+        Row {
+            if (thumbNail != null) {
+                val brush = Brush.horizontalGradient(
+                    colorStops = arrayOf(
+                        0.4f to Color.White,
+                        1f to Color.Transparent
                     )
-                }
-            }
-            Row {
-                if (thumbNail != null){
-                    Spacer(
-                        Modifier.width(120.dp)
-                    )
-                }
-                Column(modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)) {
-                    //recipe name
-                    Text(
-                        "$name",
-                        modifier = Modifier.padding(all = 2.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        softWrap = true,
-                    )
-                    //recipe details
-                    Column {
-                        Text(
-                            "servings:",
-                            modifier = Modifier.padding(all = 2.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                )
+                AnimatedContent(
+                    targetState = isExpanded,
+                    transitionSpec = {
+                        slideInHorizontally().with(
+                            slideOutHorizontally()
                         )
-                        Text(
-                            " Speed:",
-                            modifier = Modifier.padding(all = 2.dp),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            "otherthing:",
-                            modifier = Modifier.padding(all = 2.dp),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                    },
+                    label = "image transition",
+                ) { targetState ->
+                    when (targetState) {
+                        true -> {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(thumbNail)
+                                    .build(),
+                                contentDescription = "Contact profile picture",
+                                modifier = Modifier
+                                    // Set image size to 50 dp
+                                    .size(128.dp)
+                                    // Clip image to be shaped as a circle
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .align(Alignment.CenterVertically)
+
+
+                                    .graphicsLayer { alpha = 0.99f }
+                                    .drawWithContent {
+                                        drawContent()
+                                        drawRect(brush, blendMode = BlendMode.DstIn)
+                                    },
+                                contentScale = ContentScale.Crop,
+                            )
+
                         }
+
+                        false -> {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(thumbNail)
+                                    .build(),
+                                contentDescription = "Contact profile picture",
+                                modifier = Modifier
+                                    // Set image size to 50 dp
+                                    .size(60.dp)
+                                    // Clip image to be shaped as a circle
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .align(Alignment.CenterVertically)
+                                    .animateEnterExit(
+                                        slideInHorizontally(initialOffsetX = { w -> -w }),
+                                        slideOutHorizontally(targetOffsetX = { w -> -w })
+                                    )
+                                    .graphicsLayer { alpha = 0.99f },
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
+                    }
                 }
 
-                Spacer(
-                    Modifier
+
+            }
+        }
+
+        //text section
+        Row(modifier = Modifier.height(if (isExpanded) 128.dp else 60.dp)) {
+            if (thumbNail != null) {
+                AnimatedContent(
+                    targetState = isExpanded,
+                    transitionSpec = {
+                        slideInHorizontally().with(
+                            slideOutHorizontally()
+                        )
+                    },
+                    label = "image transition",
+                ) { targetState ->
+                    when (targetState) {
+                        true -> {
+                            Spacer(
+                                Modifier.width(120.dp)
+                            )
+                        }
+                        false -> {
+                            Spacer(
+                                Modifier.width(60.dp)
+                            )
+
+                        }
+                    }
+                }
+
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .requiredHeightIn(63.dp)
+                    .weight(1f)
+            ) {
+                //recipe name
+                Text(
+                    name,
+                    modifier = Modifier.padding(all = 1.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    softWrap = true,
                 )
+                if(extraData != null){
+                    Text(
+                        "Author: ${extraData.author}",
+                        modifier = Modifier.padding(start = 4.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        softWrap = true,
+                    )
+                    Text(
+                        "Sevings: ${extraData.servings}",
+                        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        softWrap = true,
+                    )
+                }
+
+            }
+
+            AnimatedContent(
+                targetState = isExpanded,
+                transitionSpec = {
+                    slideInHorizontally().with(
+                        slideOutHorizontally()
+                    )
+                },
+                label = "image transition",
+            ) { targetState ->
+                when (targetState) {
+                    true -> {
+                        Spacer(
+                            Modifier.width(110.dp)
+                        )
+                    }
+                    false -> {
+
+                    }
+                }
+            }
+
+        }
+
+        //button section
+        Row {
+            Spacer(modifier = Modifier.weight(1f))
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = scaleIn()
+                        + fadeIn(
+                    // Fade in with the initial alpha of 0.3f.
+                    initialAlpha = 0.3f
+                ),
+                exit = scaleOut() + fadeOut()
+            ) {
                 Button(
                     onClick = {
                         if (getName) { //if returning a name to createing
@@ -304,22 +455,239 @@ fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
                     modifier = Modifier
                         .padding(all = 5.dp)
                         .requiredWidth(IntrinsicSize.Max)
+
                 ) {
                     Text(
                         if (getName) "Link" else "Make",
                         modifier = Modifier.padding(all = 2.dp),
                         style = MaterialTheme.typography.titleLarge
                     )
+
+
                 }
+            }
+
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun RecipeList(
+    names: MutableState<List<String>>,
+    extraData:MutableMap<String,BasicData>,
+    thumbnails: MutableMap<String, Bitmap?>,
+    searchFieldState: MutableState<TextFieldValue>,
+    filters: MutableState<Map<String, MutableState<Boolean>>>,
+    getName: Boolean,
+    settings: Map<String,String>
+) {
+    var filteredNames: List<String>
+
+
+
+    if (settings["Search menu.Search Menu List"] == "true") {
+        //animated the suggesting in and out when they are in sue
+        val lazyListState = rememberLazyListState()
+        val firstItemTranslationY by remember {
+            derivedStateOf {
+                when {
+                    lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty() && lazyListState.firstVisibleItemIndex == 0 -> lazyListState.firstVisibleItemScrollOffset * .6f
+                    else -> 0f
+                }
+            }
+        }
+        val visibility by remember {
+            derivedStateOf {
+                when {
+                    lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty() && lazyListState.firstVisibleItemIndex == 0 -> {
+                        val imageSize = lazyListState.layoutInfo.visibleItemsInfo[0].size
+                        val scrollOffset = lazyListState.firstVisibleItemScrollOffset
+
+                        scrollOffset / imageSize.toFloat()
+                    }
+
+                    else -> 1f
+                }
+            }
+        }
+
+        LazyColumn(state = lazyListState) {
+            //add the filterer at the top
+            if (settings["Search menu.Suggestion Filters"] == "true") {
+                item {
+                    SearchFilters(filters, firstItemTranslationY, visibility)
+                }
+            }
+
+            filteredNames = filterItems(names.value,extraData,filters.value,searchFieldState.value.text)
+
+            items(filteredNames) { name ->
+
+                RecipeCard(name,extraData[name], thumbnails[name], getName)
 
             }
         }
-        else {
+    }
 
+    else {
+
+        //animated the suggesting in and out when they are in sue
+        val lazyGridState = rememberLazyStaggeredGridState()
+        val firstItemTranslationY by remember {
+            derivedStateOf {
+                when {
+                    lazyGridState.layoutInfo.visibleItemsInfo.isNotEmpty() && lazyGridState.firstVisibleItemIndex == 0 -> lazyGridState.firstVisibleItemScrollOffset * .6f
+                    else -> 0f
+                }
+            }
+        }
+        val visibility by remember {
+            derivedStateOf {
+                when {
+                    lazyGridState.layoutInfo.visibleItemsInfo.isNotEmpty() && lazyGridState.firstVisibleItemIndex == 0 -> {
+                        val imageSize = lazyGridState.layoutInfo.visibleItemsInfo[0].size
+                        val scrollOffset = lazyGridState.firstVisibleItemScrollOffset
+
+                        scrollOffset / imageSize.height.toFloat()
+                    }
+
+                    else -> 1f
+                }
+            }
+        }
+        var selectedName by remember { mutableStateOf("") }
+        LazyVerticalStaggeredGrid(columns = StaggeredGridCells.Adaptive(128.dp),state = lazyGridState) {
+            //add spacer for filters at the top if its enabled
+            if (settings["Search menu.Suggestion Filters"] == "true") {
+                item(span =  StaggeredGridItemSpan.FullLine ) {
+                    SearchFilters(filters, firstItemTranslationY, visibility)
+                }
+            }
+            filteredNames = filterItems(names.value,extraData,filters.value,searchFieldState.value.text)
+            items(filteredNames) { name ->
+
+                RecipeTile(name, getColor(index = filteredNames.indexOf(name), default = MaterialTheme.colorScheme.primary), thumbnails[name]) {
+                    selectedName = name
+                }
+
+            }
+
+
+        }
+        //when a recipe is selected show an expanded bottom sheet with extra detail and the button to link or make the recipe
+        RecipeExpanded(selectedName,extraData[selectedName], thumbnails[selectedName], getName) {
+            selectedName = ""
+        }
+    }
+}
+fun filterItems(names:List<String>, authors:Map<String,BasicData>,filters: Map<String, MutableState<Boolean>>, searchFilter:String): List<String>{
+    val resultList = mutableListOf<String>()
+    //check all of the recipe names to see which one fits the filters
+    for (name in names){
+        //combine the name and author so both can be searched at once if the author is not null
+        val searchedValue = "$name ${if (authors[name] != null)authors[name]?.author else ""}"
+        //if the name (or author) contains what is in the search box
+        if(searchedValue.contains(searchFilter, ignoreCase = true)){
+            //see if it also fits the enabled search filter buttons
+            var matches = true
+            for (filter in filters){
+                //if there is a filter enabled see if the filter word is in the name (or author) and if it is not remove matches
+                if(filter.value.value && !searchedValue.contains(filter.key, ignoreCase = true)){
+                    matches = false
+                    break
+                }
+            }
+            //if still matches the extra filters add it to the results
+            if (matches){
+                resultList.add(name)
+            }
+        }
+    }
+    return resultList
+}
+
+
+@Composable
+fun RecipeTile(name: String,color : Color, thumbNail : Bitmap?,onSelect : () -> Unit)  {
+    // Fetching the Local Context
+
+    val random = Random()
+    var isExpanded by remember { mutableStateOf(false) }
+    Surface(
+        shape = MaterialTheme.shapes.small, shadowElevation = 15.dp,
+        color = color,
+        modifier = Modifier
+            .padding(all = 5.dp)
+            .requiredWidthIn(128.dp)
+            .requiredHeightIn(64.dp)
+            .clickable {
+                isExpanded = !isExpanded
+                onSelect()
+            }
+            .animateContentSize()
+            .padding(1.dp),
+
+        ) {
+        Column {
+            //image section
+
+            if (thumbNail != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(thumbNail)
+                        .build(),
+                    contentDescription = "Contact profile picture",
+                    modifier = Modifier
+                        // Set image size to 50 dp
+                        .size(128.dp)
+                        // Clip image to be shaped as a circle
+                        .clip(RoundedCornerShape(5.dp)),
+
+
+                    contentScale = ContentScale.Crop,
+                )
+            }
+            //recipe name
+            Text(
+                name,
+                modifier = Modifier.padding(all = 4.dp),
+                style = MaterialTheme.typography.titleMedium,
+                softWrap = true,
+            )
+        }
+
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecipeExpanded(name: String,basicData: BasicData?, thumbNail : Bitmap?, getName : Boolean,onSelect : () -> Unit){
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+    if (name != ""){
+        ModalBottomSheet(onDismissRequest = {
+            onSelect()
+        }) {
             Row {
-
-                //recipe image
                 if (thumbNail != null) {
+                    val brush = Brush.horizontalGradient(
+                        colorStops = arrayOf(
+                            0.4f to Color.White,
+                            1f to Color.Transparent
+                        )
+                    )
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(thumbNail)
@@ -327,91 +695,70 @@ fun RecipeCard(name: String, thumbNail : Bitmap?, getName : Boolean){
                         contentDescription = "Contact profile picture",
                         modifier = Modifier
                             // Set image size to 50 dp
-                            .size(60.dp)
+                            .size(128.dp)
                             // Clip image to be shaped as a circle
                             .clip(RoundedCornerShape(5.dp))
-                            .animateContentSize()
-                            .align(Alignment.CenterVertically)
-                            .border(
-                                1.5.dp,
-                                MaterialTheme.colorScheme.primary,
-                                RoundedCornerShape(5.dp)
-                            ),
-                        contentScale = ContentScale.Crop
 
+
+                            .graphicsLayer { alpha = 0.99f }
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(brush, blendMode = BlendMode.DstIn)
+
+                            },
+                        contentScale = ContentScale.Crop,
                     )
                 }
-                Column(modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)) {
-                    //recipe name
+                Column {
                     Text(
-                        "$name",
-                        modifier = Modifier.padding(all = 2.dp),
+                        name,
+                        modifier = Modifier
+                            .padding(all = 2.dp)
+                            .fillMaxWidth(),
                         style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Left,
                         softWrap = true,
                     )
-                    //recipe details
-                    Text(
-                        "servings:   Speed:  otherthing:    ",
-                        modifier = Modifier.padding(all = 2.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                }
-
-
-            }
-        }
-
-
-    }}
-
-
-
-
-
-@Composable
-fun RecipeList(
-    names: MutableState<List<String>>,
-    thumbnails: MutableMap<String, Bitmap?>,
-    state: MutableState<TextFieldValue>,
-    filters: MutableState<Map<String, MutableState<Boolean>>>,
-    getName: Boolean
-){
-    var filteredNames: List<String>
-
-    LazyColumn {
-        val searchedText = state.value.text
-
-        val resultList = mutableListOf<String>()
-        for (name in names.value) {
-            if (name.lowercase(Locale.getDefault())
-                    .contains(searchedText.lowercase(Locale.getDefault()))
-            ) {
-                var filted = true
-                for (filter in filters.value){
-                    if (filter.value.value && !name.lowercase(Locale.getDefault())
-                            .contains(filter.key.lowercase(Locale.getDefault()))
-                    ){
-                        filted = false
+                    Spacer(modifier = Modifier.height(10.dp))
+                    if(basicData != null) {
+                        Text(text = "Author: ${basicData.author}", modifier = Modifier.padding(5.dp))
+                        Text(text = "Servings: ${basicData.servings}", modifier = Modifier.padding(5.dp))
                     }
                 }
-                if (filted){
-                    resultList.add(name)
-                }
+            }
+            Button(
+                onClick = {
+                    onSelect()
+                    if (getName) { //if returning a name to createing
+                        val intent = Intent(mContext, CreateActivity::class.java)
+                        intent.flags =
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        intent.putExtra("creating", true)
+                        intent.putExtra("recipe name", name)
+                        mContext.startActivity(intent)
+                    } else {
+                        val intent = Intent(mContext, MakeActivity::class.java)
+                        intent.putExtra("recipe name", name)
+                        mContext.startActivity(intent)
+                    }
+                },
+                modifier = Modifier
+                    .padding(top = 15.dp)
+                    .padding(5.dp)
+                    .fillMaxWidth()
+
+            ) {
+                Text(
+                    if (getName) "Link" else "Make",
+                    modifier = Modifier.padding(all = 2.dp),
+                    style = MaterialTheme.typography.titleLarge
+                )
+
 
             }
-
-
+            Spacer(Modifier.weight(1f))
         }
-        filteredNames = resultList
 
-        items(filteredNames) { name ->
-
-            RecipeCard(name, thumbnails[name], getName)
-
-        }
     }
 }
 
@@ -468,9 +815,18 @@ fun SearchView(state: MutableState<TextFieldValue>) {
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchFilters(filters : MutableState<Map<String,MutableState<Boolean>>>){
+fun SearchFilters(
+    filters: MutableState<Map<String, MutableState<Boolean>>>,
+    firstItemTranslationY: Float,
+    visibility: Float
+){
 
-    Row (modifier = Modifier.horizontalScroll(rememberScrollState())) {
+    Row (modifier = Modifier
+        .horizontalScroll(rememberScrollState())
+        .graphicsLayer {
+            translationY = firstItemTranslationY
+            alpha = 1f - visibility
+        }) {
         for (filter in filters.value){
             FilterChip(
                 onClick = { filter.value.value = !filter.value.value },
@@ -489,6 +845,9 @@ fun SearchFilters(filters : MutableState<Map<String,MutableState<Boolean>>>){
                 } else {
                     null
                 },
+                colors = FilterChipDefaults.filterChipColors(containerColor =MaterialTheme.colorScheme.background )
+
+
             )
             Spacer(modifier = Modifier.width(5.dp))
 
@@ -519,20 +878,23 @@ fun getFilters (recipeNames: List<String>): Map<String,MutableState<Boolean>>{ /
     return  popularWords
 }
 @Composable
-private fun MainScreen(names: MutableState<List<String>>, thumbnails: MutableMap<String,Bitmap?>,getName : Boolean, updatedThumbnail : MutableState<Boolean>) {
+private fun MainScreen(names: MutableState<List<String>>,extraData: MutableMap<String,BasicData>, thumbnails: MutableMap<String,Bitmap?>,getName : Boolean, updatedThumbnail : MutableState<Boolean>,settings: Map<String,String>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     val filters = remember { mutableStateOf( getFilters(names.value))}
     Column (modifier = Modifier
         .fillMaxSize()
         .background(MaterialTheme.colorScheme.background)){
         SearchView(textState)
-        SearchFilters(filters)
-        RecipeList(names,thumbnails,textState,filters,getName)
+
+        RecipeList(names,extraData,thumbnails,textState,filters,getName,settings)
         if (updatedThumbnail.value){
             //this will update the thumbnails
             updatedThumbnail.value= false
         }
     }
+
+
+
 }
 
 @SuppressLint("UnrememberedMutableState")
@@ -544,7 +906,8 @@ private fun MainScreen(names: MutableState<List<String>>, thumbnails: MutableMap
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen((mutableStateOf(listOf("Carrot Cake", "other Cake"))), hashMapOf(),false, mutableStateOf(false))
+        MainScreen((mutableStateOf(listOf("Carrot Cake", "other Cake"))),
+            mutableMapOf(), hashMapOf(),false, mutableStateOf(false),mapOf())
     }
 }
 @Preview(
@@ -584,7 +947,7 @@ fun TopBarPreview() {
 fun previewRecipeCard(){
     RezepteTheme {
         Surface {
-            RecipeCard(name = "Carrot Cake",null,false)
+            RecipeCard(name = "Carrot Cake",null,null,false)
 
         }
     }}
@@ -603,10 +966,12 @@ fun previewRecipeCards(){
         Surface {
             RecipeList(
                 (mutableStateOf(listOf("Carrot Cake", "other Cake" ))),
+                mutableMapOf(),
                 hashMapOf(),
                 textState,
                 filters,
-                false
+                false,
+                mapOf()
             )
         }
     }}

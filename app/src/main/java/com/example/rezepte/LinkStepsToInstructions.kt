@@ -43,10 +43,10 @@ class LinkStepsToInstructions: AppCompatActivity()
         if (data == null){
             Toast.makeText(this, "no data found", Toast.LENGTH_SHORT).show()
             val intent = Intent(this,MainActivity::class.java)
-            startActivity(intent);
+            startActivity(intent)
         }
         //convert the data back to object
-        val extractedData = xmlExtraction().GetData(data!!)
+        val extractedData = XmlExtraction.getData(data!!)
         //if there are no steps save and leave
         if(extractedData.data.cookingSteps.list.isEmpty()){
             finishRecipe(extractedData)
