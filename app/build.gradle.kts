@@ -87,6 +87,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.16.1")
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-    
+    implementation ("com.google.mlkit:text-recognition:16.0.0")
+
+
 
 }

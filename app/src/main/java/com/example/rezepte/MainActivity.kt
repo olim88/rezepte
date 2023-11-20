@@ -2,12 +2,15 @@ package com.example.rezepte
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -224,6 +227,24 @@ fun CreateButtonOptions() {
     val mContext = LocalContext.current
     var urlInput by remember { mutableStateOf(false)}
     var urlValue by remember { mutableStateOf("")}
+    //get a local image
+
+
+    val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        //if the user gave an image convert it to a recipe and take that to the create
+        if (uri != null){
+            ImageToRecipe.convert(uri,mContext){
+                //when loaded send the recipe to the create menu
+                val intent = Intent(mContext,CreateActivity::class.java)
+
+                intent.putExtra("data",parseData(it))
+                //intent.putExtra("imageData",recipe.second) add image
+                mContext.startActivity(intent)
+            }
+
+        }
+
+    }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
         .fillMaxWidth()
         .padding(5.dp, 5.dp)) {
@@ -248,7 +269,7 @@ fun CreateButtonOptions() {
                     .weight(1f)
             )
             Button(onClick = {
-                //todo
+                getImageContent.launch("image/*")
             }, modifier = Modifier.padding(0.dp,5.dp)) {
                 Text(text =  "Load Image", textAlign = TextAlign.Center)
             }

@@ -44,7 +44,12 @@ class MakeFormatting {
                 if (number != null ) {
                     output += if (number.value.contains("/")){//if it is a fractional value work that out
                         val numbers = number.value.split("/")
-                        numbers[0].toFloat()/numbers[1].toFloat()
+                        if (numbers[1] != ""){
+                            numbers[0].toFloat()/numbers[1].toFloat()
+                        }else {
+                            numbers[0].toFloat()
+                        }
+
                     }else {
                         number.value.toFloatOrNull() ?: 0f //convert to float but if its somehow invalid return 0
 
@@ -200,6 +205,8 @@ class MakeFormatting {
             var output = string
             //check all the units found
             for (unit in unitIndexes){
+                //if there units starting an item just ignore them
+                if (unit.value == 0) continue
                 val value = cleanWords[unit.value-1]
                 //make sure that there is a number being passed
                 if (value.matches(numberRegex)) {
@@ -211,7 +218,7 @@ class MakeFormatting {
             return output
         }
         private fun teaSpoonVolume(settings: Map<String, String>):Float{
-            val setting = settings["Units.Conversions.Teaspoon volum"] ?: return 0f
+            val setting = settings["Units.Conversions.Teaspoon volume"] ?: return 0f
 
             val output = when{
                 setting.startsWith("metric") -> 5f

@@ -559,7 +559,7 @@ fun TitleInput(data : MutableState<Recipe>){
 }
 @Composable
 fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
-    // Fetching the Local Context
+    //get a local image
     val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         image.value = uri
         //set bitmap to nothing
