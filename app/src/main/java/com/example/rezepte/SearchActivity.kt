@@ -121,7 +121,7 @@ class SearchActivity : ComponentActivity() {
             )
         ).retrieveAccessToken()
 
-        val data : MutableState<List<String>> = mutableStateOf(mutableListOf())
+        val data : MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
         val extraData : MutableMap<String,BasicData> = mutableMapOf()
         val thumbnails = mutableMapOf<String,Bitmap?>()
         val hasThumbnails = mutableStateOf(false)
@@ -129,8 +129,9 @@ class SearchActivity : ComponentActivity() {
         val localList = if (settings["Local Saves.Cache recipe names"] == "true") {
             LocalFilesTask.loadFile("${this.filesDir}","listOfRecipes.xml")
         } else {null}
+
         if (localList != null){
-            data.value = localList.first.replace(".xml","").split("\n")
+            data.value = localList.first.replace(".xml","").split("\n").toMutableList()
 
             //if there are locally saved thumbnails load them if data is not empty
             if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized"){
@@ -140,7 +141,7 @@ class SearchActivity : ComponentActivity() {
                 hasThumbnails.value = true
             }
             //load local extra data
-            val searchDataXml = LocalFilesTask.loadFile("/","searchData.xml")
+            val searchDataXml = LocalFilesTask.loadFile("${this@SearchActivity.filesDir}/","searchData.xml")
             if (searchDataXml != null) {
                 val searchData = XmlExtraction.getSearchData(searchDataXml.first)
 
@@ -150,6 +151,20 @@ class SearchActivity : ComponentActivity() {
                 }
             }
         }
+        //add local only files to that list
+
+        val localFiles = LocalFilesTask.listFolder("${this.filesDir}/xml/")
+        if (localFiles != null){
+            for (file in localFiles){
+                //if the list dose not contain the file name add it to the list
+                if (!data.value.contains(file.removeSuffix(".xml"))){
+                    //add to data
+                    data.value.add(file.removeSuffix(".xml"))
+                }
+            }
+        }
+
+
 
         val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
 
@@ -486,7 +501,7 @@ fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecipeList(
-    names: MutableState<List<String>>,
+    names: MutableState<MutableList<String>>,
     extraData:MutableMap<String,BasicData>,
     thumbnails: MutableMap<String, Bitmap?>,
     searchFieldState: MutableState<TextFieldValue>,
@@ -878,7 +893,11 @@ fun getFilters (recipeNames: List<String>): Map<String,MutableState<Boolean>>{ /
     return  popularWords
 }
 @Composable
-private fun MainScreen(names: MutableState<List<String>>,extraData: MutableMap<String,BasicData>, thumbnails: MutableMap<String,Bitmap?>,getName : Boolean, updatedThumbnail : MutableState<Boolean>,settings: Map<String,String>) {
+private fun MainScreen(
+    names: MutableState<MutableList<String>>,
+    extraData: MutableMap<String,BasicData>, thumbnails: MutableMap<String,Bitmap?>,
+    getName: Boolean, updatedThumbnail: MutableState<Boolean>,
+    settings: Map<String,String>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     val filters = remember { mutableStateOf( getFilters(names.value))}
     Column (modifier = Modifier
@@ -906,7 +925,7 @@ private fun MainScreen(names: MutableState<List<String>>,extraData: MutableMap<S
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen((mutableStateOf(listOf("Carrot Cake", "other Cake"))),
+        MainScreen((mutableStateOf(mutableListOf("Carrot Cake", "other Cake"))),
             mutableMapOf(), hashMapOf(),false, mutableStateOf(false),mapOf())
     }
 }
@@ -965,7 +984,7 @@ fun previewRecipeCards(){
     RezepteTheme {
         Surface {
             RecipeList(
-                (mutableStateOf(listOf("Carrot Cake", "other Cake" ))),
+                (mutableStateOf(mutableListOf("Carrot Cake", "other Cake" ))),
                 mutableMapOf(),
                 hashMapOf(),
                 textState,

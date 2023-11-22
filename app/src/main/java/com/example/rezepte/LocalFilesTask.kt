@@ -51,6 +51,17 @@ class LocalFilesTask {
 
             return null
         }
+        fun listFolder(folderPath: String): List<String>?{
+            //get path
+            val dir = File(folderPath)
+            //if is path return list of file names
+            if (dir.isDirectory){
+                return dir.list()?.toList()
+            }
+            //if not return null
+            return null
+        }
+
 
     }
 }

@@ -8,12 +8,15 @@ import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.Text.TextBlock
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlin.math.abs
 import kotlin.math.min
 
 private val Text.TextBlock.lineHeight: Int?
     get() {
         //get the hight of the block
-        return (this.boundingBox?.height() ?: return null) /this.lines.count()
+        if (this.cornerPoints == null) return null
+        val height = ((this.cornerPoints?.get(3)?.y!! - this.cornerPoints?.get(0)?.y!!) + (this.cornerPoints?.get(2)?.y!! - this.cornerPoints?.get(1)?.y!!))/2 //get avg height as should be more acc than bound height hopefully
+        return height /this.lines.count()
 
 
     }
@@ -23,7 +26,7 @@ class ImageToRecipe {
 
         private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
-        fun convert (imageUri : Uri,context : Context, callback: (Recipe) -> Unit) {
+        fun convert (imageUri : Uri,context : Context,error:() -> Unit, callback: (Recipe) -> Unit) {
             val image  = InputImage.fromFilePath(context,imageUri)
             val recipe = GetEmptyRecipe()
             val result = recognizer.process(image)
@@ -40,6 +43,11 @@ class ImageToRecipe {
                         if (confidence/it.lines.count() > 0.4){
                             textBlocks.add(it)
                         }
+                    }
+                    //if there are no text blocks found call error and return
+                    if (textBlocks.isEmpty()){
+                        error()
+                        return@addOnSuccessListener
                     }
                     //find and sort the needed elements in the image
                     //the indexes of the textBlocks based on top left going from top to bottom and left to right
@@ -123,7 +131,10 @@ class ImageToRecipe {
                         }
                     }
                     //even though they are going to be horizontally in a colum there may be big spaces between and this needs to be separated out
+                    // but there can still be large gaps so if its a bigger gap than one line see if there is a font size change
+                    // or there could be a change in the gaps
                     val newColumns = mutableMapOf<Int,MutableList<Int>>()
+                    val currentColSpacing = mutableListOf<Int>()//the spacing between the current coll
                     currentCol =0
                     println("old$colums")
                     for (colList in colums.values){ //loop though each col
@@ -133,23 +144,50 @@ class ImageToRecipe {
                                 newColumns[currentCol] = mutableListOf(index)
                                 continue
                             }
-                            //if there is more than a line between 2 blocks start a new colum
-
+                            //if there is more than a line between 1 blocks start a new colum
+                            //or large change in font size
+                            //or there has been a consistent gap and there is a change in that
                             if (textBlocks[index].cornerPoints != null && textBlocks[newColumns[currentCol]!!.last()].cornerPoints != null){
-                                println("$index:${textBlocks[index].cornerPoints!![0].y - textBlocks[newColumns[currentCol]!!.last()].cornerPoints!![3].y}")
-                                println("${textBlocks[index].lineHeight!!},${textBlocks[newColumns[currentCol]!!.last()].lineHeight!!}")
-                                if (textBlocks[index].cornerPoints!![0].y - textBlocks[newColumns[currentCol]!!.last()].cornerPoints!![3].y > min(textBlocks[index].lineHeight!!,textBlocks[newColumns[currentCol]!!.last()].lineHeight!!)   ){
-                                    //there is to big of a gap start new col
+                                val gap = textBlocks[index].cornerPoints!![0].y - textBlocks[newColumns[currentCol]!!.last()].cornerPoints!![3].y
+                                val minLineHeight = min(textBlocks[index].lineHeight!!,textBlocks[newColumns[currentCol]!!.last()].lineHeight!!)
+                                val lineHeightAvg = (textBlocks[index].lineHeight!!+textBlocks[newColumns[currentCol]!!.last()].lineHeight!!)/2
+                                val lineHeightDiff = abs(textBlocks[index].lineHeight!! - textBlocks[newColumns[currentCol]!!.last()].lineHeight!!)
+                                val avgGap = if (currentColSpacing.isNotEmpty()){
+                                    currentColSpacing.fold(0){total, item -> total + item}/currentColSpacing.count()//if there has been a consistent gap and then gap is bigger start new
+                                }else{
+                                    -1
+                                }
+                                val isAvg = if (currentColSpacing.count()>1) {
+                                    abs(avgGap - currentColSpacing[0]) < minLineHeight/2
+                                }     else{
+                                        false
+                                    }
+                                 //if the first item is close to avg probably avg gap
+                                println("index:$index: gap:$gap, minLineHeight:$minLineHeight, avg:$lineHeightAvg, lineHDIff:$lineHeightDiff, avgGap:$avgGap, isAvg:$isAvg, space:$currentColSpacing")
+                                //larger gap than 3 line or large font change
+                                if ( gap > minLineHeight  * 3 || lineHeightDiff > lineHeightAvg* 0.3  ||(isAvg && gap-avgGap> minLineHeight/4 ) ){
+                                    //start new col
                                     currentCol +=1
                                     newColumns[currentCol] = mutableListOf(index)
-                                }else {
-                                    //extend the colum
-                                    newColumns[currentCol]?.add(index)
+                                    currentColSpacing.removeAll(currentColSpacing)
+                                    continue
+
+
                                 }
+
+
+
+
+                                //extend the colum if not got to continue state
+                                newColumns[currentCol]?.add(index)
+                                currentColSpacing.add(gap)
+
+
                             }
 
                         }
                         currentCol += 1
+                        currentColSpacing.removeAll(currentColSpacing)
                     }
 
                     println("new$newColumns")

@@ -44,7 +44,7 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
         }
     }
 
-     fun refreshIfExpired() : Boolean {
+     fun refreshIfExpired(onRefreshed : () -> Unit) : Boolean {
         val accessToken = retrieveSavedData("access-token") ?: return true
 
         val refreshToken = retrieveSavedData("refresh-token")
@@ -66,6 +66,9 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
                          prefs.edit().putString("expired-at", tokens.expiresAt.toString()).apply()
                          prefs.edit().putString("access-token", tokens.accessToken).apply()
                      }
+
+                     //call the onRefreshed so that the caller will know tha the program can be used
+                     onRefreshed()
 
                  }
              }

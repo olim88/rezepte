@@ -244,14 +244,29 @@ class CreateAutomations {
 
 
         }
+        private val falseStartingList = listOf(
+            ")",//if its ending inside a bracket do not split it
+            "this",//if starting with this is is probably describing the last step and should not be new
+            "there",
+            "again",
+            "you",
+            "your",
+            "whichever",
+            "however",
+            "any",
+            "but",
+            "don't",
+            "it is",
+            "if this"
+
+        )
         private fun getIsNewSentence(sentence : String) : Boolean{//todo not that smart yet need to examine more recipes to work out what i need to do
             if (sentence.length < 28) return false // to short to think about splitting off
-            if (sentence.startsWith(")")) return false //if its ending inside a bracket do not split it
-            if (sentence.startsWith("this",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
-            if (sentence.startsWith("there",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
-            if (sentence.startsWith("again",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
-            if (sentence.startsWith("you",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
-            if (sentence.startsWith("your",ignoreCase = true)) return false //if starting with this is is probably describing the last step and should not be new
+            for (word in falseStartingList){
+                if (sentence.startsWith(word, ignoreCase = true)){
+                    return  false
+                }
+            }
             return  true // if passes all checks return try
         }
         enum class InstructionSplitStrength {

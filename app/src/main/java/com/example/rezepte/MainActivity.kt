@@ -68,19 +68,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //account data
+        var accountData: MutableState<FullAccount?> = mutableStateOf(null)
 
         //dropbox account handling
         val login = DbTokenHandling(getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE))
-        val needToLogIn = login.refreshIfExpired()
-
-        if (needToLogIn) {
-            //No token
-            //Back to LoginActivity
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-        }
-
-        else {
+        val needToLogIn = login.refreshIfExpired {
             //get token
             val token = DbTokenHandling(
                 getSharedPreferences(
@@ -88,12 +81,6 @@ class MainActivity : ComponentActivity() {
                     MODE_PRIVATE
                 )
             ).retrieveAccessToken()
-            var accountData: MutableState<FullAccount?> = mutableStateOf(null)
-            setContent {
-                RezepteTheme {
-                    MainScreen(accountData)
-                }
-            }
             //get account data
             CoroutineScope(Dispatchers.IO).launch{
                 accountData.value = DownloadTask(DropboxClient.getClient(token)).getUserAccount()
@@ -106,18 +93,34 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        if (needToLogIn) {
+            //No token
+            //Back to LoginActivity
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+        }
+
+        else {
+
+            setContent {
+                RezepteTheme {
+                    MainScreen(accountData)
+                }
+            }
+
+        }
+
     }
 
 
 }
 
 @Composable
-private fun     MainScreen(accountData: MutableState<FullAccount?>) {
+private fun MainScreen(accountData: MutableState<FullAccount?>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
 
     Column(modifier = Modifier
-        .padding(10.dp)
         .fillMaxWidth()
         .fillMaxHeight()
         .background(MaterialTheme.colorScheme.background)
@@ -186,7 +189,7 @@ fun DropboxInfo(accountData : MutableState<FullAccount?>) {
         Row {
             if (accountData.value != null){
                 TextField(
-                    value = "${accountData.value!!.email}",
+                    value = accountData.value!!.email,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Dropbox Account") },
@@ -220,7 +223,6 @@ fun DropboxInfo(accountData : MutableState<FullAccount?>) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateButtonOptions() {
     // Fetching the Local Context
@@ -233,7 +235,14 @@ fun CreateButtonOptions() {
     val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         //if the user gave an image convert it to a recipe and take that to the create
         if (uri != null){
-            ImageToRecipe.convert(uri,mContext){
+            ImageToRecipe.convert(uri,mContext, error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
+            {
+                //if the recipe is still empty don't start create just give error
+                if (it == GetEmptyRecipe()){
+                    Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
+                    return@convert
+                }
+
                 //when loaded send the recipe to the create menu
                 val intent = Intent(mContext,CreateActivity::class.java)
 
@@ -272,6 +281,7 @@ fun CreateButtonOptions() {
                 getImageContent.launch("image/*")
             }, modifier = Modifier.padding(0.dp,5.dp)) {
                 Text(text =  "Load Image", textAlign = TextAlign.Center)
+
             }
         }
         if (urlInput){

@@ -461,9 +461,10 @@ class MakeFormatting {
             Pair("oats",  0.351F),
             Pair("honey", 1.437F),
             Pair("golden syrup", 1.479F),
+            Pair("treacle",1.22F),
             Pair("peanut butter", 1.01F),
             Pair("cornstarch", 0.507F),
-
+            Pair("chopped onion", 0.22F),
             )
         private fun mlToWeight(valueToChange: String,input: String,metric: Boolean): String{
             //look at each of the ingredient options

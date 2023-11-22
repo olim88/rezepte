@@ -68,7 +68,7 @@ class SettingsActivity : ComponentActivity() {
 
     companion object {
         fun loadSettings(sharedPreference: SharedPreferences) : Map<String,String> {
-            var settingDictionary  = mutableMapOf<String,String> ()
+            val settingDictionary  = mutableMapOf<String,String> ()
 
             for (setting in sharedPreference.all){
                 settingDictionary[setting.key] = setting.value.toString()
@@ -87,7 +87,7 @@ class SettingsActivity : ComponentActivity() {
 
         }
         fun convertToDictionary(settings : List<SettingOptionInterface>, start: String) : Map<String,String>{
-            var settingDictionary  = mutableMapOf<String,String> ()
+            val settingDictionary  = mutableMapOf<String,String> ()
             for (setting in settings){
                 if (setting is SettingsOptionToggle) {//if its a toggle save bool
                    settingDictionary[start+setting.name] = setting.state.value.toString()
@@ -104,7 +104,7 @@ class SettingsActivity : ComponentActivity() {
         }
 
         fun loadToOptions(settings: Map<String,String>, options: List<SettingOptionInterface>, start: String): List<SettingOptionInterface>{
-            var editedOptions = options.toMutableList()
+            val editedOptions = options.toMutableList()
             try {
                 for (option in editedOptions){
                     val key = start + option.name

@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.dropbox.core.NetworkIOException
+import com.dropbox.core.v2.files.DownloadErrorException
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -159,7 +160,7 @@ class MakeActivity : AppCompatActivity()
                                 //upload local to dropbox
                                 val uploadClient = UploadTask(DropboxClient.getClient(token))
                                 //upload recipe data
-                                uploadClient.uploadBitmap(localImage.first, "/xml/$recipeName.xml")
+                                uploadClient.uploadBitmap(localImage.first, "/image/$recipeName")
 
                             }
 
@@ -174,6 +175,11 @@ class MakeActivity : AppCompatActivity()
                     } else {
                         image.value = onlineImage.first
                     }
+                }else if (localImage != null){ //if there is no online image but a local one save that online
+                    //upload local to dropbox
+                    val uploadClient = UploadTask(DropboxClient.getClient(token))
+                    //upload recipe data
+                    uploadClient.uploadBitmap(localImage.first, "/image/$recipeName")
                 }
             }
             catch (e : NetworkIOException){
@@ -181,6 +187,22 @@ class MakeActivity : AppCompatActivity()
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MakeActivity, "can't reach dropbox", Toast.LENGTH_SHORT).show()
                 }
+            }
+            catch (e : DownloadErrorException){
+                //the file is not on dropbox so upload the local data
+
+                //upload local to dropbox
+                val uploadClient = UploadTask(DropboxClient.getClient(token))
+                //upload recipe data
+                if (localData != null) {
+                    uploadClient.uploadXml(localData.first, "/xml/$recipeName.xml")
+                }
+
+                if (localImage != null) {
+                    uploadClient.uploadBitmap(localImage.first, "/image/$recipeName")
+                }
+
+
             }
 
         }
