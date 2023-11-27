@@ -235,7 +235,7 @@ fun CreateButtonOptions() {
     val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         //if the user gave an image convert it to a recipe and take that to the create
         if (uri != null){
-            ImageToRecipe.convert(uri,mContext, error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
+            ImageToRecipe.convert(uri,mContext, settings = SettingsActivity.loadSettings(  mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE )), error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
             {
                 //if the recipe is still empty don't start create just give error
                 if (it == GetEmptyRecipe()){

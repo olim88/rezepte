@@ -8,8 +8,16 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,9 +39,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -309,7 +319,38 @@ fun StepsOutput(recipeData: Recipe){
     }
 }
 
+@Composable
+fun IngredientConversions(userSettings: Map<String,String>, measurement: String, wholeIngredient: String, isVisable: Boolean){
+    AnimatedVisibility(
+        visible = isVisable,
 
+        enter = scaleIn()
+                + fadeIn(
+            // Fade in with the initial alpha of 0.3f.
+            initialAlpha = 0.3f
+        )+ expandVertically (),
+        exit = scaleOut() + fadeOut() + shrinkVertically()
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 2.dp, end = 2.dp, bottom = 2.dp, top = 0.dp)
+                .animateContentSize(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceTint,
+            )
+        ) {
+            Row(modifier = Modifier.padding(3.dp)) {
+                //conversions
+                Text(
+                    text = MakeFormatting.getConvertions(measurement, wholeIngredient, userSettings)
+                        .joinToString(" | "),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, mutiplyer: MutableState<Float>){
@@ -361,12 +402,91 @@ fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<
 fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBig : Boolean, isStrike: Boolean, mutiplyer : MutableState<Float>){
     var style =  if (isBig) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall
     if (isStrike) style = style.copy(textDecoration = TextDecoration.LineThrough)
-    Text ( text = "${intToRoman(index+1)}: ${MakeFormatting.getCorrectUnitsAndValues(value,mutiplyer.value, userSettings)}",
-        modifier = Modifier
-            .padding(5.dp)
-            .fillMaxWidth(),
-        style = style
-    )
+    val convertedText = MakeFormatting.getCorrectUnitsAndValues(value,mutiplyer.value, userSettings)//text adjusted to the user settings for the measurement options and the multiplier
+    val mesurmentsInside = MakeFormatting.listUnitsInValue(convertedText) //measurements inside the text
+    var showingMesurement by remember { mutableIntStateOf(-1) }//index inside of the measurements list of currently expanded measurement
+    if (isStrike) showingMesurement = -1 //when it is showing conversions and then the settings is struck stop showing the conversions
+    if (userSettings["Units.Show Conversions"]== "false" || mesurmentsInside.isEmpty()){//if can not find mesurements just show the ingredient or the setting is disabled
+        Text ( text = "${intToRoman(index+1)}: $convertedText",
+            modifier = Modifier
+                .padding(5.dp)
+                .fillMaxWidth(),
+            style = style
+        )
+    }else{//hightly measurements and make the clickable to be able to expand conversions on them
+        Column (modifier = Modifier.padding(3.dp)) {
+            Row (modifier = Modifier
+                .fillMaxWidth()
+                .padding(2.dp)){
+                //ingredient number
+                Text(
+                    text = "${intToRoman(index+1)}: ",
+                    textAlign = TextAlign.Center,
+                    style = style
+                )
+
+                var ingredientLeft = convertedText
+                for ((mesureIndex, mesusrment) in mesurmentsInside.withIndex()) {
+                    //split on ingredient
+                    val split = ingredientLeft.split("${mesusrment.split(" ")[0]}\\s*${mesusrment.split(" ")[1]}".toRegex(), limit = 2)
+                    //text before measurement
+                    Text(
+                        text = split[0],
+                        textAlign = TextAlign.Center,
+                        style = style
+                    )
+                    //measurement in clickable
+                    Card(
+                        modifier = Modifier
+                            .clickable {
+                                showingMesurement =
+                                    if (showingMesurement == mesureIndex) {//if showing this mesure disable it
+                                        -1
+                                    } else {//otherwise set it to this index to show
+                                        mesureIndex
+                                    }
+                            }
+                            ,
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (mesureIndex == showingMesurement) MaterialTheme.colorScheme.surfaceTint else MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp),
+                        )
+                    ) {
+                        Text(
+                            text = mesusrment,
+                            modifier = Modifier.padding(start = 2.dp, end = 2.dp),
+                            style = style,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    //update ingredientLeft
+                    if (split.count()<2){//if end of string break
+                        break
+                    }
+                    ingredientLeft = split[1]
+
+                }
+                //render any text left
+                if (ingredientLeft != "") {
+                    Text(
+                        text = ingredientLeft,
+                        textAlign = TextAlign.Center,
+                        style = style,
+                    )
+                }
+            }
+            //render extra mesure info
+
+            IngredientConversions(
+                userSettings,
+                if (showingMesurement != -1) mesurmentsInside[showingMesurement] else "",
+                convertedText,
+                showingMesurement != -1
+            )
+
+        }
+
+    }
+
 }
 
 @Composable

@@ -3,6 +3,7 @@ package com.example.rezepte
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.example.rezepte.ui.theme.CreateAutomations
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.Text.TextBlock
@@ -26,7 +27,7 @@ class ImageToRecipe {
 
         private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
-        fun convert (imageUri : Uri,context : Context,error:() -> Unit, callback: (Recipe) -> Unit) {
+        fun convert (imageUri : Uri,context : Context,settings : Map<String,String>,error:() -> Unit, callback: (Recipe) -> Unit) {
             val image  = InputImage.fromFilePath(context,imageUri)
             val recipe = GetEmptyRecipe()
             val result = recognizer.process(image)
@@ -76,24 +77,24 @@ class ImageToRecipe {
                         println("$int: ${textBlocks[int].text}")
                     }
 
-                    //find the title (going to be the largest thing in the top 5 blocks)
+                    //find the title (going to be the largest thing in the top 6 blocks)
                     var titleIndex = -1
                      for (index in lineHeightSorted){
-                         println("line ${textBlocks[index].text},${verticalySorted.slice(0..5)}")
+                         println("line ${textBlocks[index].text},${verticalySorted.slice(0..min(5,verticalySorted.count()-1))}")
                         //if in to 5 return index
-                        if (verticalySorted.slice(0..5).contains(index)){
+                        if (verticalySorted.slice(0..min(5,verticalySorted.count()-1)).contains(index)){
                             recipe.data.name  = cleanTitle(textBlocks[index].text)
                             titleIndex= index
                             break
                         }
                     }
-                    //find the servings (look at top 5 elements on the page)
+                    //find the servings (look at top 6 elements on the page)
                     var servingsIndex = -1
                     for (index in 0..min(5,verticalySorted.count()-1)){
                         //if they have a keyword set the servings and are not to long
                         if (textBlocks[verticalySorted[index]].text.lowercase().contains("ma[kr]es?|serving?s|serves".toRegex()) && textBlocks[verticalySorted[index]].text.length < 30 ){
                             recipe.data.serves  = cleanTitle(textBlocks[verticalySorted[index]].text)
-                            servingsIndex = index
+                            servingsIndex = verticalySorted[index]
                             break
                         }
                     }
@@ -148,49 +149,93 @@ class ImageToRecipe {
                             //or large change in font size
                             //or there has been a consistent gap and there is a change in that
                             if (textBlocks[index].cornerPoints != null && textBlocks[newColumns[currentCol]!!.last()].cornerPoints != null){
-                                val gap = textBlocks[index].cornerPoints!![0].y - textBlocks[newColumns[currentCol]!!.last()].cornerPoints!![3].y
-                                val minLineHeight = min(textBlocks[index].lineHeight!!,textBlocks[newColumns[currentCol]!!.last()].lineHeight!!)
-                                val lineHeightAvg = (textBlocks[index].lineHeight!!+textBlocks[newColumns[currentCol]!!.last()].lineHeight!!)/2
-                                val lineHeightDiff = abs(textBlocks[index].lineHeight!! - textBlocks[newColumns[currentCol]!!.last()].lineHeight!!)
-                                val avgGap = if (currentColSpacing.isNotEmpty()){
-                                    currentColSpacing.fold(0){total, item -> total + item}/currentColSpacing.count()//if there has been a consistent gap and then gap is bigger start new
-                                }else{
-                                    -1
-                                }
-                                val isAvg = if (currentColSpacing.count()>1) {
-                                    abs(avgGap - currentColSpacing[0]) < minLineHeight/2
-                                }     else{
-                                        false
+                                val scorePlusgap = equateIsColl(textBlocks,currentColSpacing,newColumns[currentCol]!!,index,newColumns[currentCol]!!.last())
+                                if ( scorePlusgap.first > 1f){
+                                    //make sure that the first item in the list still fits in the list if long enough
+                                    if (scorePlusgap.third && newColumns[currentCol]!!.count()>3){//if avg coll
+                                        //remove the first gap from the spaceing as that is what we are looking at
+                                        currentColSpacing.removeAt(0)
+                                        val firstScore = equateIsColl(textBlocks,currentColSpacing,newColumns[currentCol]!!,newColumns[currentCol]!![1],newColumns[currentCol]!![0])
+                                        println("checking first :${firstScore.first}")
+                                        //remove first if dose not fit
+                                        if (firstScore.first>1){
+                                            newColumns[currentCol]!!.removeAt(0)
+                                        }
+
                                     }
-                                 //if the first item is close to avg probably avg gap
-                                println("index:$index: gap:$gap, minLineHeight:$minLineHeight, avg:$lineHeightAvg, lineHDIff:$lineHeightDiff, avgGap:$avgGap, isAvg:$isAvg, space:$currentColSpacing")
-                                //larger gap than 3 line or large font change
-                                if ( gap > minLineHeight  * 3 || lineHeightDiff > lineHeightAvg* 0.3  ||(isAvg && gap-avgGap> minLineHeight/4 ) ){
+
+
                                     //start new col
                                     currentCol +=1
                                     newColumns[currentCol] = mutableListOf(index)
                                     currentColSpacing.removeAll(currentColSpacing)
-                                    continue
 
+                                    continue
 
                                 }
 
-
-
-
                                 //extend the colum if not got to continue state
                                 newColumns[currentCol]?.add(index)
-                                currentColSpacing.add(gap)
-
+                                currentColSpacing.add(scorePlusgap.second)
 
                             }
 
                         }
+                        if (newColumns[currentCol]!!.count()>3) { //if long enough to check
+                            //remove the first gap from the spaceing as that is what we are looking at
+                            currentColSpacing.removeAt(0)
+                            //check first item in col
+                            val firstScore = equateIsColl(
+                                textBlocks,
+                                currentColSpacing,
+                                newColumns[currentCol]!!,
+                                newColumns[currentCol]!![1],
+                                newColumns[currentCol]!![0]
+                            )
+                            println("checking first :${firstScore.first}")
+                            //remove first if dose not fit
+                            if (firstScore.first > 1) {
+                                newColumns[currentCol]!!.removeAt(0)
+                            }
+                        }
+                        //start the new col
                         currentCol += 1
                         currentColSpacing.removeAll(currentColSpacing)
                     }
 
                     println("new$newColumns")
+                    //see if there are 2 columns in a horizontal row that have and that they have similar length elements and combine them as they probably contain the same thing
+                    //loop though col and if there is a coll that the top index is next to it in the vertically sorted list and the both are at least 2 items long
+                    for (col in newColumns){
+                        if (col.value.count()<2) continue // don't look at short col
+                        val colVerticalIndex = verticalySorted.indexOf(col.value[0])
+                        for (compare in newColumns){
+                            if (col == compare)  continue //if not looking at same col
+                            if (compare.value.count()>1){ //if compared is long enough
+                                if (abs(colVerticalIndex - verticalySorted.indexOf(compare.value[0])) == 1){//they are starting at the same level
+                                    //check the lengths of items in both col and if they are similar continue to combine (so ingredients next to instructions should not get combined)
+                                    val colAvgLenght = col.value.fold(0){total,item -> total + textBlocks[item].text.length} / col.value.count()
+                                    val compAvgLenght = compare.value.fold(0){total,item -> total + textBlocks[item].text.length} / compare.value.count()
+                                    //if dif if smaller than smallest avglength continue
+                                    if ( abs (colAvgLenght-compAvgLenght)< min(colAvgLenght,compAvgLenght)){
+                                        //combine them
+                                        println("combining:${compare.key} to ${col.key} ")
+                                        newColumns[col.key]?.addAll(compare.value) //add compared to the original col
+                                        newColumns[compare.key] = mutableListOf()//empty other list
+                                    }
+
+
+
+                                }
+
+                            }
+
+
+                        }
+                    }
+
+
+
                     var longest = mutableListOf<Int>()
                     var secondLongest = mutableListOf<Int>()
                     for (col in newColumns.values){
@@ -218,6 +263,11 @@ class ImageToRecipe {
                     for (blockIndex in secondLongest){
                         secondLongestTotal += textBlocks[blockIndex].text.length
                     }
+                    //if can not find second longest there can not be found a good recipe so error
+                    if (secondLongest.isEmpty()){
+                        error()
+                        return@addOnSuccessListener
+                    }
                     //if the longest is the ingredients
                     val ingredients = if (longestTotal/longest.count() > secondLongestTotal/secondLongest.count()){
                         secondLongest
@@ -244,7 +294,21 @@ class ImageToRecipe {
                     }
                     recipe.instructions = Instructions(recipeInstructions)
 
+                    //check settings to see if extra needs to be done
+                    when (settings["Creation.Image Loading.Split instructions"]){
+                        "intelligent" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,
+                            CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
+                        "sentences" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,
+                            CreateAutomations.Companion.InstructionSplitStrength.Sentences)
+                        else -> {}
+                    }
 
+                    if (settings["Creation.Image Loading.Generate cooking steps"] == "true")
+                    {
+                        val stepsAndLinks = CreateAutomations.autoGenerateStepsFromInstructions(recipe.instructions)
+                        recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
+                        recipe.instructions = stepsAndLinks.second
+                    }
 
 
                     callback(recipe)
@@ -310,6 +374,46 @@ class ImageToRecipe {
 
 
             return  newText
+        }
+        private fun equateIsColl(textBlocks: List<TextBlock>,colSpaceList: List<Int>,currentNewCol: List<Int>, index: Int, index2 : Int) : Triple<Float,Int,Boolean> {
+            val gap = textBlocks[index].cornerPoints!![0].y - textBlocks[index2].cornerPoints!![3].y
+            val minLineHeight = min(textBlocks[index].lineHeight!!,textBlocks[index2].lineHeight!!)
+            val lineHeightAvg = (textBlocks[index].lineHeight!!+textBlocks[index2].lineHeight!!)/2
+            val lineHeightDiff = abs(textBlocks[index].lineHeight!! - textBlocks[index2].lineHeight!!)
+            val avgGap = if (colSpaceList.isNotEmpty()){
+                colSpaceList.fold(0){total, item -> total + item}/colSpaceList.count()//if there has been a consistent gap and then gap is bigger start new
+            }else{
+                -1
+            }
+            val isAvg = if (colSpaceList.count()>1) {
+                abs(avgGap - colSpaceList[0]) < minLineHeight/2
+            }     else{
+                false
+            }
+            val avgStrength = if (isAvg){ // how much the avage spaceing stats shuold be trusted as the less elements the more inacurate it is
+                when ( colSpaceList.count()){
+                    2 -> 0.63f
+                    3 -> 0.75f
+                    4 -> 0.9f
+
+                    else -> 1f
+                }
+
+
+            }else {-1f}
+
+            //add to score for each criticra so if one is very large or 2 are like kinda it will will split it
+            var score = 0f
+            //larger gap
+            score += (gap / minLineHeight)/3f //3 line gap = 1
+            // large font change
+            score += lineHeightDiff / lineHeightAvg.toFloat() //double size = 1
+            //average gap change
+            if (isAvg){
+                score += (abs(gap-avgGap) /minLineHeight.toFloat()) * avgStrength * 1.5f// 66% change  = 1
+            }
+            println("index:$index: gap:$gap, minLineHeight:$minLineHeight, avg:$lineHeightAvg, lineHDIff:$lineHeightDiff, avgGap:$avgGap, isAvg:$isAvg, space:$colSpaceList, score:$score")
+            return Triple(score,gap,isAvg)
         }
     }
 

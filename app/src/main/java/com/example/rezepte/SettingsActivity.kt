@@ -13,7 +13,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.with
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -144,9 +145,9 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Table Spoons","show table spoons in recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cups","show cups in recipes", mutableStateOf(true)),
             SettingsSubMenu("Conversions","sizes to use for measurement",listOf(
-                SettingsOptionDropDown("Teaspoon volume","what teaspoon volume measurement do you want to use", mutableStateOf(0),listOf("metric(5ml)","us(4.9ml)","uk(3.6ml)")),
-                SettingsOptionDropDown("Tablespoon volume","what tablespoon volume measurement do you want to use", mutableStateOf(0),listOf("metric(15ml)","us(14.8ml)","uk(14.2ml)")),
-                SettingsOptionDropDown("Cup volume","what cup volume measurement do you want to use", mutableStateOf(0),listOf("metric(250ml)","us(237ml)","uk(284ml)"))
+                SettingsOptionDropDown("Teaspoon volume","what teaspoon volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(5ml)","us(4.9ml)","uk(3.6ml)")),
+                SettingsOptionDropDown("Tablespoon volume","what tablespoon volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(15ml)","us(14.8ml)","uk(14.2ml)")),
+                SettingsOptionDropDown("Cup volume","what cup volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(250ml)","us(237ml)","uk(284ml)"))
             )),
             SettingsOptionToggle("Temperature","show temperatures in °C", mutableStateOf(true)),
             SettingsOptionToggle("metric Volume","use the metric system to display volumes", mutableStateOf(true)),
@@ -154,11 +155,16 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("metric Lengths","use the metric system to display lengths", mutableStateOf(true)),
             SettingsOptionToggle("Fractional Numbers","display measurements as fractions or decimals", mutableStateOf(true)),
             SettingsOptionToggle("Round Numbers","round larger numbers to the nearest whole number", mutableStateOf(true)),
+            SettingsOptionToggle("Show Conversions","make it so you can click on a measurement and conversions for that will show up", mutableStateOf(true)),
             )),
         SettingsSubMenu("Creation","",listOf(
             SettingsSubMenu("Website Loading","",listOf(
                 SettingsOptionToggle("Generate cooking steps","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false)),
-                SettingsOptionDropDown("Split instructions","when loading a website automatically split instructions into smaller parts", mutableStateOf(0),listOf("off","intelligent","sentences"))
+                SettingsOptionDropDown("Split instructions","when loading a website automatically split instructions into smaller parts", mutableIntStateOf(0),listOf("off","intelligent","sentences"))
+            )),
+            SettingsSubMenu("Image Loading","",listOf(
+                SettingsOptionToggle("Generate cooking steps","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false)),
+                SettingsOptionDropDown("Split instructions","when loading a website automatically split instructions into smaller parts", mutableIntStateOf(0),listOf("off","intelligent","sentences"))
             )),
             SettingsOptionToggle("Separate Ingredients","show each line as a different colour", mutableStateOf(true)),
             SettingsOptionToggle("Separate Instructions","show each line as a different colour", mutableStateOf(true)),
@@ -269,6 +275,7 @@ private fun SettingsMenuDropDown(header: String, body: String, index : MutableSt
     }
 }
 
+@SuppressLint("UnusedContentLambdaTargetStateParameter") //idk why this is a problem
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun MainScreen(loadedSettings : Map<String,String>){
@@ -332,11 +339,11 @@ private fun MainScreen(loadedSettings : Map<String,String>){
             AnimatedContent(targetState = settingsMenuStack.last().first, label = "",
                 transitionSpec = {
                     if (direction){
-                        slideInHorizontally { width -> +width }  with
+                        slideInHorizontally { width -> +width } togetherWith
                                 slideOutHorizontally { width -> -width }
                     }
                     else{
-                        slideInHorizontally { width -> -width }  with
+                        slideInHorizontally { width -> -width } togetherWith
                                 slideOutHorizontally { width -> +width }
                     }
                     }

@@ -107,8 +107,200 @@ class MakeFormatting {
 
             //replace numbers with multiplied value
             val output = convertUnitOfString(string,settings) //make sure that the numbers all have the correct unit
-            return multiplyBy(output,multiplier,settings["Units.Fractional Numbers"]== "true",if (settings["Units.Fractional Numbers"] == "true") 0.02f else -1f)
+            return multiplyBy(output,multiplier,settings["Units.Fractional Numbers"]== "true",if (settings["Units.Round Numbers"] == "true") 0.02f else -1f)
         }
+        fun listUnitsInValue(string: String): List<String>{
+            //clean the string from brackets and other things in the way
+            val cleanWords= slitTextFromNumbers(getWordsWithNumbers(string))
+            //find the existing units in the string
+            var unitType : CookingUnit? = null
+            val unitIndexes: MutableMap<CookingUnit,Int> = mutableMapOf()
+            for (option in unitsLut.entries){
+                val unitIndex = cleanWords.indexOf(option.value)
+                if (unitIndex != -1){
+                    unitIndexes[option.key]  = unitIndex
+                    unitType = option.key
+
+                }
+            }
+            //find units with the values (measurements)
+            val measurements = mutableListOf<String>()
+            if (unitType == null) return measurements // can not find units so return empty list
+
+            //check all the units found
+            for (unit in unitIndexes){
+                //if there units starting an item just ignore them
+                if (unit.value == 0) continue
+                val value = cleanWords[unit.value-1]
+                //make sure that there is a number before the unit then combine them and add it to measurements
+                if (value.matches(numberRegex)) {
+                    measurements.add("$value ${cleanWords[unit.value]}")
+                }
+
+
+            }
+
+            return measurements
+        }
+        fun getConvertions(mesurementToConvert: String, wholeIngredient: String,settings: Map<String,String>) : List<String>{
+            val posibleConvertions = mutableListOf<String>()
+            //find what type of unit it is
+            val splitMesurement= slitTextFromNumbers(getWordsWithNumbers(mesurementToConvert))
+            var unitType : CookingUnit? = null
+            for (option in unitsLut.entries){
+                val unitIndex = splitMesurement.indexOf(option.value)
+                if (unitIndex != -1){
+                    unitType = option.key
+
+                }
+            }
+            //based on what type of unit it is convert to other diffrent units and and add to output list
+            val converted = when (unitType){
+                CookingUnit.Teaspoon -> {
+                    val ml = splitMesurement[0].vulgarFraction * teaSpoonVolume(settings)
+                    getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
+
+                }
+                CookingUnit.Tablespoon -> {
+                    val ml = splitMesurement[0].vulgarFraction * tableSpoonVolume(settings)
+                    getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
+
+                }
+                CookingUnit.Cup -> {
+                    val ml = splitMesurement[0].vulgarFraction * cupVolume(settings)
+                    getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
+                }
+                CookingUnit.Milliliters -> {
+                    val ml = splitMesurement[0].vulgarFraction
+                    getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
+                }
+                CookingUnit.Liters -> {
+                    val ml = splitMesurement[0].vulgarFraction * 1000
+                    getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
+                }
+                CookingUnit.Pint -> {
+                    val ml = splitMesurement[0].vulgarFraction * 0.568262f
+                    getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
+                }
+                CookingUnit.FluidOunce -> {
+                    val ml = splitMesurement[0].vulgarFraction  * 28.4131f
+                    getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
+                }
+                CookingUnit.Grams -> {
+                    val grams = splitMesurement[0].vulgarFraction
+                    getWeightConversions(grams,wholeIngredient,settings)
+                }
+                CookingUnit.KiloGrams -> {
+                    val grams = splitMesurement[0].vulgarFraction * 1000
+                    getWeightConversions(grams ,wholeIngredient,settings)
+                }
+                CookingUnit.Ounce -> {
+                    val grams = splitMesurement[0].vulgarFraction * 0.03527396f
+                    getWeightConversions(grams ,wholeIngredient,settings)
+                }
+                CookingUnit.Pound -> {
+                    val grams = splitMesurement[0].vulgarFraction * 0.4535924f
+                    getWeightConversions(grams ,wholeIngredient,settings)
+                }
+
+
+                else -> return listOf() //no unit return empty list
+            }
+            // for the items in the converted list add them to the possible conversions output with unit
+            for (value in converted){
+                if (value.key != unitType){
+                    val roundingPercent = if (settings["Units.Round Numbers"] == "true"){
+                        0.02f
+                    }else { -1f}
+                    val vulgarValue = roundSmallGaps( value.value,roundingPercent ).vulgarFraction
+
+                    posibleConvertions.add("${if (settings["Units.Fractional Numbers"]== "true") vulgarValue.first else value.value}${unitsLut[value.key]?.get(0)}")
+                }
+
+            }
+
+
+            //return the converted list
+            return  posibleConvertions
+        }
+        private fun getVolumeConversions(ml: Float, whole:String, metricWeight: Boolean, settings: Map<String, String>) : Map<CookingUnit,Float>{
+            //return all the conversions for a volume mesure used for tsp tbsp ...
+            val output = mutableMapOf<CookingUnit,Float>()
+            //weight
+            val weightMulti = getWeightConversions(whole)
+            if (weightMulti != -1f){
+                if(metricWeight){
+                    output[CookingUnit.Grams] = ml * weightMulti
+                }else{
+                    output[CookingUnit.Ounce] = ml * weightMulti * 0.03527396f
+                }
+            }
+            if (ml < 1000){
+                //ml
+                output[CookingUnit.Milliliters] = ml
+            }else {
+                //liter
+                output[CookingUnit.Liters] = ml /1000
+            }
+            if (ml < tableSpoonVolume(settings) )
+            {
+                //tsp
+                output[CookingUnit.Teaspoon] = ml / teaSpoonVolume(settings)
+            }else if  ( ml < cupVolume(settings)/4){
+                //tbsp
+                output[CookingUnit.Tablespoon] = ml / tableSpoonVolume(settings)
+            }else  {
+                //cups
+                output[CookingUnit.Cup] = ml / cupVolume(settings)
+            }
+            //pint ( show if more than 1/4 )
+            if (ml > 142.0653f){
+                output[CookingUnit.Pint] = ml * 0.001759754f
+            }
+            //floz
+            output[CookingUnit.FluidOunce] = ml * 0.035195f
+
+            return output
+        }
+        private  fun getWeightConversions(weight: Float, whole:String, settings: Map<String, String>) : Map<CookingUnit,Float>{
+            //return all the conversions for a weight measure used for grams kg ...
+            val output = mutableMapOf<CookingUnit,Float>()
+
+            //ml
+            val weightMulti = getWeightConversions(whole)
+            if (weightMulti != -1f){
+                val ml = weight / weightMulti
+                output[CookingUnit.Milliliters] = ml
+                //most sensible cups tsp or tbsp
+                if (ml < tableSpoonVolume(settings)){
+                    //convert to teaspoon
+                    output[CookingUnit.Teaspoon] = ml / teaSpoonVolume(settings)
+                }else if (ml < cupVolume(settings)/4){
+                    //convert to table spoon
+                    output[CookingUnit.Tablespoon] = ml / tableSpoonVolume(settings)
+                }else {
+                    //convert to cups
+                    output[CookingUnit.Cup] = ml / cupVolume(settings)
+                }
+            }
+            if (weight < 1000){
+                //grams
+                output[CookingUnit.Grams] = weight
+            } else {
+                //kg
+                output[CookingUnit.KiloGrams] = weight /1000f
+            }
+            //oz
+            output[CookingUnit.Ounce] = weight * 0.03527396f
+            //pound ( show pounds if more than half pound
+            if (weight > 226.7962){
+                output[CookingUnit.Pound] = weight * 0.002204623f
+            }
+
+
+            return  output
+        }
+
         private enum class CookingUnit {
             Teaspoon,
             Tablespoon,
@@ -151,9 +343,7 @@ class MakeFormatting {
             for (number in wholeString.containedNumbers){
                 if (number== "/") continue
                 var value = number.vulgarFraction * multiplier
-                if (roundPercentage> 0 && abs(value - value.roundToInt()) /value < roundPercentage){//if enabled e.g. bigger than 0 and then if the rounding to a whole number effects it less than the percentage round it
-                    value = value.roundToInt().toFloat()
-                }
+                value = roundSmallGaps(value, roundPercentage)
 
                 output = if (isVulgar){
                     output.replace(number,value.vulgarFraction.first)
@@ -163,6 +353,14 @@ class MakeFormatting {
             }
             return output
         }
+        private fun roundSmallGaps (value: Float, roundPercentage: Float ) : Float{
+            if (roundPercentage> 0 && abs(value - value.roundToInt()) /value < roundPercentage){//if enabled e.g. bigger than 0 and then if the rounding to a whole number effects it less than the percentage round it
+                return value.roundToInt().toFloat()
+            }
+
+            return value
+        }
+
         private fun getWordsWithNumbers(text: String) : List<String> { return text.lowercase().split("[\\s,;?()-]+".toRegex())}
 
         private fun slitTextFromNumbers(startingWords:List<String>) : List<String>{
@@ -467,27 +665,36 @@ class MakeFormatting {
             Pair("chopped onion", 0.22F),
             )
         private fun mlToWeight(valueToChange: String,input: String,metric: Boolean): String{
-            //look at each of the ingredient options
+            val conversionValue = getWeightConversions(input)
+            //if not found return ingredient
+            if (conversionValue == -1f) return input
             var output:String
-            for ( ingredient in volumeWeightLut){
+            if (metric){
+                //use the multiple to convert to g
+                output = input.replace(valueToChange,(valueToChange.vulgarFraction * conversionValue).toString())
+                //replace units
+                output = output.replace(" ml ", " g ")
+            }else {
+                //use the multiple to oz
+                output = input.replace(valueToChange,(valueToChange.vulgarFraction * conversionValue* 0.03527396f).toString())
+                //replace units
+                output = output.replace(" ml ", " oz ")
+            }
+            return  output
+
+
+
+        }
+        private fun getWeightConversions(wholeString: String): Float {
+            //look at each of the ingredient options
+            for (ingredient in volumeWeightLut) {
                 //work out what type of ingredient it is
-                if (input.contains(ingredient.key,true)){
-                    if (metric){
-                        //use the multiple to convert to g
-                        output = input.replace(valueToChange,(valueToChange.vulgarFraction * ingredient.value).toString())
-                        //replace units
-                        output = output.replace(" ml ", " g ")
-                    }else {
-                        //use the multiple to oz
-                        output = input.replace(valueToChange,(valueToChange.vulgarFraction * ingredient.value* 0.03527396f).toString())
-                        //replace units
-                        output = output.replace(" ml ", " oz ")
-                    }
-                    return  output
+                if (wholeString.contains(ingredient.key, true)) {
+                    return ingredient.value
                 }
             }
-            //if not found just keep the volume
-            return input
+            return -1f
         }
+
     }
 }
