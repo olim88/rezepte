@@ -2,6 +2,7 @@ package com.example.rezepte
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -11,7 +12,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.launch
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -19,10 +27,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -53,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.dropbox.core.v2.users.FullAccount
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
@@ -228,63 +239,58 @@ fun CreateButtonOptions() {
     // Fetching the Local Context
     val mContext = LocalContext.current
     var urlInput by remember { mutableStateOf(false)}
+    var imageInput by remember { mutableStateOf(false)}
     var urlValue by remember { mutableStateOf("")}
     //get a local image
 
 
-    val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        //if the user gave an image convert it to a recipe and take that to the create
-        if (uri != null){
-            ImageToRecipe.convert(uri,mContext, settings = SettingsActivity.loadSettings(  mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE )), error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
-            {
-                //if the recipe is still empty don't start create just give error
-                if (it == GetEmptyRecipe()){
-                    Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
-                    return@convert
-                }
 
-                //when loaded send the recipe to the create menu
-                val intent = Intent(mContext,CreateActivity::class.java)
-
-                intent.putExtra("data",parseData(it))
-                //intent.putExtra("imageData",recipe.second) add image
-                mContext.startActivity(intent)
-            }
-
-        }
-
-    }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
         .fillMaxWidth()
         .padding(5.dp, 5.dp)) {
 
-        Button(onClick = {
-            Toast.makeText(mContext, "Create Recipe", Toast.LENGTH_SHORT).show()
-            //move to create activity
-            val intent = Intent(mContext,CreateActivity::class.java)
-            mContext.startActivity(intent)
-        }, modifier = Modifier
-            .padding(0.dp, 0.dp)
-            .fillMaxWidth()) {
-            Text(text =  "Create")
+        Button(
+            onClick = {
+                Toast.makeText(mContext, "Create Recipe", Toast.LENGTH_SHORT).show()
+                //move to create activity
+                val intent = Intent(mContext, CreateActivity::class.java)
+                mContext.startActivity(intent)
+            }, modifier = Modifier
+                .padding(0.dp, 0.dp)
+                .fillMaxWidth()
+        ) {
+            Text(text = "Create")
         }
-        Row{
-            Button(onClick = { urlInput = !urlInput},
-                modifier = Modifier.padding(0.dp,5.dp)) {
-                Text(text =  "Load Website", textAlign = TextAlign.Center)
+        Row {
+            Button(
+                onClick = { urlInput = !urlInput },
+                modifier = Modifier.padding(0.dp, 5.dp)
+            ) {
+                Text(text = "Load Website", textAlign = TextAlign.Center)
             }
             Spacer(
                 Modifier
                     .weight(1f)
             )
             Button(onClick = {
-                getImageContent.launch("image/*")
-            }, modifier = Modifier.padding(0.dp,5.dp)) {
-                Text(text =  "Load Image", textAlign = TextAlign.Center)
+                imageInput = !imageInput
+            }, modifier = Modifier.padding(0.dp, 5.dp)) {
+                Text(text = "Load Image", textAlign = TextAlign.Center)
 
             }
         }
-        if (urlInput){
+        //animate in or out the website link input
+        androidx.compose.animation.AnimatedVisibility(
+            visible = urlInput,
+
+            enter = scaleIn()
+                    + fadeIn(
+                // Fade in with the initial alpha of 0.3f.
+                initialAlpha = 0.3f
+            ) + expandIn(),
+            exit = scaleOut() + fadeOut() + shrinkOut()
+        ) {
+            //text field for link recipe
             TextField(
                 value = urlValue,
                 onValueChange = { value ->
@@ -292,26 +298,31 @@ fun CreateButtonOptions() {
                 },
                 keyboardActions = KeyboardActions(
                     onDone = {
-                        CoroutineScope(Dispatchers.IO).launch{
-                            val settings = SettingsActivity.loadSettings( //todo already have this loaded
-                                mContext.getSharedPreferences(
-                                    "com.example.rezepte.settings",
-                                    ComponentActivity.MODE_PRIVATE
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val settings =
+                                SettingsActivity.loadSettings( //todo already have this loaded
+                                    mContext.getSharedPreferences(
+                                        "com.example.rezepte.settings",
+                                        ComponentActivity.MODE_PRIVATE
+                                    )
                                 )
-                            )
-                            try{
-                                val recipe = DownloadWebsite.main(urlValue,settings)
+                            try {
+                                val recipe = DownloadWebsite.main(urlValue, settings)
                                 withContext(Dispatchers.Main) {
                                     //move to create activity
-                                    val intent = Intent(mContext,CreateActivity::class.java)
-                                    intent.putExtra("data",parseData(recipe.first))
-                                    intent.putExtra("imageData",recipe.second)
+                                    val intent = Intent(mContext, CreateActivity::class.java)
+                                    intent.putExtra("data", parseData(recipe.first))
+                                    intent.putExtra("imageData", recipe.second)
                                     mContext.startActivity(intent)
                                 }
-                            } catch (_: Exception){
+                            } catch (_: Exception) {
                                 //could not load the website
                                 Handler(Looper.getMainLooper()).post {
-                                    Toast.makeText(mContext, "Invalid website", Toast.LENGTH_SHORT)
+                                    Toast.makeText(
+                                        mContext,
+                                        "Invalid website",
+                                        Toast.LENGTH_SHORT
+                                    )
                                         .show()
 
                                 }
@@ -319,9 +330,9 @@ fun CreateButtonOptions() {
                             }
 
                             //clear the url and reset
-                            urlValue= ""
-                            urlInput= false
-                    }
+                            urlValue = ""
+                            urlInput = false
+                        }
 
                     }
                 ),
@@ -333,9 +344,126 @@ fun CreateButtonOptions() {
                 label = { Text("website") }
 
             )
+
         }
+        if (imageInput){
+            AddImageDialog{
+                imageInput = false
+            }
+
+        }
+
     }
 }
+@Composable
+fun AddImageDialog(onDismiss: () -> Unit){
+    val mContext = LocalContext.current
+    val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        //if the user gave an image convert it to a recipe and take that to the create
+        if (uri != null){
+            ImageToRecipe.convert(uri,mContext, settings = SettingsActivity.loadSettings(  mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE )), error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
+            {
+                //if the recipe is still empty don't start create just give error
+                if (it == GetEmptyRecipe()){
+                    Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
+                    return@convert
+                }
+                //when loaded send the recipe to the create menu
+                val intent = Intent(mContext,CreateActivity::class.java)
+
+                intent.putExtra("data",parseData(it))
+                //intent.putExtra("imageData",recipe.second) add image
+                mContext.startActivity(intent)
+                onDismiss()
+            }
+
+        }
+    }
+    val takeImageContent = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
+        //if the user gave an image convert it to a recipe and take that to the create
+        if (bitmap != null) {
+            ImageToRecipe.convert(
+                bitmap,
+                settings = SettingsActivity.loadSettings(
+                    mContext.getSharedPreferences(
+                        "com.example.rezepte.settings",
+                        ComponentActivity.MODE_PRIVATE
+                    )
+                ),
+                error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show() })
+            {
+                //if the recipe is still empty don't start create just give error
+                if (it == GetEmptyRecipe()) {
+                    Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
+                    return@convert
+                }
+                //when loaded send the recipe to the create menu
+                val intent = Intent(mContext, CreateActivity::class.java)
+
+                intent.putExtra("data", parseData(it))
+                //intent.putExtra("imageData",recipe.second) add image
+                mContext.startActivity(intent)
+                onDismiss()
+            }
+
+        }
+    }
+    Dialog(onDismissRequest = { onDismiss() }) {
+        // Draw a rectangle shape with rounded corners inside the dialog
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(5.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column (modifier = Modifier.padding(10.dp)) {
+                Text(text = "Select method to load Image", textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Spacer(modifier = Modifier.height(15.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    //camara button
+                    Button(
+                        onClick = {
+                            takeImageContent.launch()
+                        }, modifier = Modifier
+                            .padding(0.dp, 5.dp)
+                            .weight(1f)
+                    ) {
+                        Text(text = "Camara", textAlign = TextAlign.Center)
+
+                    }
+                    Spacer(modifier = Modifier.weight(0.2f))
+                    //file button
+                    Button(
+                        onClick = {
+                            getImageContent.launch("image/*")
+                        }, modifier = Modifier
+                            .padding(0.dp, 5.dp)
+                            .weight(1f)
+                    ) {
+                        Text(text = "File", textAlign = TextAlign.Center)
+
+                    }
+                }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(5.dp),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(
+                        text = "the image needs to be upright and only the text of one recipe visable",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+            }
+        }
+        }
+
+
+        }
+
 
 @SuppressLint("UnrememberedMutableState")
 @Preview(showBackground = true)

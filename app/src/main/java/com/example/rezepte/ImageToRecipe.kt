@@ -1,6 +1,7 @@
 package com.example.rezepte
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import com.example.rezepte.ui.theme.CreateAutomations
@@ -29,8 +30,17 @@ class ImageToRecipe {
 
         fun convert (imageUri : Uri,context : Context,settings : Map<String,String>,error:() -> Unit, callback: (Recipe) -> Unit) {
             val image  = InputImage.fromFilePath(context,imageUri)
+            convert(image, settings,error,callback)
+        }
+        fun convert (imageBitmap: Bitmap,settings : Map<String,String>,error:() -> Unit, callback: (Recipe) -> Unit) {
+            val image  = InputImage.fromBitmap(imageBitmap,0)
+            convert(image, settings,error,callback)
+        }
+
+        fun convert (inputImage : InputImage,settings : Map<String,String>,error:() -> Unit, callback: (Recipe) -> Unit) {
+
             val recipe = GetEmptyRecipe()
-            val result = recognizer.process(image)
+            recognizer.process(inputImage)
                 .addOnSuccessListener { visionText ->
                     // Task completed successfully
                     //get only the blocks with high enough probability
@@ -69,18 +79,18 @@ class ImageToRecipe {
                     }
                     lineHeightSorted.reverse()
                     //debug
-                    println(horizontalSorted)
-                    println(verticalySorted)
-                    println(lineHeightSorted)
-                    println(textBlocks[verticalySorted[0]].lineHeight)
+                    //println(horizontalSorted)
+                    //println(verticalySorted)
+                    //println(lineHeightSorted)
+                    //println(textBlocks[verticalySorted[0]].lineHeight)
                     for (int in 0..textBlocks.count()-1){
-                        println("$int: ${textBlocks[int].text}")
+                        //println("$int: ${textBlocks[int].text}")
                     }
 
                     //find the title (going to be the largest thing in the top 6 blocks)
                     var titleIndex = -1
                      for (index in lineHeightSorted){
-                         println("line ${textBlocks[index].text},${verticalySorted.slice(0..min(5,verticalySorted.count()-1))}")
+                         //println("line ${textBlocks[index].text},${verticalySorted.slice(0..min(5,verticalySorted.count()-1))}")
                         //if in to 5 return index
                         if (verticalySorted.slice(0..min(5,verticalySorted.count()-1)).contains(index)){
                             recipe.data.name  = cleanTitle(textBlocks[index].text)
@@ -137,7 +147,7 @@ class ImageToRecipe {
                     val newColumns = mutableMapOf<Int,MutableList<Int>>()
                     val currentColSpacing = mutableListOf<Int>()//the spacing between the current coll
                     currentCol =0
-                    println("old$colums")
+                    //println("old$colums")
                     for (colList in colums.values){ //loop though each col
                         for (index in colList){
                             //if first in col continue and add to first
@@ -156,7 +166,7 @@ class ImageToRecipe {
                                         //remove the first gap from the spaceing as that is what we are looking at
                                         currentColSpacing.removeAt(0)
                                         val firstScore = equateIsColl(textBlocks,currentColSpacing,newColumns[currentCol]!!,newColumns[currentCol]!![1],newColumns[currentCol]!![0])
-                                        println("checking first :${firstScore.first}")
+                                        //println("checking first :${firstScore.first}")
                                         //remove first if dose not fit
                                         if (firstScore.first>1){
                                             newColumns[currentCol]!!.removeAt(0)
@@ -192,7 +202,7 @@ class ImageToRecipe {
                                 newColumns[currentCol]!![1],
                                 newColumns[currentCol]!![0]
                             )
-                            println("checking first :${firstScore.first}")
+                            //println("checking first :${firstScore.first}")
                             //remove first if dose not fit
                             if (firstScore.first > 1) {
                                 newColumns[currentCol]!!.removeAt(0)
@@ -203,7 +213,7 @@ class ImageToRecipe {
                         currentColSpacing.removeAll(currentColSpacing)
                     }
 
-                    println("new$newColumns")
+                    //println("new$newColumns")
                     //see if there are 2 columns in a horizontal row that have and that they have similar length elements and combine them as they probably contain the same thing
                     //loop though col and if there is a coll that the top index is next to it in the vertically sorted list and the both are at least 2 items long
                     for (col in newColumns){
@@ -219,7 +229,7 @@ class ImageToRecipe {
                                     //if dif if smaller than smallest avglength continue
                                     if ( abs (colAvgLenght-compAvgLenght)< min(colAvgLenght,compAvgLenght)){
                                         //combine them
-                                        println("combining:${compare.key} to ${col.key} ")
+                                        //println("combining:${compare.key} to ${col.key} ")
                                         newColumns[col.key]?.addAll(compare.value) //add compared to the original col
                                         newColumns[compare.key] = mutableListOf()//empty other list
                                     }
@@ -281,10 +291,34 @@ class ImageToRecipe {
                     }
 
                     //clean up the text then create the elements then add to recipe
+
+                    //sometimes ingredients are split into multiple elements or combined into one. try to fix this
+                    //if there is an ingredient that dose not contain a number and is short combine it to the ingredient before it
+                    //todo split ingredients that are to long
+                    val ingredientTextList: MutableList<String> = mutableListOf()
+                    var currentIngredient = ""
+                    for ((listIndex,blockIndex) in (ingredients).withIndex()){
+                        val text = textBlocks[blockIndex].text
+                        if (listIndex== 0) { //skip first
+                            currentIngredient = text
+                            continue
+
+                        }
+                        if (!text.contains("[123456789]".toRegex()) && text.length < 20 ){
+                            //combine to above ingredient
+                            currentIngredient += " $text"
+                        } else {
+                            //end previce ingredient and start new
+                            ingredientTextList.add(currentIngredient)
+                            currentIngredient = text
+                        }
+                    }
+                    //add last bit to ingredient text
+                    ingredientTextList.add(currentIngredient)
                     //ingredients
                     val recipeIngredients = mutableListOf<Ingredient>()
-                    for ((listIndex,blockIndex) in (ingredients).withIndex()){
-                        recipeIngredients.add(Ingredient(listIndex, cleanIngredient(textBlocks[blockIndex].text)))
+                    for ((listIndex,ingredientText) in (ingredientTextList).withIndex()){
+                        recipeIngredients.add(Ingredient(listIndex, cleanIngredient(ingredientText)))
                     }
                     recipe.ingredients = Ingredients(recipeIngredients)
                     //instructions
@@ -412,7 +446,7 @@ class ImageToRecipe {
             if (isAvg){
                 score += (abs(gap-avgGap) /minLineHeight.toFloat()) * avgStrength * 1.5f// 66% change  = 1
             }
-            println("index:$index: gap:$gap, minLineHeight:$minLineHeight, avg:$lineHeightAvg, lineHDIff:$lineHeightDiff, avgGap:$avgGap, isAvg:$isAvg, space:$colSpaceList, score:$score")
+            //println("index:$index: gap:$gap, minLineHeight:$minLineHeight, avg:$lineHeightAvg, lineHDIff:$lineHeightDiff, avgGap:$avgGap, isAvg:$isAvg, space:$colSpaceList, score:$score")
             return Triple(score,gap,isAvg)
         }
     }
