@@ -73,7 +73,7 @@ class LoginActivity : AppCompatActivity()
 private fun MainScreen(){
     // Fetching the Local Context
     val mContext = LocalContext.current
-    val webAuth = DbxPKCEWebAuth(DbxRequestConfig("examples-authorize"), DbxAppInfo("ktd7xc7sg55pb8d"))
+    val webAuth = DbxPKCEWebAuth(DbxRequestConfig("examples-authorize"), DbxAppInfo(mContext.resources.getString(R.string.dropbox_api_key)))
     var linkValue by remember { mutableStateOf("")}
     Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
         //logo
@@ -124,7 +124,6 @@ private fun MainScreen(){
                                 prefs.edit().putString("refresh-token", auth.refreshToken).apply()
                                 prefs.edit().putString("expired-at", auth.expiresAt.toString())
                                     .apply()
-                                prefs.edit().putString("app-key", "ktd7xc7sg55pb8d").apply()
 
 
                                 //Proceed to MainActivity

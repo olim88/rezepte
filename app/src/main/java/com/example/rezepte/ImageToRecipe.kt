@@ -294,23 +294,30 @@ class ImageToRecipe {
 
                     //sometimes ingredients are split into multiple elements or combined into one. try to fix this
                     //if there is an ingredient that dose not contain a number and is short combine it to the ingredient before it
-                    //todo split ingredients that are to long
+
                     val ingredientTextList: MutableList<String> = mutableListOf()
                     var currentIngredient = ""
                     for ((listIndex,blockIndex) in (ingredients).withIndex()){
-                        val text = textBlocks[blockIndex].text
-                        if (listIndex== 0) { //skip first
-                            currentIngredient = text
-                            continue
+                        //look at lines and if one of the list starts with a number and is not the first line split of that line and start new
+                        val lines = textBlocks[blockIndex].lines
 
-                        }
-                        if (!text.contains("[123456789]".toRegex()) && text.length < 20 ){
-                            //combine to above ingredient
-                            currentIngredient += " $text"
-                        } else {
-                            //end previce ingredient and start new
-                            ingredientTextList.add(currentIngredient)
-                            currentIngredient = text
+                        for ((lineIndex, line) in lines.withIndex()) {
+                            val text = cleanIngredient(line.text)
+
+                            //val text = textBlocks[blockIndex].text
+                            if (listIndex == 0 && lineIndex == 0) { //skip first
+                                currentIngredient = text
+                                continue
+
+                            }
+                            if ( (text.length < (if (lineIndex == 0) 20 else 30 ) && !text[0].isDigit())) { //if its a short line and dose not start with number combine (if its a start of a  new block more likely to be new line 
+                                //combine to above ingredient
+                                currentIngredient += " $text"
+                            } else {
+                                //end previce ingredient and start new
+                                ingredientTextList.add(currentIngredient)
+                                currentIngredient = text
+                            }
                         }
                     }
                     //add last bit to ingredient text
@@ -384,25 +391,40 @@ class ImageToRecipe {
         private  fun cleanInstruction(instruction: String): String {
             //clean stuff up that is only needed for instructions
             var newInstruction = cleanText(instruction)
-            //remove numbering from the start todo do this with regex
-            newInstruction = newInstruction.removePrefix("1 ")
-            newInstruction = newInstruction.removePrefix("2 ")
-            newInstruction = newInstruction.removePrefix("3 ")
-            newInstruction = newInstruction.removePrefix("4 ")
-            newInstruction = newInstruction.removePrefix("5 ")
+            //remove numbering from the start (find the index there is a letter and remove before that
+            val firstLetter = newInstruction.indexOfFirst { char -> char.isLetter()  }
+            if (firstLetter > 0){//if there is nothing before it
+                newInstruction = newInstruction.substring(firstLetter)
+            }
+
+
 
 
 
             return  newInstruction
         }
+        private fun FixNumber(text: String,oldChar: Char,newChar: Char): String{
+            var newText = text
+            if (newText.startsWith("$oldChar ")){//if starting with replace replace it
+                newText = newText.replaceFirst(oldChar,newChar)
+            }
+            if (newText.endsWith("$oldChar ")){//if ending with replace replace it
+                newText = newText.dropLast(1)
+                newText += newChar
+            }
+            newText = newText.replace(" $oldChar "," $newChar ")
+            return  newText
+        }
+
         private  fun cleanText(text: String): String {
             //clean up general things in text
             var newText = text
             //fix numbers (often number is taken as a letter on its own)
-            newText = newText.replace(" l "," 1 ")
-            newText = newText.replace(" | "," 1 ")
-            newText = newText.replace(" s "," 5 ")
-            newText = newText.replace(" G "," 6 ")
+            newText = FixNumber(newText,'l','1')
+            newText = FixNumber(newText,'|','1')
+            newText = FixNumber(newText,'s','5')
+            newText = FixNumber(newText,'G','6')
+
             //fix other elements
             newText = newText.replace("|","/") 
 

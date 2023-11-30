@@ -1,5 +1,6 @@
 package com.example.rezepte
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -13,7 +14,8 @@ import kotlinx.coroutines.withContext
 
 class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity() {
 
-    var prefs :SharedPreferences = sharedPreferences
+    private var prefs :SharedPreferences = sharedPreferences
+
 
 
 
@@ -44,15 +46,15 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
         }
     }
 
-     fun refreshIfExpired(onRefreshed : () -> Unit) : Boolean {
+     fun refreshIfExpired(context: Context, onRefreshed : () -> Unit) : Boolean {
         val accessToken = retrieveSavedData("access-token") ?: return true
 
         val refreshToken = retrieveSavedData("refresh-token")
         val expiresAt = retrieveSavedData("expired-at")
-        val appKey = retrieveSavedData("app-key")
 
-         if (refreshToken != null && expiresAt != null && appKey != null) {
-             val cred = DbxCredential(accessToken, expiresAt.toLong(), refreshToken, appKey)
+
+         if (refreshToken != null && expiresAt != null ) {
+             val cred = DbxCredential(accessToken, expiresAt.toLong(), refreshToken, context.resources.getString(R.string.dropbox_api_key))
              CoroutineScope(Dispatchers.IO).launch {
                  val client = DropboxClient.getClient(cred)
                  val tokens = try{

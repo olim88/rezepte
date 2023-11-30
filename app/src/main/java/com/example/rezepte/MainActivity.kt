@@ -80,11 +80,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         //account data
-        var accountData: MutableState<FullAccount?> = mutableStateOf(null)
-
+        val accountData: MutableState<FullAccount?> = mutableStateOf(null)
         //dropbox account handling
         val login = DbTokenHandling(getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE))
-        val needToLogIn = login.refreshIfExpired {
+        val needToLogIn = login.refreshIfExpired(this) {
             //get token
             val token = DbTokenHandling(
                 getSharedPreferences(
@@ -451,7 +450,7 @@ fun AddImageDialog(onDismiss: () -> Unit){
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text = "the image needs to be upright and only the text of one recipe visable",
+                        text = "the image needs to be upright and only the text of one recipe visible and clearly readable",
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.align(Alignment.CenterHorizontally)

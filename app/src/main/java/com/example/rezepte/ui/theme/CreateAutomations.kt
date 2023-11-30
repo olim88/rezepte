@@ -260,7 +260,7 @@ class CreateAutomations {
             "if this"
 
         )
-        private fun getIsNewSentence(sentence : String) : Boolean{//todo not that smart yet need to examine more recipes to work out what i need to do
+        private fun getIsNewSentence(sentence : String) : Boolean{//todo could be smarter
             if (sentence.length < 28) return false // to short to think about splitting off
             for (word in falseStartingList){
                 if (sentence.startsWith(word, ignoreCase = true)){
