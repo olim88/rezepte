@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
@@ -28,13 +29,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
-class LinkStepsToInstructions: AppCompatActivity()
+class LinkStepsToInstructionsActivity: AppCompatActivity()
 {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,6 +87,15 @@ class LinkStepsToInstructions: AppCompatActivity()
 
 @Composable
 private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
+    //get local context and settings
+    val mContext = LocalContext.current
+    val settings =SettingsActivity.loadSettings( //todo already have this loaded
+        mContext.getSharedPreferences(
+            "com.example.rezepte.settings",
+            ComponentActivity.MODE_PRIVATE
+        )
+    )
+
     Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())){
         var stepIndex by remember {mutableStateOf(0)}
         var recipeData by remember { mutableStateOf(data)}
@@ -103,7 +114,7 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
             )
         }
         //current step
-        cookingStepDisplay(step = recipeData.data.cookingSteps.list[stepIndex] , color = getColor(stepIndex,MaterialTheme.colorScheme.surface) )
+        CookingStepDisplay(step = recipeData.data.cookingSteps.list[stepIndex] , color = getColor(stepIndex,MaterialTheme.colorScheme.surface),settings )
         //instructions left
         Card(
             modifier = Modifier

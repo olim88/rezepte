@@ -86,7 +86,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.rezepte.ui.theme.CreateAutomations
 import com.example.rezepte.ui.theme.RezepteTheme
 import com.google.android.material.internal.ContextUtils.getActivity
 import kotlinx.coroutines.CoroutineScope
@@ -346,7 +345,7 @@ class CreateActivity : ComponentActivity() {
 
         //if linking move to the link page else go home
         if (linking){
-            val intent = Intent(this, LinkStepsToInstructions::class.java)
+            val intent = Intent(this, LinkStepsToInstructionsActivity::class.java)
             intent.putExtra("data",data)
             startActivity(intent)
         }
@@ -620,7 +619,7 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DataInput(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>){
+fun DataInput(settings: Map<String, String>, data : MutableState<Recipe>, updatedSteps:MutableState<Boolean>){
     Surface(
         shape = MaterialTheme.shapes.small,
         modifier = Modifier
@@ -655,7 +654,7 @@ fun DataInput(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>){
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                 label = { Text("Servings") }
             )
-            CookingStepsInput(data,updatedSteps)
+            CookingStepsInput(settings,data,updatedSteps)
             LinkedRecipesInput(data)
             TextField(
                 value = if (data.value.data.website == null) "" else data.value.data.website!!,
@@ -823,7 +822,7 @@ fun LinkedRecipe(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> U
 }
 @SuppressLint("UnrememberedMutableState")
 @Composable
-fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Boolean>){
+fun CookingStepsInput(settings: Map<String, String>, data : MutableState<Recipe>, updatedSteps :MutableState<Boolean>){
     var steps by remember { mutableStateOf(data.value.data.cookingSteps.list) }
 
     var isExpanded by remember { mutableStateOf(false)}
@@ -863,7 +862,7 @@ fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Bo
 
                     for (step in steps) {
 
-                        CookingStep(step,mutableStateOf(false)) { index ->
+                        CookingStep(settings,step,mutableStateOf(false)) { index ->
                             steps.removeAt(index)
                             steps.forEach { edit -> if (edit.index > index) edit.index -= 1 }
                             data.value.data.cookingSteps.list = steps
@@ -924,7 +923,7 @@ fun CookingStepsInput(data : MutableState<Recipe>, updatedSteps :MutableState<Bo
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CookingStep(data : CookingStep, isExpanded : MutableState<Boolean>, onItemClick: (Int) -> Unit){
+fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : MutableState<Boolean>, onItemClick: (Int) -> Unit){
 
     var isFan by remember {  if (data.cookingTemperature?.isFan == null) mutableStateOf(false) else mutableStateOf(data.cookingTemperature?.isFan!!)}
     var timeInput by remember { mutableStateOf(data.time)}
@@ -964,14 +963,16 @@ fun CookingStep(data : CookingStep, isExpanded : MutableState<Boolean>, onItemCl
             Column (modifier = Modifier.padding(3.dp)) {
                 MenuItemWithDropDown("Type",data.type.toString(),CookingStage.values()) { value ->
                     data.type = enumValueOf(value)
-                    if (data.type == CookingStage.oven){
-                        data.cookingTemperature = CookingStepTemperature(0,HobOption.zero,false)
-                    }
-                    else if (data.type == CookingStage.hob){
-                        data.cookingTemperature = CookingStepTemperature(null,HobOption.zero,null)
-                    }
-                    else {
-                        data.cookingTemperature = null
+                    when (data.type) {
+                        CookingStage.oven ->{
+                            data.cookingTemperature = CookingStepTemperature(0, HobOption.zero, false)
+                        }
+                        CookingStage.hob -> {
+                        data.cookingTemperature = CookingStepTemperature(null, HobOption.zero, null)
+                        }
+                        else -> {
+                            data.cookingTemperature = null
+                        }
                     }
                 }
                 //if it is oven or pan enable cooking temp options
@@ -981,13 +982,23 @@ fun CookingStep(data : CookingStep, isExpanded : MutableState<Boolean>, onItemCl
                             value = cookingTemp,
                             onValueChange = { value ->
                                 cookingTemp = value
-                                data.cookingTemperature?.temperature = value.toIntOrNull()
+                                if (settings["Units.Temperature"]== "true"){ //convert the saved value to C if the input is in F
+                                    data.cookingTemperature?.temperature = value.toIntOrNull() //degrees C
+                                } else {
+                                    val temp = value.toIntOrNull()
+                                    if (temp != null) {
+                                        data.cookingTemperature?.temperature = ((5/9f) * (temp-32)).toInt() //degrees F
+                                    } else {
+                                        data.cookingTemperature?.temperature = null
+                                    }
+                                }
+
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                             textStyle = TextStyle( fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text("Oven Temperature") }
+                            label = { Text("Oven Temperature (${if (settings["Units.Temperature"]== "true") "°C" else "°F"})") } //depending on settings show C or F
                         )
                         FilterChip(
                             onClick = {
@@ -1281,7 +1292,8 @@ fun InstructionsInput(userSettings: Map<String,String>,data : MutableState<Recip
                     .fillMaxWidth()
                     .padding(5.dp)) {
                     Button(onClick = {
-                                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
+                                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,
+                                            CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
                                         instructionsInput = getInstructions(data)
                                      },
                         modifier = Modifier.weight(1f)) {
@@ -1289,7 +1301,8 @@ fun InstructionsInput(userSettings: Map<String,String>,data : MutableState<Recip
                     }
                     Spacer(modifier = Modifier.weight(0.5f))
                     Button(onClick = {
-                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,CreateAutomations.Companion.InstructionSplitStrength.Sentences)
+                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,
+                            CreateAutomations.Companion.InstructionSplitStrength.Sentences)
                         instructionsInput = getInstructions(data)
                     },
                         modifier = Modifier.weight(1f)) {
@@ -1424,7 +1437,7 @@ private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,
         ) {
         TitleInput(recipeDataInput)
         ImageInput(imageUri,image)
-        DataInput(recipeDataInput,updatedSteps)
+        DataInput(userSettings,recipeDataInput,updatedSteps)
         IngredientsInput(userSettings,recipeDataInput)
         InstructionsInput(userSettings,recipeDataInput)
         Spacer(modifier = Modifier.weight(1f))

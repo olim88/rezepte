@@ -291,7 +291,7 @@ fun DataOutput(userSettings: Map<String,String>,recipeData: Recipe,multiplier : 
 
 }
 @Composable
-fun StepsOutput(recipeData: Recipe){
+fun StepsOutput(userSettings: Map<String, String>, recipeData: Recipe){
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -313,7 +313,7 @@ fun StepsOutput(recipeData: Recipe){
         //display steps
         Column {
             for (step in recipeData.data.cookingSteps.list){
-                cookingStepDisplay(step, getColor(index = step.index, default = MaterialTheme.colorScheme.surface ))
+                CookingStepDisplay(step, getColor(index = step.index, default = MaterialTheme.colorScheme.surface ),userSettings)
             }
         }
     }
@@ -399,21 +399,21 @@ fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<
     }
 }
 @Composable
-fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBig : Boolean, isStrike: Boolean, mutiplyer : MutableState<Float>){
+fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBig : Boolean, isStrike: Boolean, multiplier : MutableState<Float>){
     var style =  if (isBig) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall
     if (isStrike) style = style.copy(textDecoration = TextDecoration.LineThrough)
-    val convertedText = MakeFormatting.getCorrectUnitsAndValues(value,mutiplyer.value, userSettings)//text adjusted to the user settings for the measurement options and the multiplier
-    val mesurmentsInside = MakeFormatting.listUnitsInValue(convertedText) //measurements inside the text
-    var showingMesurement by remember { mutableIntStateOf(-1) }//index inside of the measurements list of currently expanded measurement
-    if (isStrike) showingMesurement = -1 //when it is showing conversions and then the settings is struck stop showing the conversions
-    if (userSettings["Units.Show Conversions"]== "false" || mesurmentsInside.isEmpty()){//if can not find mesurements just show the ingredient or the setting is disabled
+    val convertedText = MakeFormatting.getCorrectUnitsAndValues(value,multiplier.value, userSettings)//text adjusted to the user settings for the measurement options and the multiplier
+    val measurementsInside = MakeFormatting.listUnitsInValue(convertedText) //measurements inside the text
+    var showingMeasurement by remember { mutableIntStateOf(-1) }//index inside of the measurements list of currently expanded measurement
+    if (isStrike) showingMeasurement = -1 //when it is showing conversions and then the settings is struck stop showing the conversions
+    if (userSettings["Units.Show Conversions"]== "false" || measurementsInside.isEmpty()){//if can not find measurements just show the ingredient or the setting is disabled
         Text ( text = "${intToRoman(index+1)}: $convertedText",
             modifier = Modifier
                 .padding(5.dp)
                 .fillMaxWidth(),
             style = style
         )
-    }else{//hightly measurements and make the clickable to be able to expand conversions on them
+    }else{//highly measurements and make the clickable to be able to expand conversions on them
         Column (modifier = Modifier.padding(3.dp)) {
             Row (modifier = Modifier
                 .fillMaxWidth()
@@ -426,9 +426,9 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                 )
 
                 var ingredientLeft = convertedText
-                for ((mesureIndex, mesusrment) in mesurmentsInside.withIndex()) {
+                for ((measureIndex, measurement) in measurementsInside.withIndex()) {
                     //split on ingredient
-                    val split = ingredientLeft.split("${mesusrment.split(" ")[0]}\\s*${mesusrment.split(" ")[1]}".toRegex(), limit = 2)
+                    val split = ingredientLeft.split("${measurement.split(" ")[0]}\\s*${measurement.split(" ")[1]}".toRegex(), limit = 2)
                     //text before measurement
                     Text(
                         text = split[0],
@@ -439,20 +439,20 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                     Card(
                         modifier = Modifier
                             .clickable {
-                                showingMesurement =
-                                    if (showingMesurement == mesureIndex) {//if showing this mesure disable it
+                                showingMeasurement =
+                                    if (showingMeasurement == measureIndex) {//if showing this measure disable it
                                         -1
                                     } else {//otherwise set it to this index to show
-                                        mesureIndex
+                                        measureIndex
                                     }
                             }
                             ,
                         colors = CardDefaults.cardColors(
-                            containerColor = if (mesureIndex == showingMesurement) MaterialTheme.colorScheme.surfaceTint else MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp),
+                            containerColor = if (measureIndex == showingMeasurement) MaterialTheme.colorScheme.surfaceTint else MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp),
                         )
                     ) {
                         Text(
-                            text = mesusrment,
+                            text = measurement,
                             modifier = Modifier.padding(start = 2.dp, end = 2.dp),
                             style = style,
                             textAlign = TextAlign.Center
@@ -478,9 +478,9 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
 
             IngredientConversions(
                 userSettings,
-                if (showingMesurement != -1) mesurmentsInside[showingMesurement] else "",
+                if (showingMeasurement != -1) measurementsInside[showingMeasurement] else "",
                 convertedText,
-                showingMesurement != -1
+                showingMeasurement != -1
             )
 
         }
@@ -501,8 +501,8 @@ fun getColor (index: Int?, default : androidx.compose.ui.graphics.Color) :  andr
 
 }
 @Composable
-fun InstructionsOutput(recipeData: MutableState<Recipe>){
-    var strikeIndex by remember {mutableStateOf(0)}
+fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Recipe>){
+    var strikeIndex by remember {mutableIntStateOf(0)}
 
     Card(
         modifier = Modifier
@@ -543,7 +543,7 @@ fun InstructionsOutput(recipeData: MutableState<Recipe>){
                     getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.onBackground)
                 )
                 if (index == strikeIndex && instruction.linkedCookingStepIndex != null){
-                    cookingStepDisplay(recipeData.value.data.cookingSteps.list[instruction.linkedCookingStepIndex!!],getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface))
+                    CookingStepDisplay(recipeData.value.data.cookingSteps.list[instruction.linkedCookingStepIndex!!],getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface),settings)
                 }
 
             }
@@ -551,7 +551,7 @@ fun InstructionsOutput(recipeData: MutableState<Recipe>){
     }
 }
 @Composable
-fun cookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.Color){
+fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.Color,settings : Map<String,String>){
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -575,11 +575,17 @@ fun cookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
             //if there is a temperature
             if (step.cookingTemperature != null){
                 //if its a  oven
-                text += if (step.cookingTemperature!!.temperature != null){
-                    " at ${step.cookingTemperature!!.temperature}°C ${if (step.cookingTemperature!!.isFan == true) "fan" else ""}"
-                } else{ // hob
-                    " at ${step.cookingTemperature!!.hobTemperature.text} heat"
-                }
+                text += if (step.cookingTemperature!!.temperature != null){//oven
+                            //get temperature in correct unit according to settings
+                            val temperature  =if (settings["Units.Temperature"]=="true"){
+                                "${step.cookingTemperature!!.temperature}°C"
+                            }else {
+                                "${((step.cookingTemperature!!.temperature?.times((9f/5f)) ?: 0f) + 32).toInt()}°F"
+                            }
+                            " at $temperature ${if (step.cookingTemperature!!.isFan == true) "fan" else ""}"
+                        } else{ // hob
+                            " at ${step.cookingTemperature!!.hobTemperature.text} heat"
+                        }
 
             }
             text += "."
@@ -595,10 +601,10 @@ fun cookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
 @Composable
 fun cookingStepDisplayPreview() {
     RezepteTheme {
-        cookingStepDisplay(CookingStep(0,"20 mins",CookingStage.oven,
+        CookingStepDisplay(CookingStep(0,"20 mins",CookingStage.oven,
             CookingStepContainer(TinOrPanOptions.roundTin,9),
             CookingStepTemperature(250,HobOption.zero,true)
-        ),MaterialTheme.colorScheme.primary)
+        ),MaterialTheme.colorScheme.primary, mapOf())
     }
 }
 @Composable
@@ -710,11 +716,11 @@ private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState
         //data
         DataOutput(userSettings,recipeData.value,multiplier)
         //instruction steps
-        StepsOutput(recipeData.value)
+        StepsOutput(userSettings,recipeData.value)
         //ingredients
         IngredientsOutput(userSettings,recipeData,multiplier)
         //instructions
-        InstructionsOutput(recipeData)
+        InstructionsOutput(userSettings,recipeData)
         //linked recipes
         LinkedRecipesOutput(recipeData.value)
         //edit and finish button

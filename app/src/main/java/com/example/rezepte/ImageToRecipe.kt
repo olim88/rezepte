@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
-import com.example.rezepte.ui.theme.CreateAutomations
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.Text.TextBlock

@@ -3,7 +3,6 @@ package com.example.rezepte
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import com.example.rezepte.ui.theme.CreateAutomations
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -178,8 +177,10 @@ class DownloadWebsite {
             }
             //check settings to see if extra needs to be done
             when (settings["Creation.Website Loading.Split instructions"]){
-                "intelligent" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
-                "sentences" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,CreateAutomations.Companion.InstructionSplitStrength.Sentences)
+                "intelligent" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,
+                    CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
+                "sentences" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,
+                    CreateAutomations.Companion.InstructionSplitStrength.Sentences)
                 else -> {}
             }
 

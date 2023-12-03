@@ -1,13 +1,4 @@
-package com.example.rezepte.ui.theme
-
-import com.example.rezepte.CookingStage
-import com.example.rezepte.CookingStep
-import com.example.rezepte.CookingStepContainer
-import com.example.rezepte.CookingStepTemperature
-import com.example.rezepte.HobOption
-import com.example.rezepte.Instruction
-import com.example.rezepte.Instructions
-import com.example.rezepte.TinOrPanOptions
+package com.example.rezepte
 
 class CreateAutomations {
     companion object {
@@ -99,11 +90,12 @@ class CreateAutomations {
         private fun getInstructionTemp(text: String,isOven: Boolean) : CookingStepTemperature?{ //todo see if fan can be found if that is what the user wants
             val words = getWords(text)
             if (isOven) {//if looking for temperature for oven
+                var fahrenheitTemperature = -1 //if temp is not found in C see but found in fahrenheit use this to convert to C
                 for ((index, word) in words.withIndex()) {
                     if (word.matches("[0-9]+(([°º]?c)|℃)".toRegex())) {//should be a temperature
                         if (index < words.count() - 1 && words[index + 1].lowercase() == "fan") {//if fan or not
                             return CookingStepTemperature(
-                                word.replace("[°º]?c".toRegex(), "").toInt(),
+                                word.replace("(([°º]?c)|℃)".toRegex(), "").toInt(),
                                 HobOption.zero,
                                 true
                             )
@@ -113,7 +105,18 @@ class CreateAutomations {
                             HobOption.zero,
                             false
                         )
+                    } else if (word.matches("[0-9]+(([°º]?f)|℉)".toRegex())) {//should be fahrenheit a temperature
+                        fahrenheitTemperature =  word.replace("(([°º]?f)|℉)".toRegex(), "").toInt()
                     }
+                }
+                //C temperature has not been found so see if there is a fahrenheit temperature to use
+                if (fahrenheitTemperature != -1){
+                    //save fahrenheit converted to Degrees C
+                    return CookingStepTemperature(
+                        ((5f/9f)*(fahrenheitTemperature-32)).toInt(), //convert to deg C
+                        HobOption.zero,
+                        false
+                    )
                 }
             }
             else{ //if looking for temperature for hob
@@ -178,16 +181,12 @@ class CreateAutomations {
 
             return  ""
         }
-         fun getWords(text: String) : List<String> { return text.lowercase().split("[\\s,/.;?()]+".toRegex())}
-
-
+        fun getWords(text: String) : List<String> { return text.lowercase().split("[\\s,/.;?()]+".toRegex())}
 
         private  fun getCleanText(text: String) : String { return  text.lowercase().replace("[.;,()|/]".toRegex()," ")}
 
 
         fun autoSplitInstructions(instructions: Instructions,strength: InstructionSplitStrength) : Instructions{
-
-
             //go though each instructions and split it in to the amount needed
             when(strength ){
                 InstructionSplitStrength.Sentences -> {
