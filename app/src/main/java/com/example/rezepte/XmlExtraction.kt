@@ -44,11 +44,11 @@ data class Data(var name: String, var author : String, var serves : String, var 
 
     }
 }
-data class CookingStepContainer( var type : TinOrPanOptions, var size : Int?){
+data class CookingStepContainer( var type : TinOrPanOptions, var dimensionOne : Int?, var dimensionTwo : Int?, var volume : Int?){
     companion object {
         fun xml(k: Konsumer): CookingStepContainer {
 
-            return CookingStepContainer( enumValueOf(k.childText("type")),k.childTextOrNull("tinSize")?.toInt())
+            return CookingStepContainer( enumValueOf(k.childText("type")),k.childTextOrNull("tinSize")?.toInt(),k.childTextOrNull("tinSizeTwo")?.toInt(),k.childTextOrNull("tinVolume")?.toInt())
         }
 
     }
@@ -157,19 +157,27 @@ enum class CookingStage(val text: String){
     fridge("fridge"),
     wait("wait"),
 }
-enum class TinOrPanOptions(val text: String){
-    none("none"),
-    fryingPan("frying pan"),
-    wok("wok"),
-    saucePan("sauce pan"),
-    bowl("bowl"),
-    tray("tray"),
-    roastingTin("roasting tin"),
-    roundTin("round tin"),
-    rectangleTin("rectangular tin"),
-
+enum class TinOrPanOptions(val text: String,val sizeing: TinOrPanSizeOptions){
+    none("none",TinOrPanSizeOptions.None),
+    fryingPan("frying pan",TinOrPanSizeOptions.None),
+    wok("wok",TinOrPanSizeOptions.None),
+    saucePan("sauce pan",TinOrPanSizeOptions.None),
+    bowl("bowl",TinOrPanSizeOptions.None),
+    tray("tray",TinOrPanSizeOptions.None),
+    roastingTin("roasting tin",TinOrPanSizeOptions.None),
+    roundTin("round tin",TinOrPanSizeOptions.OneDimension),
+    rectangleTin("rectangular tin",TinOrPanSizeOptions.TwoDimension),
+    loafTin("loaf tin",TinOrPanSizeOptions.TwoDimension),
+    dish("dish",TinOrPanSizeOptions.Volume),
 
 }
+enum class TinOrPanSizeOptions{
+    None,
+    OneDimension,
+    TwoDimension,
+    Volume
+}
+
 enum class HobOption(val text: String){
     zero ("none"),
     low("low"),

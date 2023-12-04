@@ -36,7 +36,7 @@ class ImageToRecipe {
             convert(image, settings,error,callback)
         }
 
-        fun convert (inputImage : InputImage,settings : Map<String,String>,error:() -> Unit, callback: (Recipe) -> Unit) {
+        private fun convert (inputImage : InputImage, settings : Map<String,String>, error:() -> Unit, callback: (Recipe) -> Unit) {
 
             val recipe = GetEmptyRecipe()
             recognizer.process(inputImage)

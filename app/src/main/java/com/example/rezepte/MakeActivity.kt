@@ -561,35 +561,7 @@ fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
         )
     ){
         Column {
-            var text = when (step.type){
-                CookingStage.prep ->  "prepare${if (step.time != "")" for " else ""}${step.time}"
-                CookingStage.wait -> "wait${if (step.time != "")" for " else ""}${step.time}"
-                CookingStage.hob -> "on the hob${if (step.time != "")" for " else ""}${step.time}"
-                else -> "In the ${step.type.text}${if (step.time != "")" for " else ""}${step.time}"
-            }
-
-            //if there is a container
-            if (step.container != null){
-                text += " in a${if (step.container!!.size != null) " ${step.container!!.size}\"" else ""} ${step.container!!.type.text}"
-            }
-            //if there is a temperature
-            if (step.cookingTemperature != null){
-                //if its a  oven
-                text += if (step.cookingTemperature!!.temperature != null){//oven
-                            //get temperature in correct unit according to settings
-                            val temperature  =if (settings["Units.Temperature"]=="true"){
-                                "${step.cookingTemperature!!.temperature}°C"
-                            }else {
-                                "${((step.cookingTemperature!!.temperature?.times((9f/5f)) ?: 0f) + 32).toInt()}°F"
-                            }
-                            " at $temperature ${if (step.cookingTemperature!!.isFan == true) "fan" else ""}"
-                        } else{ // hob
-                            " at ${step.cookingTemperature!!.hobTemperature.text} heat"
-                        }
-
-            }
-            text += "."
-            Text(text = text, modifier = Modifier.padding(5.dp))
+            Text(text = MakeFormatting.getCookingStepDisplayText(step,settings), modifier = Modifier.padding(5.dp))
         }
     }
 }
@@ -602,7 +574,7 @@ fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
 fun cookingStepDisplayPreview() {
     RezepteTheme {
         CookingStepDisplay(CookingStep(0,"20 mins",CookingStage.oven,
-            CookingStepContainer(TinOrPanOptions.roundTin,9),
+            CookingStepContainer(TinOrPanOptions.roundTin,9,null,null),
             CookingStepTemperature(250,HobOption.zero,true)
         ),MaterialTheme.colorScheme.primary, mapOf())
     }

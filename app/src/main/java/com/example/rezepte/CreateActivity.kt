@@ -420,9 +420,19 @@ fun parseSearchData(searchData: SearchData): String{
                                     "type"{
                                         - step.container!!.type.toString()
                                     }
-                                    if ( step.container!!.size != null){
+                                    if ( step.container!!.dimensionOne != null){
                                         "tinSize"{
-                                            - step.container!!.size.toString()
+                                            - step.container!!.dimensionOne.toString()
+                                        }
+                                    }
+                                    if ( step.container!!.dimensionTwo != null){
+                                        "tinSizeTwo"{
+                                            - step.container!!.dimensionTwo.toString()
+                                        }
+                                    }
+                                    if ( step.container!!.volume != null){
+                                        "tinVolume"{
+                                            - step.container!!.volume.toString()
                                         }
                                     }
 
@@ -927,8 +937,51 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
 
     var isFan by remember {  if (data.cookingTemperature?.isFan == null) mutableStateOf(false) else mutableStateOf(data.cookingTemperature?.isFan!!)}
     var timeInput by remember { mutableStateOf(data.time)}
-    var tinSize by remember { if (data.container?.size == null) mutableStateOf("") else mutableStateOf(data.container?.size.toString())}
-    var cookingTemp by remember { if (data.cookingTemperature?.temperature == null) mutableStateOf("") else mutableStateOf(data.cookingTemperature?.temperature.toString())}
+    //get all the values and make sure the are in the correct units
+    var dimensionOneValue by remember {
+        if (data.container?.dimensionOne == null) {//if saved
+            mutableStateOf("")
+        }else {
+            if (settings["Units.metric Lengths"]== "false") { //convert to imperial if needed
+                mutableStateOf((data.container?.dimensionOne?.times(0.3937008)).toString())
+            } else{
+                mutableStateOf(data.container?.dimensionOne.toString())
+            }
+        }
+    }
+    var dimensionTwoValue by remember {
+        if (data.container?.dimensionTwo == null) {//if saved
+            mutableStateOf("")
+        }else {
+            if (settings["Units.metric Lengths"]== "false") { //convert to imperial if needed
+                mutableStateOf((data.container?.dimensionTwo?.times(0.3937008)).toString())
+            } else{
+                mutableStateOf(data.container?.dimensionTwo.toString())
+            }
+        }
+    }
+    var dimensionVolume by remember {
+        if (data.container?.volume == null) {//if saved
+            mutableStateOf("")
+        }else {
+            if (settings["Units.metric Volume"]== "false") { //convert to imperial if needed
+                mutableStateOf((data.container?.volume?.times(1.759754)).toString())
+            } else{
+                mutableStateOf(data.container?.volume.toString())
+            }
+        }
+    }
+    var cookingTemp by remember {
+        if (data.cookingTemperature?.temperature == null) {//if saved
+            mutableStateOf("")
+        }else {
+            if (settings["Units.Temperature"]== "false") { //convert to imperial if needed
+                mutableStateOf(((data.cookingTemperature?.temperature?.times(9/5))?.plus(32)).toString())
+            } else{
+                mutableStateOf(data.cookingTemperature?.temperature.toString())
+            }
+        }
+    }
     Card(modifier = Modifier
         .clickable { isExpanded.value = !isExpanded.value }
         .padding(3.dp)
@@ -1055,7 +1108,7 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
                     }
                     else{
                         if (data.container == null){
-                            data.container = CookingStepContainer(enumValueOf(value),null)
+                            data.container = CookingStepContainer(enumValueOf(value),null,null,null)
                         }
                         else{
                             data.container?.type = enumValueOf(value)
@@ -1063,23 +1116,100 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
                     }
 
                 }
-                //if the container is a tin enable the size input
-                if (data.container?.type == TinOrPanOptions.roundTin ||data.container?.type == TinOrPanOptions.rectangleTin){
-                    TextField(
-                        value =  tinSize,
-                        onValueChange = { value ->
-                            tinSize = value
-                            data.container?.size = value.toIntOrNull()
+                //if container needs show size configure inputs
+                when (data.container?.type?.sizeing) {
+                    TinOrPanSizeOptions.OneDimension -> { //show input when just one d is needed
+                        TextField(
+                            value = dimensionOneValue,
+                            onValueChange = { value ->
+                                dimensionOneValue = value
+                                if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
+                                    data.container?.dimensionOne = value.toIntOrNull()
+                                } else { //its imperial so convert to metric value to save
+                                    data.container?.dimensionOne =
+                                        (value.toIntOrNull()?.times(2.54f))?.toInt()
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            textStyle = TextStyle(fontSize = 18.sp),
+                            singleLine = true,
+                            shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
+                            label = { Text("Size (${if (settings["Units.metric Lengths"] == "true") "cm" else "in"})") } //size plus the units the user has selected
+                        )
+                    }
+                    TinOrPanSizeOptions.TwoDimension -> { //show input when just one d is needed
+                        TextField(
+                            value = dimensionOneValue,
+                            onValueChange = { value ->
+                                dimensionOneValue = value
+                                if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
+                                    data.container?.dimensionOne = value.toIntOrNull()
+                                } else { //its imperial so convert to metric value to save
+                                    data.container?.dimensionOne =
+                                        (value.toIntOrNull()?.times(2.54f))?.toInt()
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            textStyle = TextStyle(fontSize = 18.sp),
+                            singleLine = true,
+                            shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
+                            label = { Text("Length (${if (settings["Units.metric Lengths"] == "true") "cm" else "in"})") } //size plus the units the user has selected
+                        )
+                        TextField(
+                            value = dimensionTwoValue,
+                            onValueChange = { value ->
+                                dimensionTwoValue = value
+                                if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
+                                    data.container?.dimensionTwo= value.toIntOrNull()
+                                } else { //its imperial so convert to metric value to save
+                                    data.container?.dimensionTwo =
+                                        (value.toIntOrNull()?.times(2.54f))?.toInt()
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            textStyle = TextStyle(fontSize = 18.sp),
+                            singleLine = true,
+                            shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
+                            label = { Text("Width (${if (settings["Units.metric Lengths"] == "true") "cm" else "in"})") } //size plus the units the user has selected
+                        )
+                    }
+                    TinOrPanSizeOptions.Volume -> {
+                        TextField(
+                            value = dimensionTwoValue,
+                            onValueChange = { value ->
+                                dimensionTwoValue = value
+                                if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
+                                    data.container?.volume= value.toIntOrNull()
+                                } else { //its imperial so convert to metric value to save
+                                    data.container?.volume =
+                                        (value.toIntOrNull()?.times(0.5682612))?.toInt()
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            textStyle = TextStyle(fontSize = 18.sp),
+                            singleLine = true,
+                            shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
+                            label = { Text("Volume (${if (settings["Units.metric Volume"] == "true") "l" else "pt"})") } //size plus the units the user has selected
+                        )
+                    }
+                    else -> {//there is no need for sizing options so set all values to empty
+                        dimensionOneValue = ""
+                        dimensionTwoValue = ""
+                        dimensionVolume = ""
+                        data.container?.dimensionOne = null
+                        data.container?.dimensionTwo = null
+                        data.container?.volume = null
 
-                        },
-                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        textStyle = TextStyle( fontSize = 18.sp),
-                        singleLine = true,
-                        shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                        label = { Text("Tin Size") }
-                    )
+
+                    }
                 }
 
             }

@@ -704,6 +704,84 @@ class MakeFormatting {
             }
             return -1f
         }
+        fun getCookingStepDisplayText(step: CookingStep, settings: Map<String, String>): String{
+            //what the device is text
+            var text = when (step.type){
+                CookingStage.prep ->  "prepare"
+                CookingStage.wait -> "wait"
+                CookingStage.hob -> "on the hob"
+                else -> "In the ${step.type.text}"
+            }
+            //time text if one is set
+            if (step.time != ""){
+                text += " for ${step.time}"
+            }
+            //if there is a container
+            if (step.container != null){
+                //starting container text
+                if (step.container!!.type != TinOrPanOptions.tray){ //tray needs different framing
+                    text += " in a"
+                }else {
+                    text += " on a"
+                }
+
+                //if the container has a size
+                if (step.container!!.dimensionTwo!= null){ //2 dimension size
+                    //if the user wants it in inches show the inches else output it in cm
+                    text += if (settings["Units.metric Lengths"] == "false"){
+                        val convertedValueOne = (step.container!!.dimensionOne!!.toInt() * 0.3937008f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
+                        val convertedValueTwo = (step.container!!.dimensionTwo!!.toInt() * 0.3937008f).vulgarFraction
+                        " ${if (settings["Units.Fractional Numbers"]== "true")convertedValueOne.first else convertedValueOne.second}x${if (settings["Units.Fractional Numbers"]== "true")convertedValueTwo.first else convertedValueTwo.second} inches"
+                    }else {
+                        " ${step.container!!.dimensionOne}x${step.container!!.dimensionTwo} cm"
+                    }
+
+
+                }
+                else if (step.container!!.dimensionOne!= null){ //one dimension size
+                    //if the user wants it in inches show the inches else output it in cm
+                    text += if (settings["Units.metric Lengths"] == "false"){
+                        val convertedVal = (step.container!!.dimensionOne!!.toInt() * 0.3937008f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
+                        " ${if (settings["Units.Fractional Numbers"]== "true")convertedVal.first else convertedVal.second} inch"
+                    }else {
+                        " ${step.container!!.dimensionOne} cm"
+                    }
+
+                }
+                //if the container has a volume
+                if (step.container!!.volume!= null){
+                    //if the user wants it in pints show the inches else output it in litres
+                    text += if (settings["Units.metric Volume"] == "false"){
+                        val convertedVal = (step.container!!.volume!!.toInt() * 1.759754f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
+                        " ${if (settings["Units.Fractional Numbers"]== "true")convertedVal.first else convertedVal.second} pint"
+                    }else {
+                        " ${step.container!!.volume} litre"
+                    }
+
+                }
+                //container name
+                text += " ${step.container!!.type.text}"
+            }
+
+            //if there is a temperature
+            if (step.cookingTemperature != null){
+                //if its a  oven
+                text += if (step.cookingTemperature!!.temperature != null){//oven
+                    //get temperature in correct unit according to settings
+                    val temperature  =if (settings["Units.Temperature"]=="true"){
+                        "${step.cookingTemperature!!.temperature}°C"
+                    }else {
+                        "${((step.cookingTemperature!!.temperature?.times((9f/5f)) ?: 0f) + 32).toInt()}°F"
+                    }
+                    " at $temperature ${if (step.cookingTemperature!!.isFan == true) "fan" else ""}"
+                } else{ // hob
+                    " at ${step.cookingTemperature!!.hobTemperature.text} heat"
+                }
+
+            }
+            text += "."
+            return  text
+        }
 
     }
 }

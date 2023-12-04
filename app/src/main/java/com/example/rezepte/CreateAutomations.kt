@@ -149,24 +149,106 @@ class CreateAutomations {
                 cleanText.contains(" wok ") -> TinOrPanOptions.saucePan
                 cleanText.contains(" bowl ") -> TinOrPanOptions.bowl
                 cleanText.contains(" trays? ".toRegex()) -> TinOrPanOptions.tray
-                cleanText.contains("roasting tin ") -> TinOrPanOptions.roastingTin
+                cleanText.contains(" loaf tin ") -> TinOrPanOptions.loafTin
+                cleanText.contains(" roasting tin ") -> TinOrPanOptions.roastingTin
                 cleanText.contains(" rectangular tin ") -> TinOrPanOptions.rectangleTin
                 cleanText.contains(" tins? ".toRegex()) -> TinOrPanOptions.roundTin
+                cleanText.contains(" dish ") -> TinOrPanOptions.dish
                 else -> TinOrPanOptions.none
             }
 
             //if tin see if size can be found
-            var size : Int? = null
-            if (option == TinOrPanOptions.roundTin || option == TinOrPanOptions.rectangleTin){
-                val words = getWords(text)
-                for (word in words){
-                    if (word.matches("[0-9]+cm".toRegex())){
-                        size = word.removeSuffix("cm").toIntOrNull()
+            var dimensionOne : Int? = null
+            var dimensionTwo: Int? = null
+            var dimensionVolume : Int? = null
+            when (option.sizeing ){
+                TinOrPanSizeOptions.OneDimension -> {// if its an option with one dimensional sizing see if value can be found for it
+                    //split words and see if a word is cm or in and if so find the value associated with this word
+                    val words = getWords(text)
+                    for ((index,word) in words.withIndex()){
+                        if (word.matches("[0-9]+(cm|centimeter|in|inch)".toRegex())){//number next to unit
+                            //if inch convert to cm
+                            if ("in" in word || "inch" in word){
+                                dimensionOne = (word.removeSuffix("in").removeSuffix("inch").toIntOrNull()?.times(0.3937008f))?.toInt()
+                                break
+                            }
+                            dimensionOne = word.removeSuffix("cm").removeSuffix("centimeter").toIntOrNull()
+                            break
+                        }
+                        if (word.matches("(cm|centimeter|in|inch)".toRegex())){//find number before unit
+                            //if inch convert to cm
+                            if ("in" in word || "inch" in word){
+                                dimensionOne = (words[index-1].toIntOrNull()?.times(0.3937008f))?.toInt()
+                                break
+                            }
+                            dimensionOne = words[index-1].toIntOrNull()
+                            break
+                        }
                     }
                 }
+                TinOrPanSizeOptions.TwoDimension -> {// if its an option with two dimensional sizing see if value can be found for it
+                    //split words and see if a word is cm or in and if so find the value associated with this word
+                    val words = getWords(text)
+                    for ((index,word) in words.withIndex()){
+                        if (word.matches("(cm|centimeter|in|inch)".toRegex())&& index > 0) {//find number before unit
+                            val dimensions = words[index-1]//should have at least one of the dimensions
+                            //if x in the word both dimensions should be there and just split on x
+                            var num1 : String
+                            var num2 : String
+                            if (dimensions.contains("x") ){
+                                val split = dimensions.split("x")
+                                if (split.count()<2){//if not enough numbers for some reason just break
+                                    break
+                                }
+                                num1 = split[0]
+                                num2 = split[1]
+                            } else if ( index > 3) { //assume there is a space between the x and numbers
+                                num1 = words[index-1]
+                                num2 = words[index-3]
+                            }else { //nums can not be found
+                                break
+                            }
+                            //now numbers are found convert to cm
+                            //if inch convert
+                            if (word.matches("in|inch".toRegex())){
+                                dimensionOne = (num1.toIntOrNull()?.times(0.3937008f))?.toInt()
+                                dimensionTwo = (num2.toIntOrNull()?.times(0.3937008f))?.toInt()
+                            }else { //just save cm
+                                dimensionOne = num1.toIntOrNull()
+                                dimensionTwo = num2.toIntOrNull()
+                            }
+                        }
+                    }
+
+                }
+                TinOrPanSizeOptions.Volume -> {// if its an option with volume sizing see if value can be found for it
+                    //split words and see if a word is litre or pint and if so find the value associated with this word
+                    val words = getWords(text)
+                    for ((index,word) in words.withIndex()){
+                        if (word.matches("[0-9]+(l|litre|pint|pt)".toRegex())){//number next to unit
+                            //if inch convert to litre
+                            if ("pint" in word || "pt" in word){
+                                dimensionVolume = (word.removeSuffix("pint").removeSuffix("pt").toIntOrNull()?.times(0.5682612f))?.toInt()
+                                break
+                            }
+                            dimensionVolume = word.removeSuffix("l").removeSuffix("litre").toIntOrNull()
+                            break
+                        }
+                        if (word.matches("(l|litre|pint|pt)".toRegex())){//find number before unit
+                            //if inch convert to litre
+                            if ("pint" in word || "pt" in word){
+                                dimensionVolume = (words[index-1].toIntOrNull()?.times(0.5682612f))?.toInt()
+                                break
+                            }
+                            dimensionVolume = words[index-1].toIntOrNull()
+                            break
+                        }
+                    }
+                }
+                else -> {}
             }
             if ( option != TinOrPanOptions.none){
-                return CookingStepContainer(option,size)
+                return CookingStepContainer(option,dimensionOne,dimensionTwo, dimensionVolume) //todo get more than size
             }
             return null
         }
