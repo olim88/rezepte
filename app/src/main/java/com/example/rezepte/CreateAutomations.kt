@@ -158,9 +158,9 @@ class CreateAutomations {
             }
 
             //if tin see if size can be found
-            var dimensionOne : Int? = null
-            var dimensionTwo: Int? = null
-            var dimensionVolume : Int? = null
+            var dimensionOne : Float? = null
+            var dimensionTwo: Float? = null
+            var dimensionVolume : Float? = null
             when (option.sizeing ){
                 TinOrPanSizeOptions.OneDimension -> {// if its an option with one dimensional sizing see if value can be found for it
                     //split words and see if a word is cm or in and if so find the value associated with this word
@@ -169,19 +169,18 @@ class CreateAutomations {
                         if (word.matches("[0-9]+(cm|centimeter|in|inch)".toRegex())){//number next to unit
                             //if inch convert to cm
                             if ("in" in word || "inch" in word){
-                                dimensionOne = (word.removeSuffix("in").removeSuffix("inch").toIntOrNull()?.times(0.3937008f))?.toInt()
+                                dimensionOne = (word.removeSuffix("in").removeSuffix("inch").toIntOrNull()?.times(0.3937008f))
                                 break
                             }
-                            dimensionOne = word.removeSuffix("cm").removeSuffix("centimeter").toIntOrNull()
+                            dimensionOne = word.removeSuffix("cm").removeSuffix("centimeter").toFloatOrNull()
                             break
                         }
                         if (word.matches("(cm|centimeter|in|inch)".toRegex())){//find number before unit
                             //if inch convert to cm
                             if ("in" in word || "inch" in word){
-                                dimensionOne = (words[index-1].toIntOrNull()?.times(0.3937008f))?.toInt()
-                                break
+                                dimensionOne = (words[index-1].toIntOrNull()?.times(0.3937008f))
                             }
-                            dimensionOne = words[index-1].toIntOrNull()
+                            dimensionOne = words[index-1].toFloatOrNull()
                             break
                         }
                     }
@@ -211,11 +210,11 @@ class CreateAutomations {
                             //now numbers are found convert to cm
                             //if inch convert
                             if (word.matches("in|inch".toRegex())){
-                                dimensionOne = (num1.toIntOrNull()?.times(0.3937008f))?.toInt()
-                                dimensionTwo = (num2.toIntOrNull()?.times(0.3937008f))?.toInt()
+                                dimensionOne = (num1.toIntOrNull()?.times(0.3937008f))
+                                dimensionTwo = (num2.toIntOrNull()?.times(0.3937008f))
                             }else { //just save cm
-                                dimensionOne = num1.toIntOrNull()
-                                dimensionTwo = num2.toIntOrNull()
+                                dimensionOne = num1.toFloatOrNull()
+                                dimensionTwo = num2.toFloatOrNull()
                             }
                         }
                     }
@@ -228,19 +227,19 @@ class CreateAutomations {
                         if (word.matches("[0-9]+(l|litre|pint|pt)".toRegex())){//number next to unit
                             //if inch convert to litre
                             if ("pint" in word || "pt" in word){
-                                dimensionVolume = (word.removeSuffix("pint").removeSuffix("pt").toIntOrNull()?.times(0.5682612f))?.toInt()
+                                dimensionVolume = (word.removeSuffix("pint").removeSuffix("pt").toIntOrNull()?.times(0.5682612f))
                                 break
                             }
-                            dimensionVolume = word.removeSuffix("l").removeSuffix("litre").toIntOrNull()
+                            dimensionVolume = word.removeSuffix("l").removeSuffix("litre").toFloatOrNull()
                             break
                         }
                         if (word.matches("(l|litre|pint|pt)".toRegex())){//find number before unit
                             //if inch convert to litre
                             if ("pint" in word || "pt" in word){
-                                dimensionVolume = (words[index-1].toIntOrNull()?.times(0.5682612f))?.toInt()
+                                dimensionVolume = (words[index-1].toIntOrNull()?.times(0.5682612f))
                                 break
                             }
-                            dimensionVolume = words[index-1].toIntOrNull()
+                            dimensionVolume = words[index-1].toFloatOrNull()
                             break
                         }
                     }

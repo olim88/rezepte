@@ -44,11 +44,11 @@ data class Data(var name: String, var author : String, var serves : String, var 
 
     }
 }
-data class CookingStepContainer( var type : TinOrPanOptions, var dimensionOne : Int?, var dimensionTwo : Int?, var volume : Int?){
+data class CookingStepContainer( var type : TinOrPanOptions, var dimensionOne : Float?, var dimensionTwo : Float?, var volume : Float?){
     companion object {
         fun xml(k: Konsumer): CookingStepContainer {
 
-            return CookingStepContainer( enumValueOf(k.childText("type")),k.childTextOrNull("tinSize")?.toInt(),k.childTextOrNull("tinSizeTwo")?.toInt(),k.childTextOrNull("tinVolume")?.toInt())
+            return CookingStepContainer( enumValueOf(k.childText("type")),k.childTextOrNull("tinSize")?.toFloatOrNull(),k.childTextOrNull("tinSizeTwo")?.toFloatOrNull(),k.childTextOrNull("tinVolume")?.toFloatOrNull())
         }
 
     }

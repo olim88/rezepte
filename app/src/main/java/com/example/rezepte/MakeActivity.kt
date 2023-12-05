@@ -574,7 +574,7 @@ fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
 fun cookingStepDisplayPreview() {
     RezepteTheme {
         CookingStepDisplay(CookingStep(0,"20 mins",CookingStage.oven,
-            CookingStepContainer(TinOrPanOptions.roundTin,9,null,null),
+            CookingStepContainer(TinOrPanOptions.roundTin,9f,null,null),
             CookingStepTemperature(250,HobOption.zero,true)
         ),MaterialTheme.colorScheme.primary, mapOf())
     }

@@ -729,11 +729,11 @@ class MakeFormatting {
                 if (step.container!!.dimensionTwo!= null){ //2 dimension size
                     //if the user wants it in inches show the inches else output it in cm
                     text += if (settings["Units.metric Lengths"] == "false"){
-                        val convertedValueOne = (step.container!!.dimensionOne!!.toInt() * 0.3937008f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
-                        val convertedValueTwo = (step.container!!.dimensionTwo!!.toInt() * 0.3937008f).vulgarFraction
+                        val convertedValueOne = (step.container!!.dimensionOne!! * 0.3937008f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
+                        val convertedValueTwo = (step.container!!.dimensionTwo!! * 0.3937008f).vulgarFraction
                         " ${if (settings["Units.Fractional Numbers"]== "true")convertedValueOne.first else convertedValueOne.second}x${if (settings["Units.Fractional Numbers"]== "true")convertedValueTwo.first else convertedValueTwo.second} inches"
                     }else {
-                        " ${step.container!!.dimensionOne}x${step.container!!.dimensionTwo} cm"
+                        " ${if (settings["Units.Fractional Numbers"]== "true")  step.container!!.dimensionOne!!.vulgarFraction.first else step.container!!.dimensionOne!!.vulgarFraction.second}x${if (settings["Units.Fractional Numbers"]== "true")  step.container!!.dimensionTwo!!.vulgarFraction.first else step.container!!.dimensionTwo!!.vulgarFraction.second} cm"
                     }
 
 
@@ -741,10 +741,10 @@ class MakeFormatting {
                 else if (step.container!!.dimensionOne!= null){ //one dimension size
                     //if the user wants it in inches show the inches else output it in cm
                     text += if (settings["Units.metric Lengths"] == "false"){
-                        val convertedVal = (step.container!!.dimensionOne!!.toInt() * 0.3937008f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
+                        val convertedVal = (step.container!!.dimensionOne!! * 0.3937008f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
                         " ${if (settings["Units.Fractional Numbers"]== "true")convertedVal.first else convertedVal.second} inch"
                     }else {
-                        " ${step.container!!.dimensionOne} cm"
+                        " ${if (settings["Units.Fractional Numbers"]== "true")  step.container!!.dimensionOne!!.vulgarFraction.first else step.container!!.dimensionOne!!.vulgarFraction.second} cm"
                     }
 
                 }
@@ -752,10 +752,10 @@ class MakeFormatting {
                 if (step.container!!.volume!= null){
                     //if the user wants it in pints show the inches else output it in litres
                     text += if (settings["Units.metric Volume"] == "false"){
-                        val convertedVal = (step.container!!.volume!!.toInt() * 1.759754f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
+                        val convertedVal = (step.container!!.volume!! * 1.759754f).vulgarFraction //convert to fraction the display the fraction or float depending on settings
                         " ${if (settings["Units.Fractional Numbers"]== "true")convertedVal.first else convertedVal.second} pint"
                     }else {
-                        " ${step.container!!.volume} litre"
+                        " ${if (settings["Units.Fractional Numbers"]== "true")step.container!!.volume!!.vulgarFraction.first else step.container!!.volume!!.vulgarFraction.second} litre"
                     }
 
                 }

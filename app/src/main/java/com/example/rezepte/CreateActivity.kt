@@ -1124,10 +1124,10 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
                             onValueChange = { value ->
                                 dimensionOneValue = value
                                 if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
-                                    data.container?.dimensionOne = value.toIntOrNull()
+                                    data.container?.dimensionOne = value.toFloatOrNull()
                                 } else { //its imperial so convert to metric value to save
                                     data.container?.dimensionOne =
-                                        (value.toIntOrNull()?.times(2.54f))?.toInt()
+                                        (value.toIntOrNull()?.times(2.54f))
                                 }
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1145,10 +1145,10 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
                             onValueChange = { value ->
                                 dimensionOneValue = value
                                 if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
-                                    data.container?.dimensionOne = value.toIntOrNull()
+                                    data.container?.dimensionOne = value.toFloatOrNull()
                                 } else { //its imperial so convert to metric value to save
                                     data.container?.dimensionOne =
-                                        (value.toIntOrNull()?.times(2.54f))?.toInt()
+                                        (value.toIntOrNull()?.times(2.54f))
                                 }
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1164,10 +1164,10 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
                             onValueChange = { value ->
                                 dimensionTwoValue = value
                                 if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
-                                    data.container?.dimensionTwo= value.toIntOrNull()
+                                    data.container?.dimensionTwo= value.toFloatOrNull()
                                 } else { //its imperial so convert to metric value to save
                                     data.container?.dimensionTwo =
-                                        (value.toIntOrNull()?.times(2.54f))?.toInt()
+                                        (value.toIntOrNull()?.times(2.54f))
                                 }
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1185,10 +1185,10 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
                             onValueChange = { value ->
                                 dimensionTwoValue = value
                                 if (settings["Units.metric Lengths"] == "true") { //if the user is inputting a metric or imperial volume
-                                    data.container?.volume= value.toIntOrNull()
+                                    data.container?.volume= value.toFloatOrNull()
                                 } else { //its imperial so convert to metric value to save
                                     data.container?.volume =
-                                        (value.toIntOrNull()?.times(0.5682612))?.toInt()
+                                        (value.toIntOrNull()?.times(0.5682612f))
                                 }
                             },
                             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1211,11 +1211,8 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
 
                     }
                 }
-
             }
-
         }
-
     }
 }
 @Composable
