@@ -1,18 +1,19 @@
 package com.example.rezepte
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.StrictMode
+import android.os.StrictMode.VmPolicy
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.launch
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
@@ -64,12 +65,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.FileProvider
 import com.dropbox.core.v2.users.FullAccount
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 
 class MainActivity : ComponentActivity() {
@@ -378,11 +381,19 @@ fun AddImageDialog(onDismiss: () -> Unit){
 
         }
     }
-    val takeImageContent = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
+    val builder = VmPolicy.Builder()
+    StrictMode.setVmPolicy(builder.build())
+    val imageUri = FileProvider.getUriForFile(
+        mContext,
+        "package.fileprovider",
+        createTempFile(mContext)
+    )
+    val takeImageContent = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { sucsess: Boolean ->
         //if the user gave an image convert it to a recipe and take that to the create
-        if (bitmap != null) {
+        if (sucsess) {
             ImageToRecipe.convert(
-                bitmap,
+                imageUri,
+                mContext,
                 settings = SettingsActivity.loadSettings(
                     mContext.getSharedPreferences(
                         "com.example.rezepte.settings",
@@ -422,7 +433,7 @@ fun AddImageDialog(onDismiss: () -> Unit){
                     //camara button
                     Button(
                         onClick = {
-                            takeImageContent.launch()
+                            takeImageContent.launch(imageUri)
                         }, modifier = Modifier
                             .padding(0.dp, 5.dp)
                             .weight(1f)
@@ -461,7 +472,14 @@ fun AddImageDialog(onDismiss: () -> Unit){
         }
 
 
-        }
+}
+fun createTempFile(context: Context): File {
+    return File.createTempFile(
+        System.currentTimeMillis().toString(),
+        ".jpg",
+        context.externalCacheDir
+    )
+}
 
 
 @SuppressLint("UnrememberedMutableState")
