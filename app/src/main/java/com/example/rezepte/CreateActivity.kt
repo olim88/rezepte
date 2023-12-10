@@ -39,7 +39,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
@@ -486,6 +485,11 @@ fun parseSearchData(searchData: SearchData): String{
                     - recipe.data.website!!
                 }
             }
+            if ( recipe.data.notes != null){
+                "notes"{
+                    - recipe.data.notes!!
+                }
+            }
             if( recipe.data.linked != null){
                 "linkedRecipes"{
                     "list" {
@@ -547,28 +551,7 @@ fun parseSearchData(searchData: SearchData): String{
 
 
 
-@Composable
-fun ErrorDialog(errorTitle: String,errorBody: String){ //this is not working for some reason and i can not even use it where i want so ?
-    val openDialog = remember { mutableStateOf(true) }
 
-    if (openDialog.value) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                // Dismiss the dialog when the user clicks outside the dialog or on the back
-                // button. If you want to disable that functionality, simply use an empty
-                // onDismissRequest.
-                openDialog.value = false
-            },
-            confirmButton = { openDialog.value = false},
-            title = {Text(text = errorTitle, style = MaterialTheme.typography.titleLarge)},
-            text = { Text(text = errorBody,style = MaterialTheme.typography.bodyMedium)},
-            icon = {Icon(Icons.Filled.Info,"error icon")}
-
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleInput(data : MutableState<Recipe>){
     var name by remember { mutableStateOf(data.value.data.name)}
@@ -711,7 +694,7 @@ fun DataInput(settings: Map<String, String>, data : MutableState<Recipe>, update
 @SuppressLint("RestrictedApi") //todo remove this idk another way to do it
 @Composable
 fun LinkedRecipesInput(data : MutableState<Recipe>){
-    var linkedRecipes by remember { mutableStateOf(data.value.data.linked?.list) }
+    var linkedRecipes =data.value.data.linked?.list
     var recipeCount by remember { mutableStateOf(data.value.data.linked?.list?.count()) }
     var isExpanded by remember { mutableStateOf(false)}
     val icon = if (isExpanded)
@@ -777,8 +760,8 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
                         var temp = recipeCount
                         for ((index, _) in linkedRecipes!!.withIndex()) {
                             temp = temp?.plus(1)
-                            LinkedRecipe(data, index) { index ->
-                                linkedRecipes!!.removeAt(index)
+                            LinkedRecipe(data, index) { linkedIndex ->
+                                linkedRecipes!!.removeAt(linkedIndex)
                                 recipeCount = recipeCount?.minus(1)
                                 if ( linkedRecipes!!.isEmpty()){ //if there are none left set the value to null
                                     data.value.data.linked = null
@@ -854,7 +837,7 @@ fun LinkedRecipe(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> U
 @SuppressLint("UnrememberedMutableState")
 @Composable
 fun CookingStepsInput(settings: Map<String, String>, data : MutableState<Recipe>, updatedSteps :MutableState<Boolean>){
-    var steps by remember { mutableStateOf(data.value.data.cookingSteps.list) }
+    var steps = data.value.data.cookingSteps.list
 
     var isExpanded by remember { mutableStateOf(false)}
     val icon = if (isExpanded)
@@ -1289,6 +1272,35 @@ inline fun <reified T> MenuItemWithDropDown(textLabel: String, value: String, va
         }
     }
 }
+
+@Composable
+fun Notes(data: MutableState<Recipe>) {
+    var notes by remember { mutableStateOf(data.value.data.notes)}
+    Card(
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier
+            .padding(all = 5.dp)
+            .fillMaxWidth()
+            .animateContentSize()
+    ) {
+        TextField(
+            value = notes ?: "",
+            onValueChange = { value ->
+                notes = value
+                data.value.data.notes =if (notes == ""){ //if empty set to null
+                     null
+                }else {
+                     notes
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth(),
+            textStyle = TextStyle( fontSize = 18.sp),
+            label = { Text(text = "Notes") }
+
+        )
+    }
+}
 fun getIngredients(data : MutableState<Recipe>) : String{
     var output = ""
     for (ingredient in data.value.ingredients.list){
@@ -1576,20 +1588,21 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
 
 @Composable
 private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit){
-    val recipeDataInput = remember { mutableStateOf(recipeDataInput) }
+    val recipeDataInputMutable = remember { mutableStateOf(recipeDataInput) }
     val imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
     val updatedSteps = remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxHeight()
         .verticalScroll(rememberScrollState())
         .background(MaterialTheme.colorScheme.background)
         ) {
-        TitleInput(recipeDataInput)
+        TitleInput(recipeDataInputMutable)
         ImageInput(imageUri,image)
-        DataInput(userSettings,recipeDataInput,updatedSteps)
-        IngredientsInput(userSettings,recipeDataInput)
-        InstructionsInput(userSettings,recipeDataInput)
+        DataInput(userSettings,recipeDataInputMutable,updatedSteps)
+        Notes(recipeDataInputMutable)
+        IngredientsInput(userSettings,recipeDataInputMutable)
+        InstructionsInput(userSettings,recipeDataInputMutable)
         Spacer(modifier = Modifier.weight(1f))
-        DeleteAndFinishButtons(recipeDataInput,updatedSteps,onDeleteClick,onFinishClick,imageUri,image)
+        DeleteAndFinishButtons(recipeDataInputMutable,updatedSteps,onDeleteClick,onFinishClick,imageUri,image)
         Spacer(modifier = Modifier.height(10.dp))
     }
 

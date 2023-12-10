@@ -30,7 +30,7 @@ class XmlExtraction {
 }
 
 
-data class Data(var name: String, var author : String, var serves : String, var cookingSteps : CookingSteps, var website: String?, var linked: LinkedRecipes?){
+data class Data(var name: String, var author : String, var serves : String, var cookingSteps : CookingSteps, var website: String?, var notes :String?, var linked: LinkedRecipes?){
     companion object {
         fun xml(k: Konsumer): Data {
             k.checkCurrent("data")
@@ -39,6 +39,7 @@ data class Data(var name: String, var author : String, var serves : String, var 
                 k.childText("servings"),
                 k.child("cookingSteps"){CookingSteps.xml(this)},
                 k.childTextOrNull("website"),
+                k.childTextOrNull("notes"),
                 k.childOrNull("linkedRecipes"){LinkedRecipes.xml(this)})
         }
 
@@ -195,6 +196,7 @@ fun GetEmptyRecipe() : Recipe{
             "",
             "",
             CookingSteps(mutableListOf() ),
+            null,
             null,
             null
         ),

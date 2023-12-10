@@ -45,6 +45,7 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -234,7 +235,7 @@ class MakeActivity : AppCompatActivity()
 
     }
 }
-private fun intToRoman(num: Int): String? {
+private fun intToRoman(num: Int): String {
     val M = arrayOf("", "M", "MM", "MMM")
     val C = arrayOf("", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM")
     val X = arrayOf("", "X", "XX", "XXX ", "XL", "L", "LX", "LXX", "LXXX", "XC")
@@ -294,29 +295,75 @@ fun DataOutput(userSettings: Map<String,String>,recipeData: Recipe,multiplier : 
 }
 @Composable
 fun StepsOutput(userSettings: Map<String, String>, recipeData: Recipe){
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(5.dp)
-            .animateContentSize()
-    ) {
-        //title
-        Row{
-            Spacer(
-                Modifier
-                    .weight(1f)
-            )
-            Text(text = "Steps",style = MaterialTheme.typography.titleLarge, textDecoration = TextDecoration.Underline )
-            Spacer(
-                Modifier
-                    .weight(1f)
-            )
-        }
-        //display steps
-        Column {
-            for (step in recipeData.data.cookingSteps.list){
-                CookingStepDisplay(step, getColor(index = step.index, default = MaterialTheme.colorScheme.surface ),userSettings)
+    if(recipeData.data.cookingSteps.list.isNotEmpty()) {//only show field if steps exist
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(5.dp)
+                .animateContentSize()
+        ) {
+            //title
+            Row {
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+                Text(
+                    text = "Steps",
+                    style = MaterialTheme.typography.titleLarge,
+                    textDecoration = TextDecoration.Underline
+                )
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
             }
+            //display steps
+            Column {
+                for (step in recipeData.data.cookingSteps.list) {
+                    CookingStepDisplay(
+                        step,
+                        getColor(index = step.index, default = MaterialTheme.colorScheme.surface),
+                        userSettings
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NotesOutput( recipeData: Recipe){
+    if(recipeData.data.notes != null) {//only show field if steps exist
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(5.dp)
+                .animateContentSize()
+        ) {
+            //title
+            Row {
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+                Text(
+                    text = "Notes",
+                    style = MaterialTheme.typography.titleLarge,
+                    textDecoration = TextDecoration.Underline
+                )
+                Spacer(
+                    Modifier
+                        .weight(1f)
+                )
+            }
+           //show notes
+            Text(
+                text = recipeData.data.notes!!,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(5.dp)
+
+            )
         }
     }
 }
@@ -584,7 +631,7 @@ fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
     name = "Dark Mode"
 )
 @Composable
-fun cookingStepDisplayPreview() {
+fun CookingStepDisplayPreview() {
     RezepteTheme {
         CookingStepDisplay(CookingStep(0,"20 mins",CookingStage.oven,
             CookingStepContainer(TinOrPanOptions.roundTin,9f,null,null),
@@ -660,7 +707,7 @@ fun LinkedRecipesOutput(recipeData: Recipe){
 @Composable
 private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, image : MutableState<Bitmap?>){
 
-    var multiplier = remember {mutableStateOf(1f)}
+    val multiplier = remember { mutableFloatStateOf(1f) }
     // Fetching the Local Context
     val mContext = LocalContext.current
     Column (modifier = Modifier
@@ -702,6 +749,8 @@ private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState
         DataOutput(userSettings,recipeData.value,multiplier)
         //instruction steps
         StepsOutput(userSettings,recipeData.value)
+        //Notes
+        NotesOutput(recipeData.value)
         //ingredients
         IngredientsOutput(userSettings,recipeData,multiplier)
         //instructions
