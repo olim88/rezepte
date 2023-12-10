@@ -382,8 +382,14 @@ class MakeFormatting {
         private fun multiplyBy (wholeString: String, multiplier: Float, isVulgar: Boolean, roundPercentage : Float): String{
             var output = wholeString
             for (number in wholeString.containedNumbers){
-                if (number== "/") continue
-                var value = number.vulgarFraction * multiplier
+                if (number== "/") continue //i think this is unnecessary as number regex has been fixed todo
+                //if there is an "x" in the string before the number this signifies the number is being multiplied by another value and to avoid having both multiplied do not multiply a number after a "x"
+                var value = if(wholeString.indexOf(" x ") != -1 && wholeString.indexOf(" x ") < wholeString.indexOf(number)) {
+                    number.vulgarFraction
+                }else {
+                    number.vulgarFraction * multiplier
+                }
+
                 value = roundSmallGaps(value, roundPercentage)
 
                 output = if (isVulgar){
