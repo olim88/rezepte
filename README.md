@@ -111,9 +111,12 @@ can be built using android stuido
 				</entry>
 			</list>
 		</cookingSteps>
-		<website>
+		<website><!--if recipe is linked to a website saves url of website-->
 			example website
 		</website>
+		<notes><!--if the user input notes about the recipe saves them-->
+			example notes
+		</notes>
 	</data>
 	<ingredients> <!--the data structure containing the ingredients-->
 		<list>
