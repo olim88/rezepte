@@ -392,7 +392,7 @@ fun IngredientConversions(userSettings: Map<String,String>, measurement: String,
             Row(modifier = Modifier.padding(3.dp)) {
                 //conversions
                 Text(
-                    text = MakeFormatting.getConvertions(measurement, wholeIngredient, userSettings)
+                    text = MakeFormatting.getConversions(measurement, wholeIngredient, userSettings)
                         .joinToString(" | "),
                     textAlign = TextAlign.Center
                 )

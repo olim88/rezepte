@@ -144,6 +144,7 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Tea Spoons","show tea spoons in recipes", mutableStateOf(true)),
             SettingsOptionToggle("Table Spoons","show table spoons in recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cups","show cups in recipes", mutableStateOf(true)),
+            SettingsOptionToggle("Convert To Spoons/Cups","convert ml or fl oz to cups or spoons if they are enabled and in the right range", mutableStateOf(false)),
             SettingsSubMenu("Conversions","sizes to use for measurement",listOf(
                 SettingsOptionDropDown("Teaspoon volume","what teaspoon volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(5ml)","us(4.9ml)","uk(3.6ml)")),
                 SettingsOptionDropDown("Tablespoon volume","what tablespoon volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(15ml)","us(14.8ml)","uk(14.2ml)")),
