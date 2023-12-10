@@ -540,44 +540,43 @@ class MakeFormatting {
                 }
                 CookingUnit.Millilitres -> {
                     //if could be converted to spoons or cups and that settings is enabled convert it and the settings to do this is enabled
-                    if(settings["Units.Convert To Spoons/Cups"] == "true" ) {
-                        if (settings["Units.Tea Spoons"] == "true" && startingValue.vulgarFraction < tableSpoonVolume(settings)) {
-                            //convert to tea spoons and replace ml
-                            output = output.replaceNumberBeforeValues(
-                                startingValue,
-                                (startingValue.vulgarFraction * (1 / teaSpoonVolume(settings))).toString(),
-                                unitsLut[CookingUnit.Millilitres]!!
-                            )
-                            //replace unit
-                            unitsLut[CookingUnit.Millilitres]?.let {
-                                output = output.replace(it, "teaspoons")
-                            }
-                            return output
-                        } else if (settings["Units.Table Spoons"] == "true" && startingValue.vulgarFraction < cupVolume(settings)* 0.25f) {
-                            //convert to table spoons and replace ml
-                            output = output.replaceNumberBeforeValues(
-                                startingValue,
-                                (startingValue.vulgarFraction * (1 / tableSpoonVolume(settings))).toString(),
-                                unitsLut[CookingUnit.Millilitres]!!
-                            )
-                            //replace unit
-                            unitsLut[CookingUnit.Millilitres]?.let {
-                                output = output.replace(it, "tablespoons")
-                            }
-                            return output
-                        } else if (settings["Units.Cups"] == "true") {
-                            //convert to cup  and replace ml
-                            output = output.replaceNumberBeforeValues(
-                                startingValue,
-                                (startingValue.vulgarFraction * (1 / cupVolume(settings))).toString(),
-                                unitsLut[CookingUnit.Millilitres]!!
-                            )
-                            //replace unit
-                            unitsLut[CookingUnit.Millilitres]?.let {
-                                output = output.replace(it, "cups")
-                            }
-                            return output
+                    if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Tea Spoons"] == "true" && startingValue.vulgarFraction < tableSpoonVolume(settings)) {
+                        //convert to tea spoons and replace ml
+                        output = output.replaceNumberBeforeValues(
+                            startingValue,
+                            (startingValue.vulgarFraction * (1 / teaSpoonVolume(settings))).toString(),
+                            unitsLut[CookingUnit.Millilitres]!!
+                        )
+                        //replace unit
+                        unitsLut[CookingUnit.Millilitres]?.let {
+                            output = output.replace(it, "teaspoons")
                         }
+                        return output
+                    } else if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Table Spoons"] == "true" && startingValue.vulgarFraction < cupVolume(settings)* 0.25f) {
+                        //convert to table spoons and replace ml
+                        output = output.replaceNumberBeforeValues(
+                            startingValue,
+                            (startingValue.vulgarFraction * (1 / tableSpoonVolume(settings))).toString(),
+                            unitsLut[CookingUnit.Millilitres]!!
+                        )
+                        //replace unit
+                        unitsLut[CookingUnit.Millilitres]?.let {
+                            output = output.replace(it, "tablespoons")
+                        }
+                        return output
+                    } else if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Cups"] == "true") {
+                        //convert to cup  and replace ml
+                        output = output.replaceNumberBeforeValues(
+                            startingValue,
+                            (startingValue.vulgarFraction * (1 / cupVolume(settings))).toString(),
+                            unitsLut[CookingUnit.Millilitres]!!
+                        )
+                        //replace unit
+                        unitsLut[CookingUnit.Millilitres]?.let {
+                            output = output.replace(it, "cups")
+                        }
+                        return output
+
                     }
                     //if not using metric convert it to  fl oz
                     else if(settings["Units.metric Volume"] == "false" ){
@@ -607,41 +606,41 @@ class MakeFormatting {
                 }
                 CookingUnit.FluidOunce -> {
                     //if could be converted to spoons or cups and that settings is enabled convert it and the settings to do this is enabled
-                    if(settings["Units.Convert To Spoons/Cups"] == "true" ) {
-                        if (settings["Units.Tea Spoons"] == "true" && startingValue.vulgarFraction* 28.4131f <  tableSpoonVolume(settings)) { //if smaller than a table spoon use tsp
-                            //convert to tsp
-                            output = output.replaceNumberBeforeValues(
-                                startingValue,
-                                (startingValue.vulgarFraction * 28.4131f * (1 / teaSpoonVolume(settings))).toString(),
-                                unitsLut[CookingUnit.FluidOunce]!!
-                            )
-                            //replace unit
-                            unitsLut[CookingUnit.FluidOunce]?.let {
-                                output = output.replace(it, "tablespoons")
-                            }
-                        }else if (settings["Units.Table Spoons"] == "true" && startingValue.vulgarFraction* 28.4131f < cupVolume(settings) * 0.25f) {//if smaller than a 1/4 cup use table spoon
-                            //convert to tbsp
-                            output = output.replaceNumberBeforeValues(
-                                startingValue,
-                                (startingValue.vulgarFraction * 28.4131f * (1 / tableSpoonVolume(settings))).toString(),
-                                unitsLut[CookingUnit.FluidOunce]!!
-                            )
-                            //replace unit
-                            unitsLut[CookingUnit.FluidOunce]?.let {
-                                output = output.replace(it, "tablespoons")
-                            }
-                        }else if (settings["Units.Cups"] == "true") {
-                            //convert to cups
-                            output = output.replaceNumberBeforeValues(
-                                startingValue,
-                                (startingValue.vulgarFraction * 28.4131f * (1 / cupVolume(settings))).toString(),
-                                unitsLut[CookingUnit.FluidOunce]!!
-                            )
-                            //replace unit
-                            unitsLut[CookingUnit.FluidOunce]?.let {
-                                output = output.replace(it, "tablespoons")
-                            }
+
+                    if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Tea Spoons"] == "true" && startingValue.vulgarFraction* 28.4131f <  tableSpoonVolume(settings)) { //if smaller than a table spoon use tsp
+                        //convert to tsp
+                        output = output.replaceNumberBeforeValues(
+                            startingValue,
+                            (startingValue.vulgarFraction * 28.4131f * (1 / teaSpoonVolume(settings))).toString(),
+                            unitsLut[CookingUnit.FluidOunce]!!
+                        )
+                        //replace unit
+                        unitsLut[CookingUnit.FluidOunce]?.let {
+                            output = output.replace(it, "tablespoons")
                         }
+                    }else if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Table Spoons"] == "true" && startingValue.vulgarFraction* 28.4131f < cupVolume(settings) * 0.25f) {//if smaller than a 1/4 cup use table spoon
+                        //convert to tbsp
+                        output = output.replaceNumberBeforeValues(
+                            startingValue,
+                            (startingValue.vulgarFraction * 28.4131f * (1 / tableSpoonVolume(settings))).toString(),
+                            unitsLut[CookingUnit.FluidOunce]!!
+                        )
+                        //replace unit
+                        unitsLut[CookingUnit.FluidOunce]?.let {
+                            output = output.replace(it, "tablespoons")
+                        }
+                    }else if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Cups"] == "true") {
+                        //convert to cups
+                        output = output.replaceNumberBeforeValues(
+                            startingValue,
+                            (startingValue.vulgarFraction * 28.4131f * (1 / cupVolume(settings))).toString(),
+                            unitsLut[CookingUnit.FluidOunce]!!
+                        )
+                        //replace unit
+                        unitsLut[CookingUnit.FluidOunce]?.let {
+                            output = output.replace(it, "tablespoons")
+                        }
+
                     }
                     else if(settings["Units.metric Volume"] == "true" ){
                         //convert to ml
