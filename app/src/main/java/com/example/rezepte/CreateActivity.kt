@@ -9,6 +9,8 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -241,6 +243,15 @@ class CreateActivity : ComponentActivity() {
         ))
         //make sure there is a name for the recipe else don't ext
         if (recipe.data.name == ""){
+            Handler(Looper.getMainLooper()).post { //show why can not be saved
+                Toast.makeText(
+                    this,
+                    "Invalid Name",
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+
+            }
             return
         }
         //convert saved recipe to xml
@@ -314,6 +325,16 @@ class CreateActivity : ComponentActivity() {
                     "${this@CreateActivity.filesDir}/",
                     "searchData.xml"
                 )
+            }
+            //tell user that the recipe is saved
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(
+                    this@CreateActivity,
+                    "Saved Recipe",
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+
             }
         }
 

@@ -487,7 +487,7 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
 
                 }
             }
-            //render extra mesure info
+            //render extra measure info
 
             IngredientConversions(
                 userSettings,
