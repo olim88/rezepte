@@ -20,6 +20,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -398,6 +400,7 @@ fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<
         }
     }
 }
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBig : Boolean, isStrike: Boolean, multiplier : MutableState<Float>){
     var style =  if (isBig) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall
@@ -415,7 +418,7 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
         )
     }else{//highly measurements and make the clickable to be able to expand conversions on them
         Column (modifier = Modifier.padding(3.dp)) {
-            Row (modifier = Modifier
+            FlowRow (modifier = Modifier
                 .fillMaxWidth()
                 .padding(2.dp)){
                 //ingredient number
@@ -430,11 +433,15 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                     //split on ingredient
                     val split = ingredientLeft.split("${measurement.split(" ")[0]}\\s*${measurement.split(" ")[1]}".toRegex(), limit = 2)
                     //text before measurement
-                    Text(
-                        text = split[0],
-                        textAlign = TextAlign.Center,
-                        style = style
-                    )
+                    //add each word in the text one by one as this will let it be wrapped around properly when it is to long
+                    for (word in split[0].split(" ")){
+                        Text(
+                            text = word,
+                            modifier = Modifier.padding(start = 2.dp, end = 2.dp),
+                            textAlign = TextAlign.Center,
+                            style = style
+                        )
+                    }
                     //measurement in clickable
                     Card(
                         modifier = Modifier
@@ -455,8 +462,9 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                             text = measurement,
                             modifier = Modifier.padding(start = 2.dp, end = 2.dp),
                             style = style,
-                            textAlign = TextAlign.Center
-                        )
+                            textAlign = TextAlign.Center,
+
+                            )
                     }
                     //update ingredientLeft
                     if (split.count()<2){//if end of string break
@@ -467,11 +475,16 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                 }
                 //render any text left
                 if (ingredientLeft != "") {
-                    Text(
-                        text = ingredientLeft,
-                        textAlign = TextAlign.Center,
-                        style = style,
-                    )
+                    //add each word in the text one by one as this will let it be wrapped around properly when it is to long
+                    for (word in ingredientLeft.split(" ")){
+                        Text(
+                            text = word,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(start = 2.dp, end = 2.dp),
+                            style = style,
+                        )
+                    }
+
                 }
             }
             //render extra mesure info
