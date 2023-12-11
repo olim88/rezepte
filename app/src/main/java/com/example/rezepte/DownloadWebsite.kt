@@ -38,8 +38,7 @@ class DownloadWebsite {
 
                 } catch (e: Exception) {
                 }
-                if (data != null)//there is the data needed from the website and we just need to convert the json into a recipe and load that in the app
-                {
+                if (data != null){//there is the data needed from the website and we just need to convert the json into a recipe and load that in the app{
 
                     //get the @type of the recipe could be a list or string or just not there ( if it is not there just quit)
                     val type = try {
@@ -128,10 +127,70 @@ class DownloadWebsite {
                             json.decodeFromJsonElement<Image>(extractedData.image).url
                         }
 
-                        println("|$imageLink|")
+
+                        break
+                    } else if (type == "HowTo"){ //if a website that is a how to is used only has instructions and image but still works
+                        val extractedData = json.decodeFromJsonElement<ExtractedHowTo>(data)
+                        //set recipe values based on the extraced data
+                        recipe.data.name = extractedData.name
+                        //find the author
+                        try {
+                            recipe.data.author =
+                                json.decodeFromJsonElement<Author>(extractedData.publisher).name
+                        } catch (e: Exception) {
+                            recipe.data.author =
+                                json.decodeFromJsonElement<List<Author>>(extractedData.publisher)[0].name
+                        }
+
+
+                        //handle the steps and create instructions from them
+                        val instructions: MutableList<Instruction> = mutableListOf()
+                        try {
+                            var instructionsData =
+                                json.decodeFromJsonElement<List<String>>(extractedData.step)
+                            for ((index, instruction) in instructionsData.withIndex()) {
+                                instructions.add(Instruction(index, instruction, null))
+                            }
+                        } catch (e: Exception) {
+                            try {
+                                var instructionsData =
+                                    json.decodeFromJsonElement<List<InstructionJson>>(extractedData.step)
+                                for ((index, instruction) in instructionsData.withIndex()) {
+                                    instructions.add(Instruction(index, instruction.text, null))
+                                }
+                            } catch (e: Exception) {
+                                var instructionsData =
+                                    json.decodeFromJsonElement<String>(extractedData.step)
+                                var index = 0
+                                for (instruction in instructionsData.split("<li>")) {
+                                    if (!instruction.startsWith("<ol")) {//make sure its the steps
+                                        instructions.add(
+                                            Instruction(
+                                                index,
+                                                instruction.replace(
+                                                    "</([a-zA-Z]+)*>".toRegex(),
+                                                    ""
+                                                ),
+                                                null
+                                            )
+                                        ) //add with all the html tags removed
+                                        index++
+                                    }
+
+                                }
+                            }
+                        }
+                        recipe.instructions = Instructions((instructions))
+                        //get the image from the data
+                        imageLink = try{
+                            extractedData.image.jsonArray[0].toString().removeSuffix("\"").removePrefix("\"")
+                        }catch (e: Exception) {
+                            json.decodeFromJsonElement<Image>(extractedData.image).url
+                        }
                         break
                     }
                 }
+
             }
             //else error? or  custom
             if (websiteUrl.contains("www.nigella.com/recipes")) {//custom scape nigella.com as it dose not give out the needed info
@@ -220,5 +279,8 @@ class DownloadWebsite {
 
     @Serializable
     private data class InstructionJson(val text: String)
+
+    @Serializable
+    private data class ExtractedHowTo(val image : JsonElement,val name: String, val publisher: JsonElement, val step : JsonElement)
 
 
