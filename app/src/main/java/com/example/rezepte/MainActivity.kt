@@ -348,8 +348,23 @@ fun CreateButtonOptions() {
 
         }
         if (imageInput){
-            AddImageDialog{
-                imageInput = false
+            AddImageDialog("the image needs to be upright and only the text of one recipe visible and clearly readable", onDismiss = { imageInput = false})
+            {imageUri : Uri ->
+                ImageToRecipe.convert(imageUri,mContext, settings = SettingsActivity.loadSettings(  mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE )), error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
+                {
+                    //if the recipe is still empty don't start create just give error
+                    if (it == GetEmptyRecipe()){
+                        Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
+                        return@convert
+                    }
+                    //when loaded send the recipe to the create menu
+                    val intent = Intent(mContext,CreateActivity::class.java)
+
+                    intent.putExtra("data",parseData(it))
+                    //intent.putExtra("imageData",recipe.second) add image
+                    mContext.startActivity(intent)
+                    imageInput = false
+                }
             }
 
         }
@@ -357,26 +372,12 @@ fun CreateButtonOptions() {
     }
 }
 @Composable
-fun AddImageDialog(onDismiss: () -> Unit){
+fun AddImageDialog(descriptionText : String,onDismiss: () -> Unit,onReturnUri: (Uri)-> Unit){
     val mContext = LocalContext.current
     val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         //if the user gave an image convert it to a recipe and take that to the create
         if (uri != null){
-            ImageToRecipe.convert(uri,mContext, settings = SettingsActivity.loadSettings(  mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE )), error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
-            {
-                //if the recipe is still empty don't start create just give error
-                if (it == GetEmptyRecipe()){
-                    Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
-                    return@convert
-                }
-                //when loaded send the recipe to the create menu
-                val intent = Intent(mContext,CreateActivity::class.java)
-
-                intent.putExtra("data",parseData(it))
-                //intent.putExtra("imageData",recipe.second) add image
-                mContext.startActivity(intent)
-                onDismiss()
-            }
+           onReturnUri(uri)
 
         }
     }
@@ -390,30 +391,7 @@ fun AddImageDialog(onDismiss: () -> Unit){
     val takeImageContent = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { sucsess: Boolean ->
         //if the user gave an image convert it to a recipe and take that to the create
         if (sucsess) {
-            ImageToRecipe.convert(
-                imageUri,
-                mContext,
-                settings = SettingsActivity.loadSettings(
-                    mContext.getSharedPreferences(
-                        "com.example.rezepte.settings",
-                        ComponentActivity.MODE_PRIVATE
-                    )
-                ),
-                error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show() })
-            {
-                //if the recipe is still empty don't start create just give error
-                if (it == GetEmptyRecipe()) {
-                    Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
-                    return@convert
-                }
-                //when loaded send the recipe to the create menu
-                val intent = Intent(mContext, CreateActivity::class.java)
-
-                intent.putExtra("data", parseData(it))
-                //intent.putExtra("imageData",recipe.second) add image
-                mContext.startActivity(intent)
-                onDismiss()
-            }
+            onReturnUri(imageUri)
 
         }
     }
@@ -460,7 +438,7 @@ fun AddImageDialog(onDismiss: () -> Unit){
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text = "the image needs to be upright and only the text of one recipe visible and clearly readable",
+                        text =descriptionText,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.align(Alignment.CenterHorizontally)

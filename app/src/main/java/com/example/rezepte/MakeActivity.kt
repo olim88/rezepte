@@ -483,8 +483,7 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                     //add each word in the text one by one as this will let it be wrapped around properly when it is to long
                     for (word in split[0].split(" ")){
                         Text(
-                            text = word,
-                            modifier = Modifier.padding(start = 2.dp, end = 2.dp),
+                            text = "$word ",
                             textAlign = TextAlign.Center,
                             style = style
                         )

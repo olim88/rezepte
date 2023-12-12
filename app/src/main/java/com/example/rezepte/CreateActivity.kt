@@ -13,9 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -572,13 +570,9 @@ fun TitleInput(data : MutableState<Recipe>){
 }
 @Composable
 fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
-    //get a local image
-    val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        image.value = uri
-        //set bitmap to nothing
-        savedBitmap.value = null
+    //get a local image]
+    var showImageSelectionMenu by remember {mutableStateOf(false)}
 
-    }
     val model = if (savedBitmap.value == null || image.value != null) (ImageRequest.Builder(LocalContext.current)
         .data(image.value)
         .build())
@@ -617,16 +611,23 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
                         .weight(1f)
                 )
             }
-            Button(onClick = {         //Select image to upload
-                getImageContent.launch("image/*")
-                }
-                ,modifier = Modifier.padding(5.dp)
+            Button(onClick =
+            {         //Show menu to add image
+                showImageSelectionMenu = true
+            }
+            ,modifier = Modifier.padding(5.dp)
             ) {
                 Icon(if (image.value == null || savedBitmap.value != null) Icons.Filled.Add else Icons.Filled.Edit, "contentDescription")
-
-
             }
 
+        }
+    }
+    if (showImageSelectionMenu){
+        AddImageDialog(descriptionText = "Take a picture or find save image for the recipe", onDismiss = { showImageSelectionMenu = false; image.value = null }){ uri: Uri? ->
+            image.value = uri
+            //set bitmap to nothing
+            savedBitmap.value = null
+            showImageSelectionMenu = false //re hide the menu when got image
         }
     }
 
@@ -1591,7 +1592,8 @@ private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,
     val recipeDataInputMutable = remember { mutableStateOf(recipeDataInput) }
     val imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
     val updatedSteps = remember { mutableStateOf(false) }
-    Column(modifier = Modifier.fillMaxHeight()
+    Column(modifier = Modifier
+        .fillMaxHeight()
         .verticalScroll(rememberScrollState())
         .background(MaterialTheme.colorScheme.background)
         ) {
