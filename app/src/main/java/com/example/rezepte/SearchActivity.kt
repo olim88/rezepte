@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -51,6 +52,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -113,19 +115,21 @@ class SearchActivity : ComponentActivity() {
         ))
 
         //set access token
-        ACCESS_TOKEN = DbTokenHandling(
+        val tokenHandler = DbTokenHandling(
             getSharedPreferences(
                 "com.example.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
-        ).retrieveAccessToken()
+        )
+        val isOnline = tokenHandler.isLoggedIn()
+        ACCESS_TOKEN = tokenHandler.retrieveAccessToken()
 
         val data : MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
         val extraData : MutableMap<String,BasicData> = mutableMapOf()
         val thumbnails = mutableMapOf<String,Bitmap?>()
         val hasThumbnails = mutableStateOf(false)
         //load local save list if enabled in settings
-        val localList = if (settings["Local Saves.Cache recipe names"] == "true") {
+        val localList = if (settings["Local Saves.Cache recipe names"] == "true" || !isOnline) {
             LocalFilesTask.loadFile("${this.filesDir}","listOfRecipes.xml")
         } else {null}
 
@@ -133,7 +137,7 @@ class SearchActivity : ComponentActivity() {
             data.value = localList.first.replace(".xml","").split("\n").toMutableList()
 
             //if there are locally saved thumbnails load them if data is not empty
-            if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized"){
+            if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized" || !isOnline){
                 for (name in data.value){
                     thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
                 }
@@ -153,7 +157,7 @@ class SearchActivity : ComponentActivity() {
         //add local only files to that list
 
         val localFiles = LocalFilesTask.listFolder("${this.filesDir}/xml/")
-        if (localFiles != null){
+        if (!localFiles.isNullOrEmpty()){
             for (file in localFiles){
                 //if the list dose not contain the file name add it to the list
                 if (!data.value.contains(file.removeSuffix(".xml"))){
@@ -161,11 +165,27 @@ class SearchActivity : ComponentActivity() {
                     data.value.add(file.removeSuffix(".xml"))
                 }
             }
+            //if not logged in crate new list and save that
+            if (!isOnline) {
+                data.value = mutableListOf()
+                for (file in localFiles) {
+                    //if the list dose not contain the file name add it to the list
+
+                    data.value.add(file.removeSuffix(".xml"))
+
+                }
+                //save this
+                LocalFilesTask.saveString(data.value.joinToString("\n"),"${this.filesDir}","listOfRecipes.xml")
+            }
+        }else if (!isOnline) { //if nothing is found to be saved and is ofline save empty list to file to clear it as there is nothing the user can load
+            data.value = mutableListOf()
+            LocalFilesTask.saveString("","${this.filesDir}","listOfRecipes.xml")
         }
 
 
 
-        val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
+
+
 
 
 
@@ -177,93 +197,101 @@ class SearchActivity : ComponentActivity() {
             }
         }
 
-
-        CoroutineScope(Dispatchers.IO).launch {
-            //get data
-            val list = downloader.listDir("/xml/") ?: listOf()
-            if( list.isNotEmpty()) {//if can get to dropbox
-                val onlineList = list.toMutableList()
-                //clean data
-                val iterate = onlineList.listIterator()
-                while (iterate.hasNext()) {
-                    val oldValue = iterate.next()
-                    iterate.set(oldValue.removeSuffix(".xml"))
-                }
-                if (localList == null || onlineList != localList.first.replace(".xml", "")
-                        .split("\n")) { //if the lists are different use the online version and save to to local if enabled
-                    data.value = onlineList
+        if (isOnline) {//only do stuff from the web if the user is logged in
+            val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
+            CoroutineScope(Dispatchers.IO).launch {
+                //get data
+                val list = downloader.listDir("/xml/") ?: listOf()
+                if (list.isNotEmpty()) {//if can get to dropbox
+                    val onlineList = list.toMutableList()
+                    //clean data
+                    val iterate = onlineList.listIterator()
+                    while (iterate.hasNext()) {
+                        val oldValue = iterate.next()
+                        iterate.set(oldValue.removeSuffix(".xml"))
+                    }
+                    if (localList == null || onlineList != localList.first.replace(".xml", "")
+                            .split("\n")
+                    ) { //if the lists are different use the online version and save to to local if enabled
+                        data.value = onlineList
+                        if (settings["Local Saves.Cache recipe names"] == "true" || !isOnline) {
+                            LocalFilesTask.saveString(
+                                onlineList.joinToString("\n"),
+                                "${this@SearchActivity.filesDir}",
+                                "listOfRecipes.xml"
+                            )
+                        }
+                    }
+                    //if there were no local saved names thumbnails need to be grabbed now
+                    if (localList == null) {
+                        //if there are locally saved thumbnails load them
+                        if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized" || !isOnline) {
+                            for (name in data.value) {
+                                thumbnails[name] = LocalFilesTask.loadBitmap(
+                                    "${this@SearchActivity.filesDir}/thumbnail/",
+                                    "$name.png"
+                                )?.first
+                            }
+                            hasThumbnails.value = true
+                        }
+                    }
+                    //load the extra search data
+                    val seachData = try {
+                        val seachDataXml = downloader.getXml("/searchData.xml")
+                        XmlExtraction.getSearchData(seachDataXml.first)
+                    } catch (e: Exception) {
+                        getEmptySeachData()
+                    }
+                    //convert to dictionary
+                    for (recipeData in seachData.data) {
+                        extraData[recipeData.name] = recipeData
+                    }
+                    //if enabled save this to the device
                     if (settings["Local Saves.Cache recipe names"] == "true") {
                         LocalFilesTask.saveString(
-                            onlineList.joinToString("\n"),
-                            "${this@SearchActivity.filesDir}",
-                            "listOfRecipes.xml"
+                            parseSearchData(SearchData(extraData.values.toMutableList())),
+                            "${this@SearchActivity.filesDir}/",
+                            "searchData.xml"
                         )
                     }
-                }
-                //if there were no local saved names thumbnails need to be grabbed now
-                if (localList == null){
-                    //if there are locally saved thumbnails load them
-                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized"){
-                        for (name in data.value){
-                            thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
-                        }
-                        hasThumbnails.value = true
-                    }
-                }
-                //load the extra search data
-                val seachData = try {
-                    val seachDataXml = downloader.getXml("/searchData.xml")
-                    XmlExtraction.getSearchData(seachDataXml.first)
-                }catch (e: Exception){
-                    getEmptySeachData()
-                }
-                //convert to dictionary
-                for(recipeData in seachData.data){
-                    extraData[recipeData.name] = recipeData
-                }
-                //if enabled save this to the device
-                if (settings["Local Saves.Cache recipe names"] == "true") {
-                    LocalFilesTask.saveString(parseSearchData(SearchData(extraData.values.toMutableList())),"${this@SearchActivity.filesDir}/","searchData.xml")
-                }
 
 
+                    //get thumbnails
+                    val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
+                    if (thumbnailsDownloaded != null) {
+                        if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized") {
+                            for (thumbnailKey in thumbnails.keys) {
+                                if (thumbnailsDownloaded[thumbnailKey]?.sameAs(thumbnails[thumbnailKey]) == false) {
+                                    //if they are not the same save the thumbnail to device update the value and set hasThumbnails to true
+                                    thumbnails[thumbnailKey] = thumbnailsDownloaded[thumbnailKey]
+                                    hasThumbnails.value = true
 
-
-
-
-
-                //get thumbnails
-                val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
-                if (thumbnailsDownloaded != null) {
-                    if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized"){
-                        for (thumbnailKey in thumbnails.keys){
-                            if (thumbnailsDownloaded[thumbnailKey]?.sameAs(thumbnails[thumbnailKey]) == false){
-                                //if they are not the same save the thumbnail to device update the value and set hasThumbnails to true
-                                thumbnails[thumbnailKey] = thumbnailsDownloaded[thumbnailKey]
-                                hasThumbnails.value = true
-
-                                if (thumbnailsDownloaded[thumbnailKey] != null) {
-                                    LocalFilesTask.saveBitmap(
-                                        thumbnailsDownloaded[thumbnailKey]!!,
-                                        "${this@SearchActivity.filesDir}/thumbnail/",
-                                        "$thumbnailKey.png"
-                                    )
-                                } else {
-                                    //delete the file if not on dropbox
-                                    LocalFilesTask.removeFile("${this@SearchActivity.filesDir}/thumbnail/","$thumbnailKey.png")
+                                    if (thumbnailsDownloaded[thumbnailKey] != null) {
+                                        LocalFilesTask.saveBitmap(
+                                            thumbnailsDownloaded[thumbnailKey]!!,
+                                            "${this@SearchActivity.filesDir}/thumbnail/",
+                                            "$thumbnailKey.png"
+                                        )
+                                    } else {
+                                        //delete the file if not on dropbox
+                                        LocalFilesTask.removeFile(
+                                            "${this@SearchActivity.filesDir}/thumbnail/",
+                                            "$thumbnailKey.png"
+                                        )
+                                    }
                                 }
                             }
+                        } else {//if setting not enabled just load the thumbnails from dropbox
+                            thumbnails.putAll(thumbnailsDownloaded)
+                            hasThumbnails.value = true
                         }
-                    }else {//if setting not enabled just load the thumbnails from dropbox
-                        thumbnails.putAll(thumbnailsDownloaded)
-                        hasThumbnails.value = true
+
                     }
-
                 }
-            }
 
 
             }
+        }
     }
 
 }
@@ -899,20 +927,108 @@ private fun MainScreen(
     settings: Map<String,String>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     val filters = remember { mutableStateOf( getFilters(names.value))}
-    Column (modifier = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)){
-        SearchView(textState)
+    if (names.value.isNotEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            SearchView(textState)
 
-        RecipeList(names,extraData,thumbnails,textState,filters,getName,settings)
-        if (updatedThumbnail.value){
-            //this will update the thumbnails
-            updatedThumbnail.value= false
+            RecipeList(names, extraData, thumbnails, textState, filters, getName, settings)
+            if (updatedThumbnail.value) {
+                //this will update the thumbnails
+                updatedThumbnail.value = false
+            }
+        }
+    }else {//if there are not recipes loaded show message say none found and to login or create with buttons
+        
+            NoReciepsFoundOuput()
+        
+        
+    }
+}
+@Composable
+fun NoReciepsFoundOuput(){
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+    val tokenHandler = DbTokenHandling(
+        mContext.getSharedPreferences(
+            "com.example.rezepte.dropboxintegration",
+            AppCompatActivity.MODE_PRIVATE
+        )
+    )
+    val isOnline = tokenHandler.isLoggedIn()
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(30.dp)
+            .animateContentSize()
+    ) {
+        Column(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Text(
+                text = "Can't find any recipes :(",
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+
+            )
+            Spacer(modifier = Modifier.width(40.dp))
+
+            Text(
+                text = "Create your first recipes ",
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+
+                )
+            Button(
+                onClick = {
+                    val intent = Intent(mContext, CreateActivity::class.java)
+                    mContext.startActivity(intent)
+
+
+                }, modifier = Modifier
+                    .padding(15.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Create",
+                    textAlign = TextAlign.Center,
+
+                )
+            }
+
+
+            if (!isOnline) {//only suggest login if the user is not logged in
+                Text(
+                    text = "or login to sync your recipes ",
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                Button(
+                    onClick = {
+                        val intent = Intent(mContext, LoginActivity::class.java)
+                        mContext.startActivity(intent)
+
+
+                    }, modifier = Modifier
+                        .padding(15.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Login",
+                        textAlign = TextAlign.Center,
+                    )
+
+                }
+            }
         }
     }
-
-
-
 }
 
 @SuppressLint("UnrememberedMutableState")

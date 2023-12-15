@@ -17,12 +17,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -76,6 +80,18 @@ private fun MainScreen(){
     val webAuth = DbxPKCEWebAuth(DbxRequestConfig("examples-authorize"), DbxAppInfo(mContext.resources.getString(R.string.dropbox_api_key)))
     var linkValue by remember { mutableStateOf("")}
     Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
+        //return home button
+        Button(onClick = {
+            
+            val intent = Intent(mContext, MainActivity::class.java)
+            mContext.startActivity(intent)
+        }){
+            Icon(
+                Icons.Filled.Home, "home",
+                Modifier
+                    .size(24.dp),)
+
+        }
         //logo
         Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.align(Alignment.CenterHorizontally).fillMaxHeight().weight(0.5f))
         //login button
@@ -122,8 +138,9 @@ private fun MainScreen(){
                                     )
                                 prefs.edit().putString("access-token", auth.accessToken).apply()
                                 prefs.edit().putString("refresh-token", auth.refreshToken).apply()
-                                prefs.edit().putString("expired-at", auth.expiresAt.toString())
-                                    .apply()
+                                prefs.edit().putString("expired-at", auth.expiresAt.toString()).apply()
+                                //set the status of the user being logged in to true
+                                prefs.edit().putBoolean("logged-in", true).apply()
 
 
                                 //Proceed to MainActivity

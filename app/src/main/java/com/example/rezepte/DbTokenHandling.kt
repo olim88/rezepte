@@ -19,7 +19,7 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
 
 
 
-    public fun retrieveAccessToken(): String? {
+    fun retrieveAccessToken(): String? {
         //check if ACCESS_TOKEN is stored on previous app launches
 
         val accessToken = prefs.getString("access-token", null)
@@ -32,6 +32,10 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity
             accessToken
         }
     }
+    fun isLoggedIn(): Boolean{ //return if the user is logged in or not
+        return prefs.getBoolean("logged-in", false)
+    }
+
     private fun retrieveSavedData(label :String): String? {
         //check if ACCESS_TOKEN is stored on previous app launches
 

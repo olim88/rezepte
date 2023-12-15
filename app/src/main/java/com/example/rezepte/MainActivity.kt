@@ -82,53 +82,56 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         //account data
-        val accountData: MutableState<FullAccount?> = mutableStateOf(null)
+        val accountData: MutableState<Pair<FullAccount?,Boolean>> = mutableStateOf(Pair(null,true))
         //dropbox account handling
         val login = DbTokenHandling(getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE))
-        val needToLogIn = login.refreshIfExpired(this) {
-            //get token
-            val token = DbTokenHandling(
-                getSharedPreferences(
-                    "com.example.rezepte.dropboxintegration",
-                    MODE_PRIVATE
-                )
-            ).retrieveAccessToken()
-            //get account data
-            CoroutineScope(Dispatchers.IO).launch{
-                accountData.value = DownloadTask(DropboxClient.getClient(token)).getUserAccount()
-                withContext(Dispatchers.Main) {
-                    if (accountData.value == null) {
-                        Toast.makeText(this@MainActivity, "can't reach dropbox", Toast.LENGTH_LONG)
-                            .show()
+        if(login.isLoggedIn()) { //only check the login if the user is logged in
+                login.refreshIfExpired(this) {
+                //get token
+                val token = DbTokenHandling(
+                    getSharedPreferences(
+                        "com.example.rezepte.dropboxintegration",
+                        MODE_PRIVATE
+                    )
+                ).retrieveAccessToken()
+                //get account data
+                CoroutineScope(Dispatchers.IO).launch {
+                    accountData.value =
+                        Pair(DownloadTask(DropboxClient.getClient(token)).getUserAccount(), true)
+                    withContext(Dispatchers.Main) {
+                        if (accountData.value.first == null) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "can't reach dropbox",
+                                Toast.LENGTH_LONG
+                            )
+                                .show()
+                        }
                     }
                 }
             }
+        }else {
+            accountData.value = Pair(null, false)
         }
 
-        if (needToLogIn) {
-            //No token
-            //Back to LoginActivity
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-        }
 
-        else {
 
-            setContent {
-                RezepteTheme {
-                    MainScreen(accountData)
-                }
+
+        setContent {
+            RezepteTheme {
+                MainScreen(accountData)
             }
+        }
 
         }
 
     }
 
 
-}
+
 
 @Composable
-private fun MainScreen(accountData: MutableState<FullAccount?>) {
+private fun MainScreen(accountData: MutableState<Pair<FullAccount?,Boolean>>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
 
@@ -151,14 +154,14 @@ private fun MainScreen(accountData: MutableState<FullAccount?>) {
         ) {
             //create buttons
             CreateButtonOptions()
-            //search button
+            //search button (my recipes)
             Button(onClick = {
                 val intent = Intent(mContext,SearchActivity::class.java)
                 mContext.startActivity(intent);
             }, modifier = Modifier
                 .padding(5.dp, 0.dp, 5.dp, 5.dp)
                 .fillMaxWidth()) {
-                Text(text = "Search")
+                Text(text = "My Recipes")
             }
         }
         //dropbox text and button
@@ -189,7 +192,7 @@ private fun MainScreen(accountData: MutableState<FullAccount?>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropboxInfo(accountData : MutableState<FullAccount?>) {
+fun DropboxInfo(accountData : MutableState<Pair<FullAccount?,Boolean>>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     Card(
@@ -198,38 +201,63 @@ fun DropboxInfo(accountData : MutableState<FullAccount?>) {
             .padding(5.dp)
             .animateContentSize()
     ) {
-        Row {
-            if (accountData.value != null){
-                TextField(
-                    value = accountData.value!!.email,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Dropbox Account") },
-                    modifier = Modifier
-                        .padding(5.dp),
-                    maxLines = 1
+        if (accountData.value.second) {//if the user is signed in
+            Row {
+                if (accountData.value.first != null) {
+                    TextField(
+                        value = accountData.value.first!!.email,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Dropbox Account") },
+                        modifier = Modifier
+                            .padding(5.dp),
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(
+                    Modifier
+                        .weight(1f)
                 )
+                Button(
+                    onClick = {
+                        Toast.makeText(mContext, "Logging out...", Toast.LENGTH_SHORT).show()
+
+                        val prefs = mContext.getSharedPreferences(
+                            "com.example.rezepte.dropboxintegration",
+                            ComponentActivity.MODE_PRIVATE
+                        )
+                        prefs.edit().clear().apply()
+                        //Back to LoginActivity
+                        val intent = Intent(mContext, LoginActivity::class.java)
+                        mContext.startActivity(intent)
+
+                    }, modifier = Modifier
+                        .padding(5.dp)
+                        .align(Alignment.CenterVertically)
+                ) {
+                    Text(text = "Logout", textAlign = TextAlign.Center)
+                }
             }
-
-            Spacer(
-                Modifier
-                    .weight(1f)
-            )
-            Button(onClick = {
-                Toast.makeText(mContext, "Logging out...", Toast.LENGTH_SHORT).show()
-
-                val prefs = mContext.getSharedPreferences("com.example.rezepte.dropboxintegration",
-                    ComponentActivity.MODE_PRIVATE
+        } else{ //the user is not logged in (show the option to log in
+            Row {
+                Text(text = "Login to dropbox to be able to  sync between devices",style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,modifier = Modifier.align(Alignment.CenterVertically).weight(1f))
+                Spacer(
+                    Modifier
+                        .weight(0.1f)
                 )
-                prefs.edit().clear().apply()
-                //Back to LoginActivity
-                val intent = Intent(mContext, LoginActivity::class.java)
-                mContext.startActivity(intent)
+                Button(
+                    onClick = {
+                        val intent = Intent(mContext, LoginActivity::class.java)
+                        mContext.startActivity(intent)
 
-            }, modifier = Modifier
-                .padding(5.dp)
-                .align(Alignment.CenterVertically)) {
-                Text(text = "Logout", textAlign = TextAlign.Center)
+
+                    }, modifier = Modifier
+                        .padding(5.dp)
+                        .align(Alignment.CenterVertically)
+                ) {
+                    Text(text = "Login", textAlign = TextAlign.Center)
+                }
             }
         }
     }
@@ -464,6 +492,6 @@ fun createTempFile(context: Context): File {
 @Composable
 fun homePreview() {
     RezepteTheme {
-        MainScreen(mutableStateOf(null))
+        MainScreen(mutableStateOf(Pair(null,false)))
     }
 }

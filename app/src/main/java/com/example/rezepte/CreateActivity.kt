@@ -99,6 +99,7 @@ class CreateActivity : ComponentActivity() {
     private var loadedRecipeName: String? = null
 
 
+    @SuppressLint("UnrememberedMutableState")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -122,7 +123,7 @@ class CreateActivity : ComponentActivity() {
                 RezepteTheme {
                     MainScreen(
                         settings,
-                        recipeDataInput = extractedData,
+                        recipeDataInput = mutableStateOf(extractedData),
                         image,
                         { deleteRecipe() },
                         { recipe, uri, bitmap,linking -> finishRecipe(recipe, uri,bitmap,linking) })
@@ -137,35 +138,75 @@ class CreateActivity : ComponentActivity() {
         }
         else if (loadedRecipeName != null) {
             //get token
-            val token = DbTokenHandling(
+            val tokenHandler = DbTokenHandling(
                 getSharedPreferences(
                     "com.example.rezepte.dropboxintegration",
                     MODE_PRIVATE
                 )
-            ).retrieveAccessToken()
+            )
+            val token = tokenHandler.retrieveAccessToken()
+            val isOnline = tokenHandler.isLoggedIn()
+            //create variable for recipe data
+            val extractedData : MutableState<Recipe> = mutableStateOf(GetEmptyRecipe())
 
-
-            //load saved data about recipe
-            val downloader = DownloadTask(DropboxClient.getClient(token))
-            CoroutineScope(Dispatchers.IO).launch {
-                //get data
-                val data: String = downloader.getXml("/xml/$loadedRecipeName.xml").first
-                val extractedData = XmlExtraction.getData(data)
-
-                withContext(Dispatchers.Main) {
-                    setContent {
-                        RezepteTheme {
-                            MainScreen(
-                                settings,
-                                recipeDataInput = extractedData,
-                                image,
-                                { deleteRecipe() },
-                                { recipe, uri, bitmap,linking -> finishRecipe(recipe, uri,bitmap,linking) })
-                        }
-                    }
-
+            //first load local saves if enabled
+            val localData = if (settings["Local Saves.Cache recipes"] == "true"){
+                LocalFilesTask.loadFile("${this.filesDir}/xml/","$loadedRecipeName.xml")
+            } else {null}
+            //if there is locally saved data load that to extracted data
+            if (localData != null ){
+                extractedData.value =  XmlExtraction.getData(localData.first)
+            }
+            //set the context to show window
+            setContent {
+                RezepteTheme {
+                    MainScreen(
+                        settings,
+                        recipeDataInput = extractedData,
+                        image,
+                        { deleteRecipe() },
+                        { recipe, uri, bitmap,linking -> finishRecipe(recipe, uri,bitmap,linking) })
                 }
-                image.value = downloader.getImage("/image/", loadedRecipeName!!)?.first
+            }
+
+            //if is online load dropbox
+            if (isOnline) {
+                //load saved data about recipe from dropbox
+                val downloader = DownloadTask(DropboxClient.getClient(token))
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        //get data
+                        val data: String = downloader.getXml("/xml/$loadedRecipeName.xml").first
+
+                        //if there is loaded local data only replace loaded data if they are different to dropbox save
+                        if (localData == null || data != localData.first) {
+                            extractedData.value = XmlExtraction.getData(data)
+                        }
+
+                        withContext(Dispatchers.Main) {
+
+
+                        }
+                        image.value = downloader.getImage("/image/", loadedRecipeName!!)?.first
+                    } catch (e: Exception) {
+                        //if can not reach dropbox show error
+                        //if there is a local version saved show warning
+                        if (localData != null) {
+                            Toast.makeText(
+                                this@CreateActivity,
+                                "Local Only Save Could Be Out Of Date",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {//else show can not be loaded
+                            Toast.makeText(
+                                this@CreateActivity,
+                                "Can't Reach Dropbox To Load Recipe",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+
+                    }
+                }
             }
 
         } else {
@@ -173,7 +214,7 @@ class CreateActivity : ComponentActivity() {
                 RezepteTheme {
                     MainScreen(
                         settings,
-                        recipeDataInput = GetEmptyRecipe(),
+                        recipeDataInput = mutableStateOf(GetEmptyRecipe()),
                         image,
                         { deleteRecipe() },
                         { recipe, uri, bitmap,linking -> finishRecipe(recipe, uri,bitmap,linking) })
@@ -202,23 +243,76 @@ class CreateActivity : ComponentActivity() {
                         ).show()
                         //delete the recipe
                         //remove files
-                        val token = DbTokenHandling( //get token
+                        val tokenHandling = DbTokenHandling( //get token
                             getSharedPreferences(
                                 "com.example.rezepte.dropboxintegration",
                                 MODE_PRIVATE
                             )
-                        ).retrieveAccessToken()
-                        val uploader = UploadTask(DropboxClient.getClient(token))
-                        CoroutineScope(Dispatchers.IO).launch {
-                            //remove xml
-                            uploader.removeFile("/xml/$loadedRecipeName.xml")
-                            //remove image
-                            uploader.removeImage("/image/$loadedRecipeName")
+                        )
+                        val token = tokenHandling.retrieveAccessToken()
+                        if (tokenHandling.isLoggedIn()) {//only remove from dropbox if logged in
+                            val uploader = UploadTask(DropboxClient.getClient(token))
+                            CoroutineScope(Dispatchers.IO).launch {
+                                //remove xml
+                                uploader.removeFile("/xml/$loadedRecipeName.xml")
+                                //remove image
+                                uploader.removeImage("/image/$loadedRecipeName")
+                            }
                         }
                         //remove local files
                         LocalFilesTask.removeFile("${this.filesDir}/xml/","$loadedRecipeName.xml")
                         LocalFilesTask.removeFile("${this.filesDir}/image/","$loadedRecipeName.png")
                         LocalFilesTask.removeFile("${this.filesDir}/thumbnail/","$loadedRecipeName.png")
+
+                        //update search data to remove recipe
+
+                        CoroutineScope(Dispatchers.IO).launch {
+                            var searchData :SearchData? = null
+                            if (tokenHandling.isLoggedIn()) {
+                                val downloader = DownloadTask(DropboxClient.getClient(token))
+                                //get data
+                                searchData = try {
+                                    val searchDataXml: String = downloader.getXml("/searchData.xml").first
+                                    XmlExtraction.getSearchData(searchDataXml)
+                                } catch (e: Exception) {
+                                    //there is no existing data so create blank data
+                                    getEmptySeachData()
+                                }
+                            }else {
+                                //if offline update the local searchdata
+                                val searchDataXml = LocalFilesTask.loadFile("${this@CreateActivity.filesDir}/",
+                                    "searchData.xml")
+                                if (searchDataXml != null) {
+                                    XmlExtraction.getSearchData(searchDataXml.first)
+                                }
+                            }
+                            if (searchData == null){
+                                searchData = getEmptySeachData()
+                            }
+                            //remove name
+                            if (loadedRecipeName != null){
+                                for (index in 0 until searchData.data.size){
+                                    if (searchData.data[index].name == loadedRecipeName){
+                                        searchData.data.removeAt(index)
+                                        break
+                                    }
+                                }
+                            }
+                            //reupload files
+                            val stringXml = parseSearchData(searchData)
+                            if (tokenHandling.isLoggedIn()) { //save to dropbox if online
+                                val uploader = UploadTask(DropboxClient.getClient(token))
+                                uploader.uploadXml(stringXml, "/searchData.xml")
+                            }
+                            if ( !tokenHandling.isLoggedIn()) { //todo settings["Local Saves.Cache recipe names"] == "true" ||
+                                LocalFilesTask.saveString(
+                                    stringXml,
+                                    "${this@CreateActivity.filesDir}/",
+                                    "searchData.xml"
+                                )
+                            }
+                        }
+
                         //go home
                         val intent = Intent(this, MainActivity::class.java)
                         startActivity(intent)
@@ -263,46 +357,63 @@ class CreateActivity : ComponentActivity() {
         //get the name of the recipe to save
         val name = recipe.data.name
         //get dropbox token and upload image and xml to dropbox
-        val token = DbTokenHandling( //get token
+        val tokenHandling = DbTokenHandling( //get token
             getSharedPreferences(
                 "com.example.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
-        ).retrieveAccessToken()
-        //upload xml and images
-        CoroutineScope(Dispatchers.IO).launch {
-            val uploadClient = UploadTask(DropboxClient.getClient(token))
-            //upload recipe data
-            uploadClient.uploadXml(data,"/xml/$name.xml")
-            //if there is a uri image upload that
-            if (file != null){
-                uploadClient.uploadFile(file,"/image/$name")
-            }
-            //otherwise upload the bitmap image if there is one
-            else if (bitmapImage != null){
-                uploadClient.uploadBitmap(bitmapImage,"/image/$name")
-            }
-            //if there is no image make sure that any saved image is deleted
-            else{
-                uploadClient.removeImage("/image/$name")
-            }
+        )
+        val isOnline = tokenHandling.isLoggedIn()
+        val token = tokenHandling.retrieveAccessToken()
+        //upload xml and images if logged in
+        if (isOnline) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val uploadClient = UploadTask(DropboxClient.getClient(token))
+                //upload recipe data
+                uploadClient.uploadXml(data, "/xml/$name.xml")
+                //if there is a uri image upload that
+                if (file != null) {
+                    uploadClient.uploadFile(file, "/image/$name")
+                }
+                //otherwise upload the bitmap image if there is one
+                else if (bitmapImage != null) {
+                    uploadClient.uploadBitmap(bitmapImage, "/image/$name")
+                }
+                //if there is no image make sure that any saved image is deleted
+                else {
+                    uploadClient.removeImage("/image/$name")
+                }
 
+            }
         }
         //update search data to include recipe
-        val downloader = DownloadTask(DropboxClient.getClient(token))
-        CoroutineScope(Dispatchers.IO).launch {
-            //get data
-            val searchData = try {
-                val searchDataXml: String = downloader.getXml("/searchData.xml").first
-                XmlExtraction.getSearchData(searchDataXml)
-            }catch (e : Exception){
-                //there is no existing data so create blank data
-                getEmptySeachData()
-            }
 
+        CoroutineScope(Dispatchers.IO).launch {
+            var searchData :SearchData? = null
+            if (isOnline) {
+                val downloader = DownloadTask(DropboxClient.getClient(token))
+                //get data
+                searchData = try {
+                    val searchDataXml: String = downloader.getXml("/searchData.xml").first
+                    XmlExtraction.getSearchData(searchDataXml)
+                } catch (e: Exception) {
+                    //there is no existing data so create blank data
+                    getEmptySeachData()
+                }
+            }else {
+                //if offline update the local searchdata
+                val searchDataXml = LocalFilesTask.loadFile("${this@CreateActivity.filesDir}/",
+                                        "searchData.xml")
+                if (searchDataXml != null) {
+                    XmlExtraction.getSearchData(searchDataXml.first)
+                }
+            }
+            if (searchData == null){
+                searchData = getEmptySeachData()
+            }
             //remove old data
             if (loadedRecipeName != null){
-                for (index in 0..searchData.data.size-1){
+                for (index in 0 until searchData.data.size){
                     if (searchData.data[index].name == loadedRecipeName){
                         searchData.data.removeAt(index)
                         break
@@ -313,10 +424,12 @@ class CreateActivity : ComponentActivity() {
             //add new data
             searchData.data.add(BasicData(name,recipe.data.serves,recipe.data.author))
             //convert to string to save
-            val uploader = UploadTask(DropboxClient.getClient(token))
             val stringXml = parseSearchData(searchData)
-            uploader.uploadXml(stringXml,"/searchData.xml")
-            if (settings["Local Saves.Cache recipe names"] == "true") {
+            if (isOnline) { //save to dropbox if online
+                val uploader = UploadTask(DropboxClient.getClient(token))
+                uploader.uploadXml(stringXml, "/searchData.xml")
+            }
+            if (settings["Local Saves.Cache recipe names"] == "true" || !isOnline) {
                 LocalFilesTask.saveString(
                     stringXml,
                     "${this@CreateActivity.filesDir}/",
@@ -336,23 +449,28 @@ class CreateActivity : ComponentActivity() {
         }
 
         //if the name has changed delete old files
-        if (name != loadedRecipeName && loadedRecipeName != null) {
+        if (name != loadedRecipeName && loadedRecipeName != null) { //todo call delete function
+            if (isOnline) {
+                val uploader = UploadTask(DropboxClient.getClient(token))
+                CoroutineScope(Dispatchers.IO).launch {
+                    //remove xml
+                    uploader.removeFile("/xml/$loadedRecipeName.xml")
+                    //remove image
+                    uploader.removeImage("/image/$loadedRecipeName")
 
-            val uploader = UploadTask(DropboxClient.getClient(token))
-            CoroutineScope(Dispatchers.IO).launch {
-                //remove xml
-                uploader.removeFile("/xml/$loadedRecipeName.xml")
-                //remove image
-                uploader.removeImage("/image/$loadedRecipeName")
-
+                }
+            }
+            if (settings["Local Saves.Cache recipes"] == "true" || !isOnline){//remove local files
+                LocalFilesTask.removeFile("${this.filesDir}/xml/","$name.xml")
+                LocalFilesTask.removeFile("${this.filesDir}/image/","$name.png")
             }
         }
 
         //save to device if setting enabled
-        if (settings["Local Saves.Cache recipes"] == "true"){
+        if (settings["Local Saves.Cache recipes"] == "true" || !isOnline){
             LocalFilesTask.saveString(data,"${this.filesDir}/xml/","$name.xml")
         }
-        if (settings["Local Saves.Cache recipe image"] == "full sized"){
+        if (settings["Local Saves.Cache recipe image"] == "full sized"|| !isOnline){
             if (file != null){
                 LocalFilesTask.saveFile(file,"${this.filesDir}/image/","$name.png")
             }
@@ -1588,8 +1706,7 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
 }
 
 @Composable
-private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit){
-    val recipeDataInputMutable = remember { mutableStateOf(recipeDataInput) }
+private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: MutableState<Recipe>,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit){
     val imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
     val updatedSteps = remember { mutableStateOf(false) }
     Column(modifier = Modifier
@@ -1597,14 +1714,14 @@ private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,
         .verticalScroll(rememberScrollState())
         .background(MaterialTheme.colorScheme.background)
         ) {
-        TitleInput(recipeDataInputMutable)
+        TitleInput(recipeDataInput)
         ImageInput(imageUri,image)
-        DataInput(userSettings,recipeDataInputMutable,updatedSteps)
-        Notes(recipeDataInputMutable)
-        IngredientsInput(userSettings,recipeDataInputMutable)
-        InstructionsInput(userSettings,recipeDataInputMutable)
+        DataInput(userSettings,recipeDataInput,updatedSteps)
+        Notes(recipeDataInput)
+        IngredientsInput(userSettings,recipeDataInput)
+        InstructionsInput(userSettings,recipeDataInput)
         Spacer(modifier = Modifier.weight(1f))
-        DeleteAndFinishButtons(recipeDataInputMutable,updatedSteps,onDeleteClick,onFinishClick,imageUri,image)
+        DeleteAndFinishButtons(recipeDataInput,updatedSteps,onDeleteClick,onFinishClick,imageUri,image)
         Spacer(modifier = Modifier.height(10.dp))
     }
 
@@ -1619,7 +1736,7 @@ private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: Recipe,
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen(mapOf(),GetEmptyRecipe(), mutableStateOf(null),{},{ recipe, uri, bitmap, linking -> })
+        MainScreen(mapOf(), mutableStateOf(GetEmptyRecipe()), mutableStateOf(null),{},{ recipe, uri, bitmap, linking -> })
     }
 }
 
