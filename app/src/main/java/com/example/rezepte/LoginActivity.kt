@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,13 +86,15 @@ private fun MainScreen(){
             
             val intent = Intent(mContext, MainActivity::class.java)
             mContext.startActivity(intent)
-        }){
+        },modifier = Modifier.align(Alignment.End)){
             Icon(
                 Icons.Filled.Home, "home",
                 Modifier
                     .size(24.dp),)
 
         }
+        //title
+        Text(text = "Login to Dropbox to sync between devices", modifier = Modifier.padding(15.dp).align(Alignment.CenterHorizontally), textAlign = TextAlign.Center, color =MaterialTheme.colorScheme.onBackground,style = MaterialTheme.typography.titleLarge )
         //logo
         Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.align(Alignment.CenterHorizontally).fillMaxHeight().weight(0.5f))
         //login button
@@ -120,7 +123,6 @@ private fun MainScreen(){
             onValueChange = { value ->
                 linkValue = value //update its value
                 GlobalScope.launch {
-
                     val auth = try{
                         webAuth.finishFromCode(linkValue)
                     }
@@ -147,6 +149,65 @@ private fun MainScreen(){
                                 val intent = Intent(mContext, MainActivity::class.java)
                                 mContext.startActivity(intent)
                             }
+                        }
+                    }
+                    //upload the users files to dropbox
+                    //get the files needed to upload
+                    val recipes = LocalFilesTask.listFolder("${mContext.filesDir}/xml/")
+                    val images = LocalFilesTask.listFolder("${mContext.filesDir}/image/")
+                    val token = DbTokenHandling( //get token
+                        mContext.getSharedPreferences(
+                            "com.example.rezepte.dropboxintegration",
+                            MODE_PRIVATE
+                        )
+                    ).retrieveAccessToken()
+                    val dbClient =DropboxClient.getClient(token)
+                    val downloader = DownloadTask(dbClient)
+                    val uploader = UploadTask(dbClient)
+                    //loop though recipes and upload if there is not a newer version on dropbox
+                    if (recipes != null) {
+                        for (file in recipes){
+                            val fileData = LocalFilesTask.loadFile("${mContext.filesDir}/xml/",file)
+                            if (fileData != null) {//there should not be possible to have a null file but just incase do not do anything if there is
+                                val dbFile = try {
+                                    downloader.getXml("/xml/${file}")
+                                } catch (e: Exception) {
+                                    null
+                                }
+                                if (dbFile != null) {//if the file already exists
+                                    if (dbFile.second.toInstant().toEpochMilli() - fileData.second.toInstant().toEpochMilli() > 5000){ //and the online version is more than 5 seconds older
+                                        //upload the new file
+                                        uploader.uploadXml(fileData.first, "/xml/${file}")
+                                    }
+
+                                } else { //just upload the file if it dose not already exist
+                                    uploader.uploadXml(fileData.first, "/xml/${file}")
+                                }
+                            }
+
+                        }
+                    }
+                    //do the same for images
+                    if (images != null) {
+                        for (image in images){
+                            val fileData = LocalFilesTask.loadFile("${mContext.filesDir}/image/",image)
+                            if (fileData != null) {//there should not be possible to have a null image but just incase do not do anything if there is
+                                val dbFile = try {
+                                    downloader.getXml("/image/${image}")
+                                } catch (e: Exception) {
+                                    null
+                                }
+                                if (dbFile != null) {//if the image already exists
+                                    if (dbFile.second.toInstant().toEpochMilli() - fileData.second.toInstant().toEpochMilli() > 5000){ //and the online version is more than 5 seconds older
+                                        //upload the new image
+                                        uploader.uploadXml(fileData.first, "/image/${image}")
+                                    }
+
+                                } else { //just upload the image if it dose not already exist
+                                    uploader.uploadXml(fileData.first, "/image/${image}")
+                                }
+                            }
+
                         }
                     }
                 }

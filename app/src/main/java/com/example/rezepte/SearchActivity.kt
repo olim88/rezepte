@@ -177,7 +177,7 @@ class SearchActivity : ComponentActivity() {
                 //save this
                 LocalFilesTask.saveString(data.value.joinToString("\n"),"${this.filesDir}","listOfRecipes.xml")
             }
-        }else if (!isOnline) { //if nothing is found to be saved and is ofline save empty list to file to clear it as there is nothing the user can load
+        }else if (!isOnline) { //if nothing is found to be saved and is offline save empty list to file to clear it as there is nothing the user can load
             data.value = mutableListOf()
             LocalFilesTask.saveString("","${this.filesDir}","listOfRecipes.xml")
         }
@@ -435,7 +435,7 @@ fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName 
                         softWrap = true,
                     )
                     Text(
-                        "Sevings: ${extraData.servings}",
+                        "Servings: ${extraData.servings}",
                         modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         softWrap = true,
