@@ -94,23 +94,33 @@ class DownloadTask(client: DbxClientV2)  {
         //create arguments for each thumbnail
         val actualFileNames = listDir(dir) ?: return  null
         val names : Queue<String> = LinkedList()
-        val args = mutableListOf<ThumbnailArg>()
-        for (name in fileNames){
-            val path = getImagePathFromList(dir,name,actualFileNames)
-            if (path != null){
-                val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W128H128,ThumbnailMode.BESTFIT)
-                args.add(arg)
-                names.add(name)
-            }
-
-        }
-        val thumbNails  = dbxClient.files().getThumbnailBatch(args)
+        //get thumb nails in baches of 25
+        var index = 0
         val output = hashMapOf<String,Bitmap?>()
-        for (thumbNail in thumbNails.entries)
-        {
-            if (thumbNail.tag() == GetThumbnailBatchResultEntry.Tag.SUCCESS){
-                val temp = Base64.decode(thumbNail.successValue.thumbnail,Base64.DEFAULT)
-                output[names.remove()] = BitmapFactory.decodeByteArray(temp,0, temp.size)
+        while (index <fileNames.size-1){
+            val args = mutableListOf<ThumbnailArg>()
+            val startIndex = index
+            for ( name in fileNames.subList(startIndex,fileNames.size)){
+                val path = getImagePathFromList(dir,name,actualFileNames)
+                if (path != null){
+                    val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W128H128,ThumbnailMode.BESTFIT)
+                    args.add(arg)
+                    names.add(name)
+                }
+                index ++
+                if (index - startIndex == 25){ //if there has been 25 thumbnails done complete the bach before going onto the next
+                    break
+                }
+
+            }
+            val thumbNailBach  = dbxClient.files().getThumbnailBatch(args)
+
+            for (thumbNail in thumbNailBach.entries)
+            {
+                if (thumbNail.tag() == GetThumbnailBatchResultEntry.Tag.SUCCESS){
+                    val temp = Base64.decode(thumbNail.successValue.thumbnail,Base64.DEFAULT)
+                    output[names.remove()] = BitmapFactory.decodeByteArray(temp,0, temp.size)
+                }
             }
         }
 
