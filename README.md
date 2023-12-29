@@ -16,7 +16,7 @@ there are currently no built relases avalible
 ## build 
 can be built using android stuido
 
-## examlple xml saveing format (with coments
+## examlple xml saveing format (with coments)
 
 ### search data XML
 ```xml
