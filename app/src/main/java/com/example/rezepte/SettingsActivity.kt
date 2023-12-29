@@ -176,7 +176,7 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Suggestion Filters","show list of suggestion word to filter by", mutableStateOf(true)),
         )),
 
-        SettingsSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet",listOf(
+        SettingsSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet. only works if linked to dropbox",listOf(
             SettingsOptionToggle("Cache recipes","save a copy of recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cache recipe names","save a copy of names", mutableStateOf(true)),
             SettingsOptionDropDown("Cache recipe image","save a copy of images (can use up more space )", mutableStateOf(1),listOf("none","thumbnail","full sized")),

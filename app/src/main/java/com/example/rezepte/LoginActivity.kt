@@ -52,8 +52,8 @@ import com.dropbox.core.DbxRequestConfig
 import com.dropbox.core.DbxWebAuth
 import com.dropbox.core.TokenAccessType
 import com.example.rezepte.ui.theme.RezepteTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -122,7 +122,7 @@ private fun MainScreen(){
             value = linkValue,
             onValueChange = { value ->
                 linkValue = value //update its value
-                GlobalScope.launch {
+                CoroutineScope(Dispatchers.IO).launch {
                     val auth = try{
                         webAuth.finishFromCode(linkValue)
                     }
@@ -155,12 +155,7 @@ private fun MainScreen(){
                     //get the files needed to upload
                     val recipes = LocalFilesTask.listFolder("${mContext.filesDir}/xml/")
                     val images = LocalFilesTask.listFolder("${mContext.filesDir}/image/")
-                    val token = DbTokenHandling( //get token
-                        mContext.getSharedPreferences(
-                            "com.example.rezepte.dropboxintegration",
-                            MODE_PRIVATE
-                        )
-                    ).retrieveAccessToken()
+                    val token = auth?.accessToken
                     val dbClient =DropboxClient.getClient(token)
                     val downloader = DownloadTask(dbClient)
                     val uploader = UploadTask(dbClient)

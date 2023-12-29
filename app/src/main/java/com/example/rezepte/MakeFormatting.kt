@@ -143,11 +143,35 @@ class MakeFormatting {
             5.0 / 16, 1.0 / 4, 3.0 / 16, 1.0 / 8, 1.0 / 16,
             0.0
         )
+        private fun combineNumbersWithThereFractions(string:String): String{
+            //combines split number and fraction pairs
+            var output = string
+            //clean up and split words from numbers
+            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
+            for ((index,word) in cleanWords.withIndex()){
+                if (index == 0 ) continue //skip first as could not be valid
+                if (word.matches("((${fractions.slice(1..fractions.count()-2).joinToString(")|(")}))|([0-9]+/[0-9]+)".toRegex())){//if is fractional number
+                    //if word before is a whole number (going from right ot left now)
+                    println(cleanWords[index-1])
+                    if (cleanWords[index-1].matches("[0-9]+".toRegex())){
+                        //get the combined value of both numbers
+                        val combined = word.vulgarFraction + cleanWords[index-1].vulgarFraction
+                        //if they exist in the string with just a space between combine the values of the numbers
+                        output =output.replace("${cleanWords[index-1]} $word","$combined")
+                    }
+                }
+            }
+            return  output
+        }
+
 
         fun getCorrectUnitsAndValues(string :String, multiplier: Float, settings : Map<String,String>) : String {
 
+            //make sure that the numbers all have the correct unit
+            var output = convertUnitOfString(string,settings)
+            //remove a singular space between a fraction and a number as it is not necessary and is the best way to make sure they are combined
+            output = combineNumbersWithThereFractions(output)
             //replace numbers with multiplied value
-            val output = convertUnitOfString(string,settings) //make sure that the numbers all have the correct unit
             return multiplyBy(output,multiplier,settings["Units.Fractional Numbers"]== "true",if (settings["Units.Round Numbers"] == "true") 0.02f else -1f)
         }
         fun listUnitsInValue(string: String): List<String>{
