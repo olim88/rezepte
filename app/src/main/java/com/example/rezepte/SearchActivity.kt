@@ -124,80 +124,77 @@ class SearchActivity : ComponentActivity() {
         val isOnline = tokenHandler.isLoggedIn()
         ACCESS_TOKEN = tokenHandler.retrieveAccessToken()
 
-        val data : MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
+        val recipeNameData : MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
         val extraData : MutableMap<String,BasicData> = mutableMapOf()
         val thumbnails = mutableMapOf<String,Bitmap?>()
         val hasThumbnails = mutableStateOf(false)
-        //load local save list if enabled in settings
-        val localList = if (settings["Local Saves.Cache recipe names"] == "true" || !isOnline) {
-            LocalFilesTask.loadFile("${this.filesDir}","listOfRecipes.xml")
-        } else {null}
 
-        if (localList != null){
-            data.value = localList.first.replace(".xml","").split("\n").toMutableList()
 
-            //if there are locally saved thumbnails load them if data is not empty
-            if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized" || !isOnline){
-                for (name in data.value){
-                    thumbnails[name] = LocalFilesTask.loadBitmap("${this@SearchActivity.filesDir}/thumbnail/","$name.png")?.first
-                }
-                hasThumbnails.value = true
+        //set the content of the window
+        setContent {
+            RezepteTheme {
+                MainScreen(recipeNameData,extraData, thumbnails,returnName,hasThumbnails,settings)
             }
-            //load local extra data
-            val searchDataXml = LocalFilesTask.loadFile("${this@SearchActivity.filesDir}/","searchData.xml")
-            if (searchDataXml != null) {
-                val searchData = XmlExtraction.getSearchData(searchDataXml.first)
+        }
+        //get token
+        val dropboxPreference =
+            getSharedPreferences(
+                "com.example.rezepte.dropboxintegration",
+                MODE_PRIVATE
+            )
+        var localList : String? = null
+        //load the file data
+        val loadLocalFileData = FileSync.Data(FileSync.FilePriority.LocalOnly, dropboxPreference)
+        val file =
+            FileSync.FileInfo("", "${this@SearchActivity.filesDir}","listOfRecipes.xml")
+        CoroutineScope(Dispatchers.IO).launch {
+            if (settings["Local Saves.Cache recipe names"] == "true") {
+                FileSync.downloadString(loadLocalFileData, file) {
+                    localList = it
+                }
+            }
 
+            if (localList != null){
+                recipeNameData.value = localList!!.replace(".xml","").split("\n").toMutableList()
+
+
+            }
+            //add local only files to that list
+            val localFiles = LocalFilesTask.listFolder("${this@SearchActivity.filesDir}/xml/")
+            if (settings["Local Saves.Cache recipes"] == "true" && !localFiles.isNullOrEmpty()){
+                for (fileName in localFiles){
+                    if (!recipeNameData.value.contains(fileName.removeSuffix(".xml"))){//if the list dose not contain the file name add it to the list
+                        recipeNameData.value.add(fileName.removeSuffix(".xml"))
+                    }
+                }
+            }
+            //if there are locally saved thumbnails load them if data is not empty
+            if (recipeNameData.value.isNotEmpty()){
+                if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized" || !isOnline){
+                    val thumbnailFiles =  FileSync.FileBatchInfo("", "${this@SearchActivity.filesDir}/thumbnail/",recipeNameData.value)
+                    FileSync.downloadThumbnail(loadLocalFileData,thumbnailFiles){
+                        thumbnails.putAll(it)
+                        hasThumbnails.value = true
+                    }
+                }
+            }
+
+            //load  extra data
+            val priority =
+                if (settings["Local Saves.Cache recipes"] == "true") FileSync.FilePriority.OnlineFirst else FileSync.FilePriority.OnlineOnly
+            val searchDataData = FileSync.Data(priority, dropboxPreference)
+            val searchDataFile =  FileSync.FileInfo("/", "${this@SearchActivity.filesDir}/","searchData.xml")
+            FileSync.downloadString(searchDataData,searchDataFile){
+                val searchData = XmlExtraction.getSearchData(it)
                 //convert to dictionary
                 for (recipeData in searchData.data) {
                     extraData[recipeData.name] = recipeData
                 }
             }
         }
-        //add local only files to that list
 
-        val localFiles = LocalFilesTask.listFolder("${this.filesDir}/xml/")
-        if (!localFiles.isNullOrEmpty()){
-            for (file in localFiles){
-                //if the list dose not contain the file name add it to the list
-                if (!data.value.contains(file.removeSuffix(".xml"))){
-                    //add to data
-                    data.value.add(file.removeSuffix(".xml"))
-                }
-            }
-            //if not logged in crate new list and save that
-            if (!isOnline) {
-                data.value = mutableListOf()
-                for (file in localFiles) {
-                    //if the list dose not contain the file name add it to the list
-
-                    data.value.add(file.removeSuffix(".xml"))
-
-                }
-                //save this
-                LocalFilesTask.saveString(data.value.joinToString("\n"),"${this.filesDir}","listOfRecipes.xml")
-            }
-        }else if (!isOnline) { //if nothing is found to be saved and is offline save empty list to file to clear it as there is nothing the user can load
-            data.value = mutableListOf()
-            LocalFilesTask.saveString("","${this.filesDir}","listOfRecipes.xml")
-        }
-
-
-
-
-
-
-
-
-
-        //set the content of the window
-        setContent {
-            RezepteTheme {
-                MainScreen(data,extraData, thumbnails,returnName,hasThumbnails,settings)
-            }
-        }
-
-        if (isOnline) {//only do stuff from the web if the user is logged in
+        //if online supplement the recipe names list with a list of the online file names
+        if (isOnline) {
             val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
             CoroutineScope(Dispatchers.IO).launch {
                 //get data
@@ -210,88 +207,43 @@ class SearchActivity : ComponentActivity() {
                         val oldValue = iterate.next()
                         iterate.set(oldValue.removeSuffix(".xml"))
                     }
-                    if (localList == null || onlineList != localList.first.replace(".xml", "")
+                    if (localList == null || onlineList != localList!!.replace(".xml", "")
                             .split("\n")
                     ) { //if the lists are different use the online version and save to to local if enabled
-                        data.value = onlineList
-                        if (settings["Local Saves.Cache recipe names"] == "true" || !isOnline) {
-                            LocalFilesTask.saveString(
-                                onlineList.joinToString("\n"),
-                                "${this@SearchActivity.filesDir}",
-                                "listOfRecipes.xml"
-                            )
+                        recipeNameData.value = onlineList
+                        if (settings["Local Saves.Cache recipe names"] == "true") {
+                            FileSync.uploadString(loadLocalFileData,file,onlineList.joinToString("\n")){}
                         }
-                    }
-                    //if there were no local saved names thumbnails need to be grabbed now
-                    if (localList == null) {
-                        //if there are locally saved thumbnails load them
-                        if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized" || !isOnline) {
-                            for (name in data.value) {
-                                thumbnails[name] = LocalFilesTask.loadBitmap(
-                                    "${this@SearchActivity.filesDir}/thumbnail/",
-                                    "$name.png"
-                                )?.first
-                            }
-                            hasThumbnails.value = true
-                        }
-                    }
-                    //load the extra search data
-                    val seachData = try {
-                        val seachDataXml = downloader.getXml("/searchData.xml")
-                        XmlExtraction.getSearchData(seachDataXml.first)
-                    } catch (e: Exception) {
-                        getEmptySeachData()
-                    }
-                    //convert to dictionary
-                    for (recipeData in seachData.data) {
-                        extraData[recipeData.name] = recipeData
-                    }
-                    //if enabled save this to the device
-                    if (settings["Local Saves.Cache recipe names"] == "true") {
-                        LocalFilesTask.saveString(
-                            parseSearchData(SearchData(extraData.values.toMutableList())),
-                            "${this@SearchActivity.filesDir}/",
-                            "searchData.xml"
-                        )
-                    }
-
-
-                    //get thumbnails
-                    val thumbnailsDownloaded = downloader.getThumbnails("/image/", data.value)
-                    if (thumbnailsDownloaded != null) {
-                        if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized") {
-                            for (thumbnailKey in thumbnails.keys) {
-                                if (thumbnailsDownloaded[thumbnailKey]?.sameAs(thumbnails[thumbnailKey]) == false) {
-                                    //if they are not the same save the thumbnail to device update the value and set hasThumbnails to true
-                                    thumbnails[thumbnailKey] = thumbnailsDownloaded[thumbnailKey]
-                                    hasThumbnails.value = true
-
-                                    if (thumbnailsDownloaded[thumbnailKey] != null) {
-                                        LocalFilesTask.saveBitmap(
-                                            thumbnailsDownloaded[thumbnailKey]!!,
-                                            "${this@SearchActivity.filesDir}/thumbnail/",
-                                            "$thumbnailKey.png"
-                                        )
-                                    } else {
-                                        //delete the file if not on dropbox
-                                        LocalFilesTask.removeFile(
-                                            "${this@SearchActivity.filesDir}/thumbnail/",
-                                            "$thumbnailKey.png"
-                                        )
-                                    }
-                                }
-                            }
-                        } else {//if setting not enabled just load the thumbnails from dropbox
-                            thumbnails.putAll(thumbnailsDownloaded)
-                            hasThumbnails.value = true
-                        }
-
                     }
                 }
 
+                //load thumbnails when file names are finalised
+                val priority =
+                    if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized") FileSync.FilePriority.OnlineFirst else FileSync.FilePriority.OnlineOnly
+                val thumbNailsData = FileSync.Data(priority,dropboxPreference)
+                val thumbnailFiles = FileSync.FileBatchInfo("/image/","${this@SearchActivity.filesDir}/thumbnail/",recipeNameData.value)
+                FileSync.downloadThumbnail(thumbNailsData,thumbnailFiles){
+                    for (thumbnailKey in recipeNameData.value){
+                        if(thumbnails.contains(thumbnailKey) && thumbnails[thumbnailKey] != null ){
+                            if (!thumbnails[thumbnailKey]!!.sameAs(it[thumbnailKey])) {
+                                thumbnails[thumbnailKey] = it[thumbnailKey]
+                                hasThumbnails.value = true
+                            }
+                        }else if (it[thumbnailKey] != null) {
+                            thumbnails[thumbnailKey]  = it[thumbnailKey]
+                            hasThumbnails.value = true
+                        }
+                    }
+
+                }
+                val thumbNailSyncData = FileSync.Data(FileSync.FilePriority.OnlineFirst,dropboxPreference) //sync the thumbnails to device
+                FileSync.syncThumbnail(thumbNailSyncData,thumbnailFiles){}
 
             }
+
         }
+
+
     }
 
 }

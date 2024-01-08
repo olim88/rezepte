@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
@@ -63,18 +62,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.dropbox.core.NetworkIOException
-import com.dropbox.core.v2.files.DownloadErrorException
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MakeActivity : AppCompatActivity()
 {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //get name of recipe to load
+        val recipeName = intent.extras?.getString("recipe name")
 
         //get the users settings
         val settings = SettingsActivity.loadSettings(
@@ -83,160 +82,49 @@ class MakeActivity : AppCompatActivity()
                 MODE_PRIVATE
             )
         )
-        val tokenHandler = DbTokenHandling(
+        //get token
+        val dropboxPreference =
             getSharedPreferences(
                 "com.example.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
-        )
-        val token = tokenHandler.retrieveAccessToken()
-        val isOnline = tokenHandler.isLoggedIn()
 
-        //get name of recipe to load
-        val recipeName = intent.extras?.getString("recipe name")
-        //get local saved image
-        val localImage= if (settings["Local Saves.Cache recipe image"] == "full sized" || !isOnline) {
-            LocalFilesTask.loadBitmap("${this.filesDir}/image/", "$recipeName.png")
-        }  else {null}
         //create image value
-        val image: MutableState<Bitmap?> =mutableStateOf(localImage?.first)
-
+        val image: MutableState<Bitmap?> =mutableStateOf(null)
         //create variable for recipe data
         val extractedData : MutableState<Recipe> = mutableStateOf(GetEmptyRecipe())
-        //if local save load that data
-        val localData = if (settings["Local Saves.Cache recipes"] == "true"|| !isOnline){
-            LocalFilesTask.loadFile("${this.filesDir}/xml/","$recipeName.xml")
-        } else {null}
-        //if there is locally saved data load that to extracted data
-        if (localData != null ){
-            extractedData.value =  XmlExtraction.getData(localData.first)
-        }
+
         //set the content
         setContent {
             RezepteTheme {
                 MainScreen(settings, extractedData,image)
             }
         }
-        //if the user is logged in
-        if (isOnline){
-            //load saved data about recipe and compare to local save to make sure they are synced with each other
-            val downloader = DownloadTask(DropboxClient.getClient(token))
+        CoroutineScope(Dispatchers.IO).launch {
+            //load the file data
+            val priority = if (settings["Local Saves.Cache recipes"] == "true") FileSync.FilePriority.Newist else FileSync.FilePriority.OnlineOnly
+            val imagePriority = if (settings["Local Saves.Cache recipe image"]== "full sized") FileSync.FilePriority.Newist else FileSync.FilePriority.OnlineOnly
+            val data = FileSync.Data(priority, dropboxPreference)
+            val imageData = FileSync.Data(imagePriority, dropboxPreference)
+            val file =
+                FileSync.FileInfo("/xml/", "${this@MakeActivity.filesDir}/xml/", "$recipeName.xml")
             CoroutineScope(Dispatchers.IO).launch {
-                //make sure most updated data else replace with online and save online to file
-                try {
-                    val data = downloader.getXml("/xml/$recipeName.xml")
-                    //compare the data of save for local and dropbox save
-                    if (localData != null) {
-                        if (data.second.toInstant().toEpochMilli() - localData.second.toInstant()
-                                .toEpochMilli() > 5000
-                        ) {//if local is more than 5 seconds behind
-                            LocalFilesTask.saveString(
-                                data.first,
-                                "${this@MakeActivity.filesDir}/xml/",
-                                "$recipeName.xml"
-                            )
-                            extractedData.value = XmlExtraction.getData(data.first)
-                        } else if (data.second.toInstant().toEpochMilli() - localData.second.toInstant()
-                                .toEpochMilli() > -5000
-                        ) {//if local save is over 5 seconds newer
-                            //upload local to dropbox
-                            val uploadClient = UploadTask(DropboxClient.getClient(token))
-                            //upload recipe data
-                            uploadClient.uploadXml(localData.first, "/xml/$recipeName.xml")
-                        }
-
-
-                    } else { //if not saved locally save it and update ui version
-                        if (settings["Local Saves.Cache recipes"] == "true") {//if we are saving recipes
-                            LocalFilesTask.saveString(
-                                data.first,
-                                "${this@MakeActivity.filesDir}/xml/",
-                                "$recipeName.xml"
-                            )
-                        }
-                        extractedData.value = XmlExtraction.getData(data.first)
-                    }
-                    val onlineImage = downloader.getImage("/image/", recipeName!!)
-                    if (onlineImage != null) {
-                        if (settings["Local Saves.Cache recipe image"] == "full sized") {
-                            if (localImage != null) {
-                                if (data.second.toInstant()
-                                        .toEpochMilli() - localImage.second.toInstant()
-                                        .toEpochMilli() > 5000
-                                ) {//if local is more than 5 seconds behind
-                                    //use online save and save to device
-                                    image.value = onlineImage.first
-                                    LocalFilesTask.saveBitmap(
-                                        onlineImage.first,
-                                        "${this@MakeActivity.filesDir}/image/",
-                                        "$recipeName.png"
-                                    )
-                                } else if (data.second.toInstant()
-                                        .toEpochMilli() - localImage.second.toInstant()
-                                        .toEpochMilli() > -5000
-                                ) {//if local is more than 5 seconds behind
-                                    //upload local to dropbox
-                                    val uploadClient = UploadTask(DropboxClient.getClient(token))
-                                    //upload recipe data
-                                    uploadClient.uploadBitmap(localImage.first, "/image/$recipeName")
-
-                                }
-
-                            } else { //if local is null save online to it
-                                LocalFilesTask.saveBitmap(
-                                    onlineImage.first,
-                                    "${this@MakeActivity.filesDir}/image/",
-                                    "$recipeName.png"
-                                )
-                                image.value = onlineImage.first
-                            }
-                        } else {
-                            image.value = onlineImage.first
-                        }
-                    } else if (localImage != null) { //if there is no online image but a local one save that online
-                        //upload local to dropbox
-                        val uploadClient = UploadTask(DropboxClient.getClient(token))
-                        //upload recipe data
-                        uploadClient.uploadBitmap(localImage.first, "/image/$recipeName")
-                    }
-                } catch (e: NetworkIOException) {
-                    //can not reach dropbox so can only go of local files
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MakeActivity, "can't reach dropbox", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                } catch (e: DownloadErrorException) {
-                    //the file is not on dropbox so upload the local data
-
-                    //upload local to dropbox
-                    val uploadClient = UploadTask(DropboxClient.getClient(token))
-                    //upload recipe data
-                    if (localData != null) {
-                        uploadClient.uploadXml(localData.first, "/xml/$recipeName.xml")
-                    }
-
-                    if (localImage != null) {
-                        uploadClient.uploadBitmap(localImage.first, "/image/$recipeName")
-                    }
-
-
+                FileSync.downloadString(data, file) {
+                    extractedData.value = XmlExtraction.getData(it)
                 }
             }
-            //if no data could be loaded show error
-            if (extractedData.value == GetEmptyRecipe()){
-                Toast.makeText(this@MakeActivity, "Can't Find Recipe To Load", Toast.LENGTH_SHORT)
-                    .show()
+
+            val imageFile =
+                FileSync.FileInfo("/image/", "${this@MakeActivity.filesDir}/image/", "$recipeName.png")
+            FileSync.downloadImage(imageData, imageFile) {
+                image.value = it
+
             }
+            //sync files
 
+            FileSync.syncFile(data, file) {}
+            FileSync.syncFile(imageData, imageFile) {}
         }
-        //if no data could be loaded show error
-        if (extractedData.value == GetEmptyRecipe() && !isOnline){ //if online code could still be running here so the check for that is at the end of the corotine
-            Toast.makeText(this@MakeActivity, "Can't Find Recipe To Load", Toast.LENGTH_SHORT)
-                .show()
-        }
-
-
-
 
     }
 }

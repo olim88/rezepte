@@ -3,7 +3,6 @@ package com.example.rezepte
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
 import com.dropbox.core.DbxException
 import com.dropbox.core.oauth.DbxCredential
 import kotlinx.coroutines.CoroutineScope
@@ -12,7 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
-class  DbTokenHandling(sharedPreferences: SharedPreferences) : AppCompatActivity() {
+class  DbTokenHandling(sharedPreferences: SharedPreferences)  {
 
     private var prefs :SharedPreferences = sharedPreferences
 

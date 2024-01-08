@@ -162,7 +162,7 @@ private fun MainScreen(){
                     //loop though recipes and upload if there is not a newer version on dropbox
                     if (recipes != null) {
                         for (file in recipes){
-                            val fileData = LocalFilesTask.loadFile("${mContext.filesDir}/xml/",file)
+                            val fileData = LocalFilesTask.loadString("${mContext.filesDir}/xml/",file)
                             if (fileData != null) {//there should not be possible to have a null file but just incase do not do anything if there is
                                 val dbFile = try {
                                     downloader.getXml("/xml/${file}")
@@ -185,7 +185,7 @@ private fun MainScreen(){
                     //do the same for images
                     if (images != null) {
                         for (image in images){
-                            val fileData = LocalFilesTask.loadFile("${mContext.filesDir}/image/",image)
+                            val fileData = LocalFilesTask.loadString("${mContext.filesDir}/image/",image)
                             if (fileData != null) {//there should not be possible to have a null image but just incase do not do anything if there is
                                 val dbFile = try {
                                     downloader.getXml("/image/${image}")

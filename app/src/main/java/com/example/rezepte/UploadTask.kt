@@ -37,7 +37,7 @@ class UploadTask (private val client: DbxClientV2){
             val inputStream: InputStream = FileInputStream(file)
             client.files()
                 .uploadBuilder(
-                    "$filepath.${file.name.split(".").last()}"
+                    filepath
                 ) //Path in the user's Dropbox to save the file.
                 .withMode(WriteMode.OVERWRITE) //always overwrite existing file
                 .uploadAndFinish(inputStream)
@@ -57,7 +57,7 @@ class UploadTask (private val client: DbxClientV2){
             val inputStream: InputStream = ByteArrayInputStream(bos.toByteArray())
             client.files()
                 .uploadBuilder(
-                    "$filepath.png"
+                    filepath
                 ) //Path in the user's Dropbox to save the file.
                 .withMode(WriteMode.OVERWRITE) //always overwrite existing file
                 .uploadAndFinish(inputStream)

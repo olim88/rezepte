@@ -12,6 +12,7 @@ import com.dropbox.core.v2.files.ThumbnailMode
 import com.dropbox.core.v2.files.ThumbnailSize
 import com.dropbox.core.v2.users.FullAccount
 import java.io.BufferedReader
+import java.io.File
 import java.util.Date
 import java.util.LinkedList
 import java.util.Queue
@@ -63,7 +64,7 @@ class DownloadTask(client: DbxClientV2)  {
 
         return Pair(content.toString() ,time)
     }
-    suspend fun getImage(dir: String, name :String): Pair<Bitmap, Date>? {
+     fun getImage(dir: String, name :String): Pair<Bitmap, Date>? {
         if (getImagePath(dir,name) == null) return null
         val results = dbxClient.files().download(getImagePath(dir,name))
         val time = results.result.serverModified //last modified time
@@ -74,7 +75,22 @@ class DownloadTask(client: DbxClientV2)  {
 
         return Pair(BitmapFactory.decodeStream(results.inputStream),time)
     }
-    private suspend fun getImagePath(dir: String, name :String): String? {
+    fun getFile(dir: String, name :String): Pair<File, Date>? {
+        if (getImagePath(dir,name) == null) return null
+        val results = dbxClient.files().download(getImagePath(dir,name))
+        val time = results.result.serverModified //last modified time
+        val file: File = createTempFile()
+
+
+        results.inputStream.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+
+        return Pair(file,time)
+    }
+    private  fun getImagePath(dir: String, name :String): String? {
         val nameOptions = listDir(dir) ?: return  null
         val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
         if (fullName.isEmpty()) return null
@@ -86,7 +102,7 @@ class DownloadTask(client: DbxClientV2)  {
         return "$dir${fullName[0]}"
     }
 
-    suspend fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>?{
+    fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>?{
         //set bitmap options
         val options = BitmapFactory.Options()
         options.inPreferredConfig = Bitmap.Config.ARGB_8888

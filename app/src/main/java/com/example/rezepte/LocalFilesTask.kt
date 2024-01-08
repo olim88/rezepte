@@ -18,10 +18,17 @@ class LocalFilesTask {
             file.parentFile?.mkdirs()
             file.writeBytes(fileToSave.readBytes())
         }
-        fun loadFile (filePath:String, fileName: String): Pair<String,Date>?{
+        fun loadString (filePath:String, fileName: String): Pair<String,Date>?{
             val file = File(filePath,fileName)
             if (file.isFile){
                 return Pair(file.readText(), Date(file.lastModified()))
+            }
+            return  null
+        }
+        fun loadFile (filePath:String, fileName: String): Pair<File,Date>?{
+            val file = File(filePath,fileName)
+            if (file.isFile){
+                return Pair(file, Date(file.lastModified()))
             }
             return  null
         }
