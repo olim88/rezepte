@@ -15,12 +15,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -241,7 +235,9 @@ fun DropboxInfo(accountData : MutableState<Pair<FullAccount?,Boolean>>) {
             }
         } else{ //the user is not logged in (show the option to log in
             Row {
-                Text(text = "Login to dropbox to be able to  sync between devices",style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,modifier = Modifier.align(Alignment.CenterVertically).weight(1f))
+                Text(text = "Login to dropbox to be able to  sync between devices",style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .weight(1f))
                 Spacer(
                     Modifier
                         .weight(0.1f)
@@ -269,10 +265,6 @@ fun CreateButtonOptions() {
     val mContext = LocalContext.current
     var urlInput by remember { mutableStateOf(false)}
     var imageInput by remember { mutableStateOf(false)}
-    var urlValue by remember { mutableStateOf("")}
-    //get a local image
-
-
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
         .fillMaxWidth()
@@ -308,73 +300,47 @@ fun CreateButtonOptions() {
 
             }
         }
-        //animate in or out the website link input
-        androidx.compose.animation.AnimatedVisibility(
-            visible = urlInput,
 
-            enter = scaleIn()
-                    + fadeIn(
-                // Fade in with the initial alpha of 0.3f.
-                initialAlpha = 0.3f
-            ) + expandIn(),
-            exit = scaleOut() + fadeOut() + shrinkOut()
-        ) {
-            //text field for link recipe
-            TextField(
-                value = urlValue,
-                onValueChange = { value ->
-                    urlValue = value //update its value
-                },
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val settings =
-                                SettingsActivity.loadSettings( //todo already have this loaded
-                                    mContext.getSharedPreferences(
-                                        "com.example.rezepte.settings",
-                                        ComponentActivity.MODE_PRIVATE
-                                    )
-                                )
-                            try {
-                                val recipe = DownloadWebsite.main(urlValue, settings)
-                                withContext(Dispatchers.Main) {
-                                    //move to create activity
-                                    val intent = Intent(mContext, CreateActivity::class.java)
-                                    intent.putExtra("data", parseData(recipe.first))
-                                    intent.putExtra("imageData", recipe.second)
-                                    mContext.startActivity(intent)
-                                }
-                            } catch (_: Exception) {
-                                //could not load the website
-                                Handler(Looper.getMainLooper()).post {
-                                    Toast.makeText(
-                                        mContext,
-                                        "Invalid website",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                        .show()
-
-                                }
-
-                            }
-
-                            //clear the url and reset
-                            urlValue = ""
-                            urlInput = false
+        if (urlInput){
+            GetStringDialog(
+                label = "Website",
+                descriptionText = "Input the url of the website you would like to load",
+                onDismiss = { urlInput = false }
+            ){
+                CoroutineScope(Dispatchers.IO).launch {
+                    val settings =
+                        SettingsActivity.loadSettings( //todo already have this loaded
+                            mContext.getSharedPreferences(
+                                "com.example.rezepte.settings",
+                                ComponentActivity.MODE_PRIVATE
+                            )
+                        )
+                    try {
+                        val recipe = DownloadWebsite.main(it, settings)
+                        withContext(Dispatchers.Main) {
+                            //move to create activity
+                            val intent = Intent(mContext, CreateActivity::class.java)
+                            intent.putExtra("data", parseData(recipe.first))
+                            intent.putExtra("imageData", recipe.second)
+                            mContext.startActivity(intent)
                         }
-
+                    } catch (_: Exception) {
+                        //could not load the website
+                        Handler(Looper.getMainLooper()).post {
+                            Toast.makeText(
+                                mContext,
+                                "Invalid website",
+                                Toast.LENGTH_SHORT
+                            )
+                                .show()
+                        }
                     }
-                ),
-                modifier = Modifier
-                    .fillMaxWidth(),
-                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
-                singleLine = true,
-                shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                label = { Text("website") }
 
-            )
-
+                    urlInput = false
+                }
+            }
         }
+
         if (imageInput){
             AddImageDialog("the image needs to be upright and only the text of one recipe visible and clearly readable", onDismiss = { imageInput = false})
             {imageUri : Uri ->
@@ -397,6 +363,67 @@ fun CreateButtonOptions() {
 
         }
 
+    }
+}
+@Composable
+fun GetStringDialog (label: String, descriptionText : String, onDismiss: () -> Unit, onReturnString: (String)-> Unit){
+    var stringInput by remember { mutableStateOf("")}
+
+    Dialog(onDismissRequest = { onDismiss() }) {
+        // Draw a rectangle shape with rounded corners inside the dialog
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(5.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column (modifier = Modifier.padding(10.dp)) {
+                Text(text = label, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Spacer(modifier = Modifier.height(15.dp))
+                TextField(
+                    value = stringInput,
+                    onValueChange = { value ->
+                        stringInput = value //update its value
+                    },
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                        onReturnString(stringInput)
+                        }
+
+                    ),
+                    modifier = Modifier
+                        .padding(5.dp)
+                        .fillMaxWidth(),
+                    textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                    singleLine = true,
+                    shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
+
+                )
+                Button(
+                    onClick = {
+                        onReturnString(stringInput)
+                    }, modifier = Modifier
+                        .padding(5.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(text = "Finish", textAlign = TextAlign.Center)
+
+                }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(5.dp),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(
+                        text =descriptionText,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+            }
+        }
     }
 }
 @Composable
@@ -474,7 +501,7 @@ fun AddImageDialog(descriptionText : String,onDismiss: () -> Unit,onReturnUri: (
                 }
             }
         }
-        }
+    }
 
 
 }
