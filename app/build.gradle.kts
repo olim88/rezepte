@@ -59,9 +59,9 @@ android {
 
 dependencies {
 
-    implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
-    implementation("androidx.activity:activity-compose:1.7.2")
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.activity:activity-compose:1.8.2")
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -69,8 +69,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("com.google.android.material:material:1.9.0")
-    implementation("androidx.preference:preference:1.2.0")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.preference:preference:1.2.1")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
@@ -80,7 +80,6 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     implementation("com.dropbox.core:dropbox-core-sdk:5.4.5")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
     implementation("com.fasterxml.woodstox:woodstox-core:5.0.2")
     implementation("org.redundent:kotlin-xml-builder:1.8.0")
     implementation("com.gitlab.mvysny.konsume-xml:konsume-xml:1.0")
@@ -88,6 +87,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation ("com.google.mlkit:text-recognition:16.0.0")
+
 
 
 

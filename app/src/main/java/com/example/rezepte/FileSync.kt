@@ -262,7 +262,7 @@ class FileSync {
             }
             success()
         }
-        fun syncThumbnail  (data : Data, file: FileBatchInfo, success: () -> Unit  ){ //todo might not be deleting old thumbnails
+        fun syncThumbnail  (data : Data, file: FileBatchInfo, success: () -> Unit  ){
             val localThumbnails  = hashMapOf<String,Bitmap?>()
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){

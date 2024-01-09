@@ -295,7 +295,7 @@ fun IngredientConversions(userSettings: Map<String,String>, measurement: String,
 }
 
 @Composable
-fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, mutiplyer: MutableState<Float>){
+fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, multiplier: MutableState<Float>){
     var strikeIndex by remember {mutableStateOf(0)}
     Card(
         modifier = Modifier
@@ -334,7 +334,7 @@ fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<
                     ingredient.index,
                     (index == strikeIndex),
                     (index < strikeIndex),
-                    mutiplyer
+                    multiplier
                 )
             }
         }
@@ -453,7 +453,7 @@ fun getColor (index: Int?, default : androidx.compose.ui.graphics.Color) :  andr
 
 }
 @Composable
-fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Recipe>){
+fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Recipe>, multiplier: MutableState<Float>){
     var strikeIndex by remember {mutableIntStateOf(0)}
 
     Card(
@@ -487,8 +487,9 @@ fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Re
             }
             //update the instructions list
             for ((index,instruction) in recipeData.value.instructions.list.withIndex()) {
+                val correctUnitsAndMultipliedText = MakeFormatting.getCorrectUnitsAndValuesInIngredients(instruction.text,multiplier.value,settings)
                 instruction(
-                    instruction.text,
+                    correctUnitsAndMultipliedText,
                     instruction.index,
                     (index == strikeIndex),
                     (index < strikeIndex),
@@ -646,7 +647,7 @@ private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState
         //ingredients
         IngredientsOutput(userSettings,recipeData,multiplier)
         //instructions
-        InstructionsOutput(userSettings,recipeData)
+        InstructionsOutput(userSettings,recipeData,multiplier)
         //linked recipes
         LinkedRecipesOutput(recipeData.value)
         //edit and finish button

@@ -848,7 +848,7 @@ fun SearchFilters(
         }
     }
 }
-fun getFilters (recipeNames: List<String>): Map<String,MutableState<Boolean>>{ //get common words to use as suggested filters
+fun getFilters (recipeNames: List<String>, authors: MutableCollection<BasicData>): Map<String,MutableState<Boolean>>{ //get common words to use as suggested filters
     val popularWords = mutableMapOf<String,MutableState<Boolean>>()
     val usedWordsCount = mutableMapOf<String,Int>()
     for (name in recipeNames){
@@ -858,6 +858,15 @@ fun getFilters (recipeNames: List<String>): Map<String,MutableState<Boolean>>{ /
             }else {
                 usedWordsCount[word] = usedWordsCount[word]!! + 1
             }
+        }
+    }
+    println("t: $authors, $recipeNames")
+    for (author in authors){ //todo this never works because authors is empty when this is called
+        println("adding: ${author.author}")
+        if (usedWordsCount[author.author] == null){
+            usedWordsCount[author.author] = 1
+        }else {
+            usedWordsCount[author.author] = usedWordsCount[author.author]!! + 1
         }
     }
 
@@ -878,7 +887,7 @@ private fun MainScreen(
     getName: Boolean, updatedThumbnail: MutableState<Boolean>,
     settings: Map<String,String>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
-    val filters = remember { mutableStateOf( getFilters(names.value))}
+    val filters = remember { mutableStateOf( getFilters(names.value,extraData.values))}
     if (names.value.isNotEmpty()) {
         Column(
             modifier = Modifier

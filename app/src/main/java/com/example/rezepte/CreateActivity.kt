@@ -239,6 +239,10 @@ class CreateActivity : ComponentActivity() {
         }
     }
     private fun deleteRecipeData(){
+        val settings = SettingsActivity.loadSettings(getSharedPreferences(
+            "com.example.rezepte.settings",
+            MODE_PRIVATE
+        ))
         //get token
         val dropboxPreference =
             getSharedPreferences(
@@ -298,13 +302,14 @@ class CreateActivity : ComponentActivity() {
                     }
                 }
             }
-            FileSync.uploadString( //todo settings["Local Saves.Cache recipe names"] == "true"
-                data,
+            val uploadPriority = if (settings["Local Saves.Cache recipe names"] == "true") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val uploadData = FileSync.Data(uploadPriority, dropboxPreference)
+            FileSync.uploadString(
+                uploadData,
                 searchDataFile,
                 parseSearchData(searchData!!)
             ) {}
         }
-
     }
 
     @RequiresApi(Build.VERSION_CODES.P)
@@ -414,7 +419,7 @@ class CreateActivity : ComponentActivity() {
             ) {}
 
             //if the name has changed delete old files
-            if (name != loadedRecipeName && loadedRecipeName != null) { //todo call delete function
+            if (name != loadedRecipeName && loadedRecipeName != null) {
                 deleteRecipeData()
             }
         }
@@ -940,7 +945,7 @@ fun CookingStepsInput(settings: Map<String, String>, data : MutableState<Recipe>
                         .size(24.dp))
             }
             if (isExpanded) {
-                if (updatedSteps.value ){println(steps)} //todo work out if needed
+                if (updatedSteps.value ){}
                 Column {
 
                     for (step in steps) {

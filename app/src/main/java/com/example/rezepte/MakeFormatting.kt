@@ -163,7 +163,14 @@ class MakeFormatting {
             }
             return  output
         }
-
+        fun getCorrectUnitsAndValuesInIngredients(string :String, multiplier: Float, settings : Map<String,String>) : String {
+            //make sure that the numbers all have the correct unit
+            var output = convertUnitOfString(string,settings)
+            //remove a singular space between a fraction and a number as it is not necessary and is the best way to make sure they are combined
+            output = combineNumbersWithThereFractions(output)
+            //replace numbers with multiplied value
+            return multiplyByOnlyValues(output,multiplier,settings["Units.Fractional Numbers"]== "true",if (settings["Units.Round Numbers"] == "true") 0.02f else -1f)
+        }
 
         fun getCorrectUnitsAndValues(string :String, multiplier: Float, settings : Map<String,String>) : String {
 
@@ -406,7 +413,6 @@ class MakeFormatting {
         private fun multiplyBy (wholeString: String, multiplier: Float, isVulgar: Boolean, roundPercentage : Float): String{
             var output = wholeString
             for (number in wholeString.containedNumbers){
-                if (number== "/") continue //i think this is unnecessary as number regex has been fixed todo
                 //if there is an "x" in the string before the number this signifies the number is being multiplied by another value and to avoid having both multiplied do not multiply a number after a "x"
                 var value = if(wholeString.indexOf(" x ") != -1 && wholeString.indexOf(" x ") < wholeString.indexOf(number)) {
                     number.vulgarFraction
@@ -422,6 +428,39 @@ class MakeFormatting {
                     output.replace(number, (value.vulgarFraction.second).toString().replace(".0 ", " "))
                 }
             }
+            return output
+        }
+
+        /**
+         * multiplies the numbers in a string only if they have a measurement after them so it can work inside instructions
+         *
+         *
+         * @param wholeString The string to multiple the numbers in.
+         * @param multiplier The number to multiple them by.
+         * @param isVulgar How to format the numbers when finished.
+         * @param roundPercentage what difference from a whole number to start rounding the number.
+         */
+        private fun multiplyByOnlyValues (wholeString: String, multiplier: Float, isVulgar: Boolean, roundPercentage : Float): String{
+            //clean the string from brackets and other things in the way
+            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(wholeString)))
+            val units= getUnitsInString(wholeString)
+            var output = wholeString
+
+            for (unit in units){
+
+                //if there units starting an item just ignore them
+                if (unit.value == 0) continue
+                val value = cleanWords[unit.value-1]
+                //make sure that there is a number being passed
+                if (value.matches(numberRegex)) {
+                    val newNumber = roundSmallGaps(value.vulgarFraction * multiplier, roundPercentage).vulgarFraction
+                    val replacement : String=   if (isVulgar) newNumber.first else newNumber.second.toString()
+                    output = output.replaceNumberBeforeValues(value,replacement, unitsLut[unit.key]!!)
+
+
+                }
+            }
+
             return output
         }
         private fun roundSmallGaps (value: Float, roundPercentage: Float ) : Float{
@@ -464,22 +503,26 @@ class MakeFormatting {
             }
             return  outputWords
         }
-
-        private fun convertUnitOfString(string: String, settings: Map<String,String>) : String{
+        private fun getUnitsInString(string:String) : MutableMap<CookingUnit, Int> {
             //clean the string from brackets and other things in the way
             val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
             //find the existing units in the string
-            var unitType : CookingUnit? = null
             val unitIndexes: MutableMap<CookingUnit,Int> = mutableMapOf()
             for (option in unitsLut.entries){
                 val unitIndex = cleanWords.indexOf(option.value)
                 if (unitIndex != -1){
                     unitIndexes[option.key]  = unitIndex
-                    unitType = option.key
-
                 }
             }
-            if (unitType == null) return string // can not find units so not converting them
+            return unitIndexes
+        }
+
+        private fun convertUnitOfString(string: String, settings: Map<String,String>) : String{
+            //clean the string from brackets and other things in the way
+            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
+            //find the existing units in the string
+            val unitIndexes = getUnitsInString(string)
+            if (unitIndexes.isEmpty()) return string // can not find units so not converting them
             var output = string
             //check all the units found
             for (unit in unitIndexes){

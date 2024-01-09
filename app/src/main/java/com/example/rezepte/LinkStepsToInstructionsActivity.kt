@@ -33,7 +33,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.rezepte.ui.theme.RezepteTheme
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class LinkStepsToInstructionsActivity: AppCompatActivity()
@@ -68,15 +69,29 @@ class LinkStepsToInstructionsActivity: AppCompatActivity()
 
         //export saved recipe
         val data: String= parseData(recipe)
-        var name = recipe.data.name
-        val token = DbTokenHandling( //get token
+        val name = recipe.data.name
+
+        val settings = SettingsActivity.loadSettings(getSharedPreferences(
+            "com.example.rezepte.settings",
+            MODE_PRIVATE
+        ))
+        //get token
+        val dropboxPreference =
             getSharedPreferences(
                 "com.example.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
-        ).retrieveAccessToken()
-        GlobalScope.launch {
-            UploadTask(DropboxClient.getClient(token)).uploadXml(data, "/xml/$name.xml")
+        CoroutineScope(Dispatchers.IO).launch {
+            //load the file data
+            val priority = if (settings["Local Saves.Cache recipe names"] == "true" ) FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val uploadData = FileSync.Data(priority, dropboxPreference)
+            val xmlSaveFile =
+                FileSync.FileInfo(
+                    "/xml/",
+                    "${this@LinkStepsToInstructionsActivity.filesDir}/xml/",
+                    "$name.xml"
+                )
+            FileSync.uploadString(uploadData, xmlSaveFile, data) {}
         }
 
         //move to home
@@ -89,7 +104,7 @@ class LinkStepsToInstructionsActivity: AppCompatActivity()
 private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
     //get local context and settings
     val mContext = LocalContext.current
-    val settings =SettingsActivity.loadSettings( //todo already have this loaded
+    val settings =SettingsActivity.loadSettings(
         mContext.getSharedPreferences(
             "com.example.rezepte.settings",
             ComponentActivity.MODE_PRIVATE

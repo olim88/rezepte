@@ -247,7 +247,7 @@ class CreateAutomations {
                 else -> {}
             }
             if ( option != TinOrPanOptions.none){
-                return CookingStepContainer(option,dimensionOne,dimensionTwo, dimensionVolume) //todo get more than size
+                return CookingStepContainer(option,dimensionOne,dimensionTwo, dimensionVolume)
             }
             return null
         }
