@@ -251,11 +251,11 @@ class MakeFormatting {
                     getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
                 }
                 CookingUnit.Pint -> {
-                    val ml = splitMeasurement[0].vulgarFraction * 0.568262f
+                    val ml = splitMeasurement[0].vulgarFraction * pintVolume(settings)
                     getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
                 }
                 CookingUnit.FluidOunce -> {
-                    val ml = splitMeasurement[0].vulgarFraction  * 28.4131f
+                    val ml = splitMeasurement[0].vulgarFraction  * fluidOunceVolume(settings)
                     getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
                 }
                 CookingUnit.Grams -> {
@@ -330,7 +330,7 @@ class MakeFormatting {
                 output[CookingUnit.Pint] = ml * 0.001759754f
             }
             //floz
-            output[CookingUnit.FluidOunce] = ml * 0.035195f
+            output[CookingUnit.FluidOunce] = ml * 1/fluidOunceVolume(settings)
 
             return output
         }
@@ -575,6 +575,28 @@ class MakeFormatting {
             }
             return output
         }
+        private fun fluidOunceVolume(settings: Map<String, String>):Float{
+            val setting = settings["Units.Conversions.Cup volume"] ?: return 0f
+
+            val output = when{
+                setting.startsWith("imperial") -> 28.4131f
+                setting.startsWith("us") -> 29.5735f
+
+                else -> 0f //if setting is corrupted or thing
+            }
+            return output
+        }
+        private fun pintVolume(settings: Map<String, String>):Float{
+            val setting = settings["Units.Conversions.Cup volume"] ?: return 0f
+
+            val output = when{
+                setting.startsWith("imperial") -> 568.2612f
+                setting.startsWith("us") -> 473.17648f
+
+                else -> 0f //if setting is corrupted or thing
+            }
+            return output
+        }
 
         private fun fixUnits(wholeString: String, startingValue: String, cookingUnitType: CookingUnit, settings: Map<String, String>): String{
             //make sure unit is correct for the users settings
@@ -654,7 +676,7 @@ class MakeFormatting {
                     //if not using metric convert it to  fl oz
                     else if(settings["Units.metric Volume"] == "false" ){
                         //convert to fl oz
-                        output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* 0.035195).toString(),unitsLut[CookingUnit.Millilitres]!!)
+                        output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* 1/fluidOunceVolume(settings)).toString(),unitsLut[CookingUnit.Millilitres]!!)
 
                         //replace unit
                         unitsLut[CookingUnit.Millilitres]?.let { output =  output.replace (it, "fl oz") }
@@ -668,7 +690,7 @@ class MakeFormatting {
                     //if not using metric convert ot pint
                     if(settings["Units.metric Volume"] == "false" ){
                         //convert to pint
-                        output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* 1.7598f).toString(),unitsLut[CookingUnit.Litres]!!)
+                        output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* pintVolume(settings)).toString(),unitsLut[CookingUnit.Litres]!!)
 
                         //replace unit
                         unitsLut[CookingUnit.Litres]?.let { output =  output.replace (it, "pint") }
@@ -680,22 +702,22 @@ class MakeFormatting {
                 CookingUnit.FluidOunce -> {
                     //if could be converted to spoons or cups and that settings is enabled convert it and the settings to do this is enabled
 
-                    if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Tea Spoons"] == "true" && startingValue.vulgarFraction* 28.4131f <  tableSpoonVolume(settings)) { //if smaller than a table spoon use tsp
+                    if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Tea Spoons"] == "true" && startingValue.vulgarFraction* fluidOunceVolume(settings)<  tableSpoonVolume(settings)) { //if smaller than a table spoon use tsp
                         //convert to tsp
                         output = output.replaceNumberBeforeValues(
                             startingValue,
-                            (startingValue.vulgarFraction * 28.4131f * (1 / teaSpoonVolume(settings))).toString(),
+                            (startingValue.vulgarFraction * fluidOunceVolume(settings) * (1 / teaSpoonVolume(settings))).toString(),
                             unitsLut[CookingUnit.FluidOunce]!!
                         )
                         //replace unit
                         unitsLut[CookingUnit.FluidOunce]?.let {
                             output = output.replace(it, "tablespoons")
                         }
-                    }else if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Table Spoons"] == "true" && startingValue.vulgarFraction* 28.4131f < cupVolume(settings) * 0.25f) {//if smaller than a 1/4 cup use table spoon
+                    }else if (settings["Units.Convert To Spoons/Cups"] == "true"  && settings["Units.Table Spoons"] == "true" && startingValue.vulgarFraction* fluidOunceVolume(settings) < cupVolume(settings) * 0.25f) {//if smaller than a 1/4 cup use table spoon
                         //convert to tbsp
                         output = output.replaceNumberBeforeValues(
                             startingValue,
-                            (startingValue.vulgarFraction * 28.4131f * (1 / tableSpoonVolume(settings))).toString(),
+                            (startingValue.vulgarFraction * fluidOunceVolume(settings) * (1 / tableSpoonVolume(settings))).toString(),
                             unitsLut[CookingUnit.FluidOunce]!!
                         )
                         //replace unit
@@ -706,7 +728,7 @@ class MakeFormatting {
                         //convert to cups
                         output = output.replaceNumberBeforeValues(
                             startingValue,
-                            (startingValue.vulgarFraction * 28.4131f * (1 / cupVolume(settings))).toString(),
+                            (startingValue.vulgarFraction * fluidOunceVolume(settings) * (1 / cupVolume(settings))).toString(),
                             unitsLut[CookingUnit.FluidOunce]!!
                         )
                         //replace unit
@@ -717,7 +739,7 @@ class MakeFormatting {
                     }
                     else if(settings["Units.metric Volume"] == "true" ){
                         //convert to ml
-                        output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* 28.4131f).toString(),unitsLut[CookingUnit.FluidOunce]!!)
+                        output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* fluidOunceVolume(settings)).toString(),unitsLut[CookingUnit.FluidOunce]!!)
 
                         //replace unit
                         unitsLut[CookingUnit.FluidOunce]?.let { output =  output.replace (it, "ml") }
@@ -728,15 +750,15 @@ class MakeFormatting {
                 }
                 CookingUnit.Pint -> {
                     if(settings["Units.metric Volume"] == "true" ){
-                        if (startingValue.vulgarFraction* 0.568262f > 1){ //if more than 1 litre convert to litres 
+                        if (startingValue.vulgarFraction* pintVolume(settings)/1000 > 1){ //if more than 1 litre convert to litres
                             //convert to l
-                            output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* 0.568262f).toString(),unitsLut[CookingUnit.Pint]!!)
+                            output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* pintVolume(settings)/1000).toString(),unitsLut[CookingUnit.Pint]!!)
 
                             //replace unit
                             unitsLut[CookingUnit.Pint]?.let { output =  output.replace (it, "l") }
                         }else {
                             //convert to ml
-                            output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* 568.262f).toString(),unitsLut[CookingUnit.Pint]!!)
+                            output = output.replaceNumberBeforeValues(startingValue,(startingValue.vulgarFraction* pintVolume(settings)).toString(),unitsLut[CookingUnit.Pint]!!)
 
                             //replace unit
                             unitsLut[CookingUnit.Pint]?.let { output =  output.replace (it, "ml") }

@@ -148,7 +148,10 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsSubMenu("Conversions","sizes to use for measurement",listOf(
                 SettingsOptionDropDown("Teaspoon volume","what teaspoon volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(5ml)","us(4.9ml)","uk(3.6ml)")),
                 SettingsOptionDropDown("Tablespoon volume","what tablespoon volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(15ml)","us(14.8ml)","uk(14.2ml)")),
-                SettingsOptionDropDown("Cup volume","what cup volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(250ml)","us(237ml)","uk(284ml)"))
+                SettingsOptionDropDown("Cup volume","what cup volume measurement do you want to use", mutableIntStateOf(0),listOf("metric(250ml)","us(237ml)","uk(284ml)")),
+                SettingsOptionDropDown("Fl oz volume","what cup volume measurement do you want to use", mutableIntStateOf(0),listOf("imperial(28.4ml)","us(29.6ml)")),
+                SettingsOptionDropDown("Pint volume","what cup volume measurement do you want to use", mutableIntStateOf(0),listOf("imperial(568.3ml)","us(473.2ml)")),
+
             )),
             SettingsOptionToggle("Temperature","show temperatures in °C", mutableStateOf(true)),
             SettingsOptionToggle("metric Volume","use the metric system to display volumes", mutableStateOf(true)),

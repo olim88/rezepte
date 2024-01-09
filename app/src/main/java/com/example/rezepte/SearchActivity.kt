@@ -709,7 +709,7 @@ fun RecipeExpanded(name: String,basicData: BasicData?, thumbNail : Bitmap?, getN
                         modifier = Modifier
                             .padding(all = 2.dp)
                             .fillMaxWidth(),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Left,
                         softWrap = true,
                     )
