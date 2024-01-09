@@ -13,7 +13,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -84,7 +83,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.decodeBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -95,6 +93,7 @@ import com.google.android.material.internal.ContextUtils.getActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.redundent.kotlin.xml.xml
 
 
@@ -102,6 +101,7 @@ class CreateActivity : ComponentActivity() {
     private var loadedRecipeName: String? = null
 
 
+    @RequiresApi(Build.VERSION_CODES.P)
     @SuppressLint("UnrememberedMutableState")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -186,6 +186,14 @@ class CreateActivity : ComponentActivity() {
 
                 FileSync.syncFile(data, file) {}
                 FileSync.syncFile(imageData, imageFile) {}
+
+                withContext(Dispatchers.Main) {
+                    if (extractedData.value == GetEmptyRecipe()){ //if no data has been loaded show error and close window
+                        Toast.makeText(this@CreateActivity, "Recipe doesn't exist", Toast.LENGTH_SHORT)
+                            .show()
+                        this@CreateActivity.finish()
+                    }
+                }
             }
 
         } else {
@@ -769,8 +777,8 @@ fun DataInput(settings: Map<String, String>, data : MutableState<Recipe>, update
 @Composable
 fun LinkedRecipesInput(data : MutableState<Recipe>){
     var linkedRecipes =data.value.data.linked?.list
-    var recipeCount by remember { mutableStateOf(data.value.data.linked?.list?.count()) }
     var isExpanded by remember { mutableStateOf(false)}
+    var update by remember { mutableStateOf(false)}
     val icon = if (isExpanded)
         Icons.Filled.KeyboardArrowUp
     else
@@ -781,25 +789,28 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
     val lifecycleEvent = rememberLifecycleEvent()
     LaunchedEffect(lifecycleEvent) {
         if (lifecycleEvent == Lifecycle.Event.ON_RESUME) {
+            if (!isExpanded) return@LaunchedEffect //if hidden do not try to add recipe
             val extras = getActivity(mContext)?.intent?.extras
             var name = ""
             var creating = false
             if (extras != null){
                 name = if (extras.getString("recipe name") == null) "" else extras.getString("recipe name")!!
                 creating = (extras.getBoolean("creating"))
+
             }
             if (creating && name != ""){ //if right name and its not blank add it to the list of linked recipes
                 if (linkedRecipes == null){
                     linkedRecipes  = mutableListOf(LinkedRecipe(name))
                     data.value.data.linked = LinkedRecipes(linkedRecipes!!)
-                    recipeCount = 1
+                    update = true
                 }
-                else{
+                else if (!linkedRecipes!!.contains(LinkedRecipe(name))){
                     linkedRecipes?.add(LinkedRecipe(name))
                     data.value.data.linked?.list = linkedRecipes!!
-                    recipeCount = recipeCount?.plus(1)
+                    update = true
                 }
             }
+
         }
     }
 
@@ -830,16 +841,18 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
             }
             if (isExpanded ) {
                 Column {
+                    if (update){
+                        update = false
+                    }
                     if (linkedRecipes != null) {
-                        var temp = recipeCount
+
                         for ((index, _) in linkedRecipes!!.withIndex()) {
-                            temp = temp?.plus(1)
                             LinkedRecipe(data, index) { linkedIndex ->
                                 linkedRecipes!!.removeAt(linkedIndex)
-                                recipeCount = recipeCount?.minus(1)
                                 if ( linkedRecipes!!.isEmpty()){ //if there are none left set the value to null
                                     data.value.data.linked = null
                                 }
+                                update = true
                             }
                         }
                     }
@@ -891,7 +904,7 @@ fun LinkedRecipe(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> U
             .padding(5.dp)
         ) {
         Row{
-            Text(text = data.value.data.linked!!.list[index].name, modifier = Modifier.padding(5.dp))
+            Text(text = data.value.data.linked!!.list[index].name, modifier = Modifier.padding(5.dp).align(Alignment.CenterVertically), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
             Spacer(
                 Modifier
                     .weight(1f)

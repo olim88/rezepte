@@ -860,9 +860,7 @@ fun getFilters (recipeNames: List<String>, authors: MutableCollection<BasicData>
             }
         }
     }
-    println("t: $authors, $recipeNames")
     for (author in authors){ //todo this never works because authors is empty when this is called
-        println("adding: ${author.author}")
         if (usedWordsCount[author.author] == null){
             usedWordsCount[author.author] = 1
         }else {
