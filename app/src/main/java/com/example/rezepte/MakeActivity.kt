@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
@@ -66,6 +67,7 @@ import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MakeActivity : AppCompatActivity()
 {
@@ -124,6 +126,14 @@ class MakeActivity : AppCompatActivity()
 
             FileSync.syncFile(data, file) {}
             FileSync.syncFile(imageData, imageFile) {}
+
+            withContext(Dispatchers.Main) {
+                if (extractedData.value == GetEmptyRecipe()){ //if no data has been loaded show error and close window
+                    Toast.makeText(this@MakeActivity, "Recipe doesn't exist", Toast.LENGTH_SHORT)
+                        .show()
+                    this@MakeActivity.finish()
+                }
+            }
         }
 
     }
