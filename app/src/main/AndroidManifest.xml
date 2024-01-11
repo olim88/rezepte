@@ -50,6 +50,10 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
+        <activity android:name=".WalkThoughActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.MaterialComponents.NoActionBar" />
 
 
 

@@ -153,10 +153,10 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
                 SettingsOptionDropDown("Pint volume","what cup volume measurement do you want to use", mutableIntStateOf(0),listOf("imperial(568.3ml)","us(473.2ml)")),
 
             )),
-            SettingsOptionToggle("Temperature","show temperatures in °C", mutableStateOf(true)),
-            SettingsOptionToggle("metric Volume","use the metric system to display volumes", mutableStateOf(true)),
-            SettingsOptionToggle("metric Weight","use the metric system to display weights", mutableStateOf(true)),
-            SettingsOptionToggle("metric Lengths","use the metric system to display lengths", mutableStateOf(true)),
+            SettingsOptionToggle("Temperature","show temperatures in °C (instead of °F)", mutableStateOf(true)),
+            SettingsOptionToggle("metric Volume","use the metric system to display volumes (instead of imperial)", mutableStateOf(true)),
+            SettingsOptionToggle("metric Weight","use the metric system to display weights (instead of imperial)", mutableStateOf(true)),
+            SettingsOptionToggle("metric Lengths","use the metric system to display lengths (instead of imperial)", mutableStateOf(true)),
             SettingsOptionToggle("Fractional Numbers","display measurements as fractions or decimals", mutableStateOf(true)),
             SettingsOptionToggle("Round Numbers","round larger numbers to the nearest whole number", mutableStateOf(true)),
             SettingsOptionToggle("Show Conversions","make it so you can click on a measurement and conversions for that will show up", mutableStateOf(true)),
@@ -170,12 +170,12 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
                 SettingsOptionToggle("Generate cooking steps","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false)),
                 SettingsOptionDropDown("Split instructions","when loading a website automatically split instructions into smaller parts", mutableIntStateOf(0),listOf("off","intelligent","sentences"))
             )),
-            SettingsOptionToggle("Separate Ingredients","show each line as a different colour", mutableStateOf(true)),
-            SettingsOptionToggle("Separate Instructions","show each line as a different colour", mutableStateOf(true)),
+            SettingsOptionToggle("Separate Ingredients","show each line as a different colour when editing a recipe", mutableStateOf(true)),
+            SettingsOptionToggle("Separate Instructions","show each line as a different colour when editing a recipe", mutableStateOf(true)),
             SettingsOptionToggle("Show split Instruction Buttons","show buttons to split instructions", mutableStateOf(true)),
         )),
         SettingsSubMenu("Search menu","",listOf(
-            SettingsOptionToggle("Search Menu List","display search menu as list giving better readability", mutableStateOf(false)),
+            SettingsOptionToggle("Search Menu List","display search menu as list, instead of a grid, giving better readability", mutableStateOf(false)),
             SettingsOptionToggle("Suggestion Filters","show list of suggestion word to filter by", mutableStateOf(true)),
         )),
 
@@ -198,7 +198,7 @@ data class SettingsOptionDropDown (override val name : String, override  val des
 
 data class SettingsSubMenu (override val name : String, override  val description: String, var subSettings: List<SettingOptionInterface>) : SettingOptionInterface
 @Composable
-private fun settingsHeader(header: String,onclick: () -> Unit){
+private fun SettingsHeader(header: String, onclick: () -> Unit){
     Surface(
          tonalElevation = 15.dp,
         modifier = Modifier
@@ -216,7 +216,7 @@ private fun settingsHeader(header: String,onclick: () -> Unit){
     }
 }
 @Composable
-private fun settingsMenuSubMenuButton(header: String, body: String, onclick : () -> Unit){
+private fun SettingsMenuSubMenuButton(header: String, body: String, onclick : () -> Unit){
     Row (modifier = Modifier
         .padding(5.dp)
         .fillMaxWidth()
@@ -229,7 +229,7 @@ private fun settingsMenuSubMenuButton(header: String, body: String, onclick : ()
     }
 }
 @Composable
-private fun settingsMenuToggle(header: String, body: String, state: MutableState<Boolean>){
+fun SettingsMenuToggle(header: String, body: String, state: MutableState<Boolean>){
     Row (modifier = Modifier.padding(5.dp).clickable { state.value = ! state.value }){
         Column (modifier = Modifier.fillMaxWidth().weight(1f)) {
             Text(text = header,style = MaterialTheme.typography.titleMedium)
@@ -241,7 +241,7 @@ private fun settingsMenuToggle(header: String, body: String, state: MutableState
     }
 }
 @Composable
-private fun SettingsMenuDropDown(header: String, body: String, index : MutableState<Int>, options: List<String>){
+fun SettingsMenuDropDown(header: String, body: String, index : MutableState<Int>, options: List<String>){
     var mExpanded by remember { mutableStateOf(false) }
     // Up Icon when expanded and down icon when collapsed
     val icon = if (mExpanded)
@@ -291,7 +291,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
     var update by remember {mutableStateOf(true)}
     //the direction the menu is going
     var direction by remember { mutableStateOf(false)} //false left true right
-    var settingsMenuStack by remember { mutableStateOf(mutableListOf(Pair("Settings",allSettingsMenuData)))}//treating the list like a stack
+    val settingsMenuStack by remember { mutableStateOf(mutableListOf(Pair("Settings",allSettingsMenuData)))}//treating the list like a stack
     //make the back gesture do the same as the back button
     BackHandler(enabled = true, onBack = {
         if (settingsMenuStack.size == 1){
@@ -315,7 +315,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
         if (update) {
         }  //make sure ui is updated
         //set the header and when the back arrow on the header is pressed either move up in the settings or save the settings and exit
-        settingsHeader(settingsMenuStack.last().first) {
+        SettingsHeader(settingsMenuStack.last().first) {
             if (settingsMenuStack.size == 1){
                 //save settings
                 SettingsActivity.saveSettings(mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE),SettingsActivity.convertToDictionary(settingsMenuStack.last().second,""))
@@ -356,7 +356,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
                     for (menu in settingsMenuStack.last().second) {//peek
 
                         if (menu is SettingsOptionToggle) {//if its a toggle show a toggle
-                            settingsMenuToggle(
+                            SettingsMenuToggle(
                                 header = menu.name,
                                 body = menu.description,
                                 state = menu.state
@@ -371,7 +371,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
                             )
                         }
                         if (menu is SettingsSubMenu) {
-                            settingsMenuSubMenuButton(header = menu.name, body = menu.description) {
+                            SettingsMenuSubMenuButton(header = menu.name, body = menu.description) {
                                 //when clicked add to the stack
                                 settingsMenuStack.add(Pair(menu.name, menu.subSettings))
                                 update = true
@@ -406,7 +406,7 @@ fun settingsPreview(){
 )
 @Composable
 fun settingsTogglePreview(){
-    settingsMenuToggle("test","this is the test", mutableStateOf(false))
+    SettingsMenuToggle("test","this is the test", mutableStateOf(false))
 }
 @SuppressLint("UnrememberedMutableState")
 @Preview(

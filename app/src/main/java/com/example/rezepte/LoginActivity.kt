@@ -1,6 +1,6 @@
 package com.example.rezepte
 
-import android.content.Context.MODE_PRIVATE
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -73,30 +74,13 @@ class LoginActivity : AppCompatActivity()
 
 
 }
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainScreen(){
+fun mainLoginUi(finished: ()-> Unit){
     // Fetching the Local Context
     val mContext = LocalContext.current
     val webAuth = DbxPKCEWebAuth(DbxRequestConfig("examples-authorize"), DbxAppInfo(mContext.resources.getString(R.string.dropbox_api_key)))
     var linkValue by remember { mutableStateOf("")}
-    Column (modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
-        //return home button
-        Button(onClick = {
-            
-            val intent = Intent(mContext, MainActivity::class.java)
-            mContext.startActivity(intent)
-        },modifier = Modifier.align(Alignment.End)){
-            Icon(
-                Icons.Filled.Home, "home",
-                Modifier
-                    .size(24.dp),)
-
-        }
-        //title
-        Text(text = "Login to Dropbox to sync between devices", modifier = Modifier.padding(15.dp).align(Alignment.CenterHorizontally), textAlign = TextAlign.Center, color =MaterialTheme.colorScheme.onBackground,style = MaterialTheme.typography.titleLarge )
-        //logo
-        Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier.align(Alignment.CenterHorizontally).fillMaxHeight().weight(0.5f))
+    Column {
         //login button
         Spacer(modifier = Modifier.weight(0.1f))
         Button(onClick = {
@@ -117,7 +101,7 @@ private fun MainScreen(){
         }
 
         //input for login
-        Spacer(modifier = Modifier.weight(0.1f))
+        Spacer(modifier = Modifier.height(20.dp))
         TextField(
             value = linkValue,
             onValueChange = { value ->
@@ -136,7 +120,7 @@ private fun MainScreen(){
                                 val prefs =
                                     mContext.getSharedPreferences(
                                         "com.example.rezepte.dropboxintegration",
-                                        MODE_PRIVATE
+                                        Context.MODE_PRIVATE
                                     )
                                 prefs.edit().putString("access-token", auth.accessToken).apply()
                                 prefs.edit().putString("refresh-token", auth.refreshToken).apply()
@@ -145,9 +129,7 @@ private fun MainScreen(){
                                 prefs.edit().putBoolean("logged-in", true).apply()
 
 
-                                //Proceed to MainActivity
-                                val intent = Intent(mContext, MainActivity::class.java)
-                                mContext.startActivity(intent)
+                                finished()
                             }
                         }
                     }
@@ -209,12 +191,51 @@ private fun MainScreen(){
             },
 
             modifier = Modifier
-                .fillMaxWidth().padding(5.dp),
+                .fillMaxWidth()
+                .padding(5.dp),
             textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
             singleLine = true,
             shape = RoundedCornerShape(5.dp), // The TextFiled has rounded corners top left and right by default
             label = { Text("code") }
         )
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScreen(){
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+    Column (modifier = Modifier
+        .fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)
+        .verticalScroll(rememberScrollState())) {
+        //return home button
+        Button(onClick = {
+            
+            val intent = Intent(mContext, MainActivity::class.java)
+            mContext.startActivity(intent)
+        },modifier = Modifier.align(Alignment.End)){
+            Icon(
+                Icons.Filled.Home, "home",
+                Modifier
+                    .size(24.dp),)
+
+        }
+        //title
+        Text(text = "Login to Dropbox to sync between devices", modifier = Modifier
+            .padding(15.dp)
+            .align(Alignment.CenterHorizontally), textAlign = TextAlign.Center, color =MaterialTheme.colorScheme.onBackground,style = MaterialTheme.typography.titleLarge )
+        //logo
+        Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier
+            .align(Alignment.CenterHorizontally)
+            .fillMaxHeight()
+            .weight(0.5f))
+        mainLoginUi(){
+            //Proceed to MainActivity
+            val intent = Intent(mContext, MainActivity::class.java)
+            mContext.startActivity(intent)
+        }
+
         //description
         Spacer(modifier = Modifier.weight(0.4f))
         Card(
