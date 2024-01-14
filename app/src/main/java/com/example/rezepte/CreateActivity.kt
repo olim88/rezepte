@@ -344,11 +344,9 @@ class CreateActivity : ComponentActivity() {
 
         //get image if one is set
         var uriBitmap: Bitmap? = null
-        println(image)
         if (image != null) {
             uriBitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(this.contentResolver,image))
         }
-        println(uriBitmap)
         //get the name of the recipe to save
         val name = recipe.data.name
 

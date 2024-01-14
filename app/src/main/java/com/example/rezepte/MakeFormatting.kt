@@ -86,7 +86,6 @@ class MakeFormatting {
             newNumber: String,
             values: List<String>
         ): String {
-            println("$newNumber $oldNumber $values")
             //get all index of both bits of information
             val valuesIndexes = mutableListOf<Int>()
             for(value in values){ //add the index of the whole list of posible values
@@ -94,7 +93,6 @@ class MakeFormatting {
             }
             val oldNumberIndexes = this.indexesOf(oldNumber, true)
             //if one can not be found return now
-            println("$valuesIndexes $oldNumberIndexes $this")
             if (valuesIndexes.isEmpty() || oldNumberIndexes.isEmpty()) return this
             //chose the number closest to and before and index of the value
             var bestNumberIndex = -1
@@ -152,7 +150,6 @@ class MakeFormatting {
                 if (index == 0 ) continue //skip first as could not be valid
                 if (word.matches("((${fractions.slice(1..fractions.count()-2).joinToString(")|(")}))|([0-9]+/[0-9]+)".toRegex())){//if is fractional number
                     //if word before is a whole number (going from right ot left now)
-                    println(cleanWords[index-1])
                     if (cleanWords[index-1].matches("[0-9]+".toRegex())){
                         //get the combined value of both numbers
                         val combined = word.vulgarFraction + cleanWords[index-1].vulgarFraction

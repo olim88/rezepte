@@ -124,7 +124,6 @@ class SettingsActivity : ComponentActivity() {
                 }
             } catch (e : Exception){
                 //if it dose not work probably updated the settings or something just return options
-                println("test3")
                 return options
             }
             return  editedOptions

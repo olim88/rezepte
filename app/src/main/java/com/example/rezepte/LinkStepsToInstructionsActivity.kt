@@ -145,7 +145,6 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
                         } else {
                             instruction.linkedCookingStepIndex = null
                         }
-                        println(instruction.linkedCookingStepIndex)
                         updateInstruction = true
                     }
                 }

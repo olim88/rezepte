@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import com.dropbox.core.DbxException
 import com.dropbox.core.v2.DbxClientV2
+import com.dropbox.core.v2.files.FileMetadata
 import com.dropbox.core.v2.files.GetThumbnailBatchResultEntry
 import com.dropbox.core.v2.files.ThumbnailArg
 import com.dropbox.core.v2.files.ThumbnailFormat
@@ -142,4 +143,10 @@ class DownloadTask(client: DbxClientV2)  {
 
         return output
     }
-}
+    fun getFileDate(dir: String, name :String):  Date? {
+        val results = dbxClient.files().getMetadata("$dir$name")as FileMetadata
+        return results.serverModified //last modified time
+    }
+    //todo may be able to user a batch but it is under sharing so idk if it works
+
+    }

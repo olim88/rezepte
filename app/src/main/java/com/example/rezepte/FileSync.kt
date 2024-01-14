@@ -40,11 +40,25 @@ class FileSync {
                 returnString(localData.first)
             }
 
+
+
             //sort online
             val onlineData = if (data.priority != FilePriority.LocalOnly){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
                 if (dropbox.second) {
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
+
+                    //if comparing the date (newest) do this now as the file may not need to be downloaded
+                    if (data.priority != FilePriority.Newist){
+                        val onlineDate = downloader.getFileDate(file.dropboxPath,file.fileName)
+                        //if online is newer or no local use that file
+                        if (onlineDate != null && localData != null) {
+                            if (onlineDate.toInstant().toEpochMilli() - localData.second.toInstant().toEpochMilli() > 5000){ //if onlineDate is more than 5 seconds behind exit the program here
+                                return  true
+                            }
+                        }
+                    }
+
                     try {
                         downloader.getXml(file.dropboxPath + file.fileName)
                     } catch (ignore: Exception){ return false}
@@ -102,6 +116,18 @@ class FileSync {
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
                 if (dropbox.second) {
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
+
+                    //if comparing the date (newest) do this now as the file may not need to be downloaded
+                    if (data.priority != FilePriority.Newist){
+                        val onlineDate = downloader.getFileDate(file.dropboxPath,file.fileName)
+                        //if online is newer or no local use that file
+                        if (onlineDate != null && localData != null) {
+                            if (onlineDate.toInstant().toEpochMilli() - localData.second.toInstant().toEpochMilli() > 5000){ //if onlineDate is more than 5 seconds behind exit the program here
+                                return
+                            }
+                        }
+                    }
+
                     downloader.getImage(file.dropboxPath , file.fileName)
                 }else {null}
             }else {null}
@@ -237,21 +263,26 @@ class FileSync {
                 FilePriority.Newist -> {
                     //compare data's on files and upload newest
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
-                    val onlineFile = downloader.getFile(file.dropboxPath , file.fileName)
+                    val onlineDate = downloader.getFileDate(file.dropboxPath,file.fileName)
                     val localFile = LocalFilesTask.loadFile(file.localPath,file.fileName)
 
 
 
-                    if (localFile == null && onlineFile == null) return //no file to sync
-                    else if (onlineFile ==  null && localFile != null){ //if online is null upload
+
+
+
+                    if (localFile == null && onlineDate == null) return //no file to sync
+                    else if (onlineDate ==  null && localFile != null){ //if online is null upload
                         val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
                         uploadClient.uploadFile(localFile.first, file.dropboxPath + file.fileName)
                     }
-                    else if (localFile == null && onlineFile != null){
-                        LocalFilesTask.saveFile(onlineFile.first,file.localPath,file.fileName)
+                    else if (localFile == null ){
+                        val onlineFile = downloader.getFile(file.dropboxPath , file.fileName)
+                        LocalFilesTask.saveFile(onlineFile!!.first,file.localPath,file.fileName)
                     }
-                    else if (onlineFile!!.second.toInstant().toEpochMilli() - localFile!!.second.toInstant().toEpochMilli() > 5000){//local old upload to local
-                        LocalFilesTask.saveFile(onlineFile.first,file.localPath,file.fileName)
+                    else if (onlineDate!!.toInstant().toEpochMilli() - localFile.second.toInstant().toEpochMilli() > 5000){//local old upload to local
+                        val onlineFile = downloader.getFile(file.dropboxPath , file.fileName)
+                        LocalFilesTask.saveFile(onlineFile!!.first,file.localPath,file.fileName)
                     }else {//online old upload online
                         val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
                         uploadClient.uploadFile(localFile.first, file.dropboxPath + file.fileName)
@@ -262,7 +293,7 @@ class FileSync {
             }
             success()
         }
-        fun syncThumbnail  (data : Data, file: FileBatchInfo, success: () -> Unit  ){
+        fun syncThumbnail  (data : Data, file: FileBatchInfo, success: () -> Unit  ){ //todo add newist get time functionality
             val localThumbnails  = hashMapOf<String,Bitmap?>()
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
@@ -271,6 +302,7 @@ class FileSync {
                 }
 
             }
+
 
             //sort online
             val onlineData = if (data.priority != FilePriority.LocalOnly){

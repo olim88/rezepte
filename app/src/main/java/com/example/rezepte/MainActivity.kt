@@ -75,6 +75,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //if the user has not completed the walk though take them there
+        val prefs =
+            this.getSharedPreferences(
+                "com.example.rezepte.walkThrough",
+                Context.MODE_PRIVATE
+            )
+        if (!prefs.getBoolean("completed", false)){
+            val intent = Intent(this, WalkThoughActivity::class.java)
+            this.startActivity(intent)
+        }
+
         //account data
         val accountData: MutableState<Pair<FullAccount?,Boolean>> = mutableStateOf(Pair(null,true))
         //dropbox account handling
