@@ -53,7 +53,7 @@ class UploadTask (private val client: DbxClientV2){
         try {
             //upload bitmap
             val bos = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG,0,bos)
+            bitmap.compress(Bitmap.CompressFormat.JPEG,90,bos)
             val inputStream: InputStream = ByteArrayInputStream(bos.toByteArray())
             client.files()
                 .uploadBuilder(

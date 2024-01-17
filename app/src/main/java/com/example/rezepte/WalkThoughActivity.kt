@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
@@ -143,7 +144,7 @@ fun StartUpDropboxPage(title: String, description: String){
                         text = "You are logged into dropbox and you files are being synced. \n Nothing more to do here",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(10.dp)
+                        modifier = Modifier.padding(10.dp).align(Alignment.CenterHorizontally)
 
                     )
                 }
@@ -450,6 +451,21 @@ private fun MainScreen(){
     )
     //get the layout and data
     val allSettingsMenuData by remember { mutableStateOf(SettingsActivity.loadToOptions(settings, createSettingsMenu(),"")) }
+    //make the back gesture do the same as the back button
+    BackHandler(enabled = true, onBack = {
+        //save the settings
+        SettingsActivity.saveSettings(
+            mContext.getSharedPreferences(
+                "com.example.rezepte.settings",
+                ComponentActivity.MODE_PRIVATE
+            ), SettingsActivity.convertToDictionary(allSettingsMenuData, "")
+        )
+        //set animation direction
+        animationDirection = false
+        //set next page
+
+        currentScreen = CurrentScreen.HomePage
+    })
     Card(
         modifier = Modifier
             .fillMaxWidth()

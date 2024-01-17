@@ -117,7 +117,7 @@ class MakeActivity : AppCompatActivity()
             }
 
             val imageFile =
-                FileSync.FileInfo("/image/", "${this@MakeActivity.filesDir}/image/", "$recipeName.png")
+                FileSync.FileInfo("/image/", "${this@MakeActivity.filesDir}/image/", "$recipeName.jpg")
             FileSync.downloadImage(imageData, imageFile) {
                 image.value = it
 

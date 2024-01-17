@@ -177,7 +177,7 @@ class CreateActivity : ComponentActivity() {
                 }
 
                 val imageFile =
-                    FileSync.FileInfo("/image/", "${this@CreateActivity.filesDir}/image/", "$loadedRecipeName.png")
+                    FileSync.FileInfo("/image/", "${this@CreateActivity.filesDir}/image/", "$loadedRecipeName.jpg")
                 FileSync.downloadImage(imageData, imageFile) {
                     image.value = it
 
@@ -270,7 +270,7 @@ class CreateActivity : ComponentActivity() {
                 FileSync.FileInfo(
                     "/image/",
                     "${this@CreateActivity.filesDir}/image/",
-                    "$loadedRecipeName.png"
+                    "$loadedRecipeName.jpg"
                 )
             FileSync.deleteFile(data, file) {}
             FileSync.deleteFile(data, imageFile) {}
@@ -280,7 +280,7 @@ class CreateActivity : ComponentActivity() {
                 FileSync.FileInfo(
                     "",
                     "${this@CreateActivity.filesDir}/thumbnail/",
-                    "$loadedRecipeName.png"
+                    "$loadedRecipeName.jpg"
                 )
             FileSync.deleteFile(thumbnailData, thumbnailFile) {}
 
@@ -372,7 +372,7 @@ class CreateActivity : ComponentActivity() {
                 FileSync.FileInfo(
                     "/image/",
                     "${this@CreateActivity.filesDir}/image/",
-                    "$name.png"
+                    "$name.jpg"
                 )
             FileSync.uploadString(dataXml, xmlSaveFile, xmlData) {}
             if (uriBitmap != null) {

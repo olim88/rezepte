@@ -573,7 +573,7 @@ class MakeFormatting {
             return output
         }
         private fun fluidOunceVolume(settings: Map<String, String>):Float{
-            val setting = settings["Units.Conversions.Cup volume"] ?: return 0f
+            val setting = settings["Units.Conversions.Fl oz volume"] ?: return 0f
 
             val output = when{
                 setting.startsWith("imperial") -> 28.4131f
@@ -584,7 +584,7 @@ class MakeFormatting {
             return output
         }
         private fun pintVolume(settings: Map<String, String>):Float{
-            val setting = settings["Units.Conversions.Cup volume"] ?: return 0f
+            val setting = settings["Units.Conversions.Pint volume"] ?: return 0f
 
             val output = when{
                 setting.startsWith("imperial") -> 568.2612f

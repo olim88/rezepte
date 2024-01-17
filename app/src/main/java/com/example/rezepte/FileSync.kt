@@ -157,7 +157,7 @@ class FileSync {
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
                 for (thumbnailName in file.fileNames){
-                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.png")?.first)
+                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg")?.first)
                     if (localThumbnails[thumbnailName] != null){
                         localThumbnailExists = true
                     }
@@ -268,9 +268,6 @@ class FileSync {
 
 
 
-
-
-
                     if (localFile == null && onlineDate == null) return //no file to sync
                     else if (onlineDate ==  null && localFile != null){ //if online is null upload
                         val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
@@ -298,12 +295,10 @@ class FileSync {
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
                 for (thumbnailName in file.fileNames){
-                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.png")?.first)
+                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg")?.first)
                 }
 
             }
-
-
             //sort online
             val onlineData = if (data.priority != FilePriority.LocalOnly){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
@@ -323,14 +318,14 @@ class FileSync {
                                 LocalFilesTask.saveBitmap(
                                     onlineData[thumbnailKey]!!,
                                     file.localPath,
-                                    "$thumbnailKey.png"
+                                    "$thumbnailKey.jpg"
                                 )
                             }
                         } else {
                             //delete the file if not on dropbox
                             LocalFilesTask.removeFile(
                                 file.localPath,
-                                "$thumbnailKey.png"
+                                "$thumbnailKey.jpg"
                             )
                         }
 
@@ -343,13 +338,13 @@ class FileSync {
                             LocalFilesTask.saveBitmap(
                                 localThumbnails[thumbnailKey]!!,
                                 file.localPath,
-                                "$thumbnailKey.png"
+                                "$thumbnailKey.jpg"
                             )
                         } else {
                             //delete the file if not on dropbox
                             LocalFilesTask.removeFile(
                                 file.localPath,
-                                "$thumbnailKey.png"
+                                "$thumbnailKey.jpg"
                             )
                         }
                     }

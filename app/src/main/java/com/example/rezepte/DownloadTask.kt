@@ -3,7 +3,6 @@ package com.example.rezepte
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
-import com.dropbox.core.DbxException
 import com.dropbox.core.v2.DbxClientV2
 import com.dropbox.core.v2.files.FileMetadata
 import com.dropbox.core.v2.files.GetThumbnailBatchResultEntry
@@ -26,7 +25,7 @@ class DownloadTask(client: DbxClientV2)  {
     fun listDir (dir : String) : List<String>? {
         val results = try {
             dbxClient.files().listFolder(dir)
-        } catch (e: DbxException) {
+        } catch (e: Exception) {
             e.printStackTrace()
             return null
         }
@@ -44,7 +43,7 @@ class DownloadTask(client: DbxClientV2)  {
         try {
             //get the users FullAccount
             return dbxClient.users().currentAccount
-        } catch (e: DbxException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
 
@@ -66,9 +65,12 @@ class DownloadTask(client: DbxClientV2)  {
         return Pair(content.toString() ,time)
     }
      fun getImage(dir: String, name :String): Pair<Bitmap, Date>? {
-        if (getImagePath(dir,name) == null) return null
-        val results = dbxClient.files().download(getImagePath(dir,name))
-        val time = results.result.serverModified //last modified time
+        val results =try {
+            dbxClient.files().download("$dir$name") ?: return  null
+        } catch (e: Exception){
+            return null
+        }
+         val time = results.result.serverModified //last modified time
 
         val options = BitmapFactory.Options()
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
@@ -77,8 +79,7 @@ class DownloadTask(client: DbxClientV2)  {
         return Pair(BitmapFactory.decodeStream(results.inputStream),time)
     }
     fun getFile(dir: String, name :String): Pair<File, Date>? {
-        if (getImagePath(dir,name) == null) return null
-        val results = dbxClient.files().download(getImagePath(dir,name))
+        val results = dbxClient.files().download("$dir$name") ?: return  null
         val time = results.result.serverModified //last modified time
         val file: File = createTempFile()
 
@@ -91,17 +92,6 @@ class DownloadTask(client: DbxClientV2)  {
 
         return Pair(file,time)
     }
-    private  fun getImagePath(dir: String, name :String): String? {
-        val nameOptions = listDir(dir) ?: return  null
-        val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
-        if (fullName.isEmpty()) return null
-        return "$dir${fullName[0]}"
-    }
-    private fun getImagePathFromList(dir: String, name :String, nameOptions:List<String>): String? {
-        val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
-        if (fullName.isEmpty()) return null
-        return "$dir${fullName[0]}"
-    }
 
     fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>?{
         //set bitmap options
@@ -109,7 +99,6 @@ class DownloadTask(client: DbxClientV2)  {
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
 
         //create arguments for each thumbnail
-        val actualFileNames = listDir(dir) ?: return  null
         val names : Queue<String> = LinkedList()
         //get thumb nails in baches of 25
         var index = 0
@@ -118,12 +107,11 @@ class DownloadTask(client: DbxClientV2)  {
             val args = mutableListOf<ThumbnailArg>()
             val startIndex = index
             for ( name in fileNames.subList(startIndex,fileNames.size)){
-                val path = getImagePathFromList(dir,name,actualFileNames)
-                if (path != null){
-                    val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W128H128,ThumbnailMode.BESTFIT)
-                    args.add(arg)
-                    names.add(name)
-                }
+                val path = "$dir$name.jpg"
+                val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W128H128,ThumbnailMode.BESTFIT)
+                args.add(arg)
+                names.add(name)
+
                 index ++
                 if (index - startIndex == 25){ //if there has been 25 thumbnails done complete the bach before going onto the next
                     break
@@ -134,9 +122,10 @@ class DownloadTask(client: DbxClientV2)  {
 
             for (thumbNail in thumbNailBach.entries)
             {
+                val name = names.remove()
                 if (thumbNail.tag() == GetThumbnailBatchResultEntry.Tag.SUCCESS){
                     val temp = Base64.decode(thumbNail.successValue.thumbnail,Base64.DEFAULT)
-                    output[names.remove()] = BitmapFactory.decodeByteArray(temp,0, temp.size)
+                    output[name] = BitmapFactory.decodeByteArray(temp,0, temp.size)
                 }
             }
         }
@@ -144,7 +133,12 @@ class DownloadTask(client: DbxClientV2)  {
         return output
     }
     fun getFileDate(dir: String, name :String):  Date? {
-        val results = dbxClient.files().getMetadata("$dir$name")as FileMetadata
+        val results = try {
+            dbxClient.files().getMetadata("$dir$name") as FileMetadata
+        }catch (e: Exception){
+            return null
+        }
+
         return results.serverModified //last modified time
     }
     //todo may be able to user a batch but it is under sharing so idk if it works

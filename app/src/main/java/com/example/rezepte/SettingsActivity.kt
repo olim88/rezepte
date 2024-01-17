@@ -67,6 +67,7 @@ class SettingsActivity : ComponentActivity() {
 
 
 
+
     companion object {
         fun loadSettings(sharedPreference: SharedPreferences) : Map<String,String> {
             val settingDictionary  = mutableMapOf<String,String> ()
@@ -183,8 +184,10 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Cache recipe names","save a copy of names", mutableStateOf(true)),
             SettingsOptionDropDown("Cache recipe image","save a copy of images (can use up more space )", mutableStateOf(1),listOf("none","thumbnail","full sized")),
         )),
+        SettingsIntent("Walk Through","restart the walk through to be able to go though it again",WalkThoughActivity::class.java),
         )
 }
+
 
 
 
@@ -194,7 +197,7 @@ interface SettingOptionInterface{
 }
 data class SettingsOptionToggle (override val name : String, override  val description: String, var state: MutableState<Boolean>) : SettingOptionInterface
 data class SettingsOptionDropDown (override val name : String, override  val description: String, var currentOptionIndex : MutableState<Int>, val options: List<String>) : SettingOptionInterface
-
+data class SettingsIntent(override val name: String, override val description: String, val intentActivity: Class<*>) : SettingOptionInterface
 data class SettingsSubMenu (override val name : String, override  val description: String, var subSettings: List<SettingOptionInterface>) : SettingOptionInterface
 @Composable
 private fun SettingsHeader(header: String, onclick: () -> Unit){
@@ -228,9 +231,31 @@ private fun SettingsMenuSubMenuButton(header: String, body: String, onclick : ()
     }
 }
 @Composable
+private fun SettingsIntentButton(header: String, body: String, intentActivity: Class<*>){
+    // Fetching the Local Context
+    val mContext = LocalContext.current
+    Row (modifier = Modifier
+        .padding(5.dp)
+        .fillMaxWidth()
+        .clickable {
+            val intent = Intent(mContext, intentActivity)
+            mContext.startActivity(intent)
+        }){
+        Column {
+            Text(text = header,style = MaterialTheme.typography.titleMedium)
+            Text(text = body,style = MaterialTheme.typography.bodyMedium)
+        }
+
+    }
+}
+@Composable
 fun SettingsMenuToggle(header: String, body: String, state: MutableState<Boolean>){
-    Row (modifier = Modifier.padding(5.dp).clickable { state.value = ! state.value }){
-        Column (modifier = Modifier.fillMaxWidth().weight(1f)) {
+    Row (modifier = Modifier
+        .padding(5.dp)
+        .clickable { state.value = !state.value }){
+        Column (modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)) {
             Text(text = header,style = MaterialTheme.typography.titleMedium)
             Text(text = body,style = MaterialTheme.typography.bodyMedium)
         }
@@ -248,7 +273,9 @@ fun SettingsMenuDropDown(header: String, body: String, index : MutableState<Int>
     else
         Icons.Filled.KeyboardArrowDown
     Row (modifier = Modifier.padding(5.dp)){
-        Column (modifier = Modifier.fillMaxWidth().weight(1f))  {
+        Column (modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f))  {
             Text(text = header,style = MaterialTheme.typography.titleMedium)
             Text(text = body,style = MaterialTheme.typography.bodyMedium)
         }
@@ -310,7 +337,10 @@ private fun MainScreen(loadedSettings : Map<String,String>){
         }
         })
 
-    Column (modifier = Modifier.fillMaxHeight().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.background)) {
+    Column (modifier = Modifier
+        .fillMaxHeight()
+        .verticalScroll(rememberScrollState())
+        .background(MaterialTheme.colorScheme.background)) {
         if (update) {
         }  //make sure ui is updated
         //set the header and when the back arrow on the header is pressed either move up in the settings or save the settings and exit
@@ -376,6 +406,13 @@ private fun MainScreen(loadedSettings : Map<String,String>){
                                 update = true
                                 direction = true
                             }
+                        }
+                        if (menu is SettingsIntent) {
+                            SettingsIntentButton(
+                                header = menu.name,
+                                body = menu.description,
+                                intentActivity = menu.intentActivity
+                            )
                         }
 
                     }

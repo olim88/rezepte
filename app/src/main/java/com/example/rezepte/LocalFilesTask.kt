@@ -41,7 +41,7 @@ class LocalFilesTask {
             file.parentFile?.mkdirs()
             //convert bitmap to byte array
             val bos = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG,0,bos)
+            bitmap.compress(Bitmap.CompressFormat.JPEG,90,bos)
             //write to file
             file.writeBytes(bos.toByteArray())
         }
