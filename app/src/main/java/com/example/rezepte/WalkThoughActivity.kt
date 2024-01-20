@@ -1,7 +1,7 @@
 package com.example.rezepte
 
+import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -306,9 +306,9 @@ private fun Finish (){
             Context.MODE_PRIVATE
         )
     prefs.edit().putBoolean("completed", true).apply()
+    //finish the walk though and go back to the activity before
+    (mContext as Activity).finish()
 
-    val intent = Intent(mContext, MainActivity::class.java)
-    mContext.startActivity(intent)
 }
 @Composable
 fun StartUpHomePage(donePages: MutableList<Int>,goToPage: (CurrentScreen) -> Unit,onFinish : ()-> Unit){
@@ -557,7 +557,9 @@ private fun MainScreen(){
                             description = "Rezepte offers different options for how editing and view recipes look so you can configure it to your liking. ",
                             options = listOf(
                                 "Creation.Separate Ingredients",
-                                "Creation.Separate Instructions", //todo have the options for making e.g. cross out mode
+                                "Creation.Separate Instructions",
+                                "Making.Walk Though Ingredients",
+                                "Making.Walk Though Instructions",
                             ),
                         )
                     }

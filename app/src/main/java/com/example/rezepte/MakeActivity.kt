@@ -353,12 +353,18 @@ fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBig : Boolean, isStrike: Boolean, multiplier : MutableState<Float>){
-    var style =  if (isBig) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall
-    if (isStrike) style = style.copy(textDecoration = TextDecoration.LineThrough)
+    var style = if (userSettings["Making.Walk Though Ingredients"] == "false"){
+        MaterialTheme.typography.bodyMedium
+    } else if (isBig){
+        MaterialTheme.typography.titleLarge
+    }else {
+        MaterialTheme.typography.bodySmall
+    }
+    if (isStrike && userSettings["Making.Walk Though Ingredients"] == "true") style = style.copy(textDecoration = TextDecoration.LineThrough)
     val convertedText = MakeFormatting.getCorrectUnitsAndValues(value,multiplier.value, userSettings)//text adjusted to the user settings for the measurement options and the multiplier
     val measurementsInside = MakeFormatting.listUnitsInValue(convertedText) //measurements inside the text
     var showingMeasurement by remember { mutableIntStateOf(-1) }//index inside of the measurements list of currently expanded measurement
-    if (isStrike) showingMeasurement = -1 //when it is showing conversions and then the settings is struck stop showing the conversions
+    if (isStrike && userSettings["Making.Walk Though Ingredients"] == "true") showingMeasurement = -1 //when it is showing conversions and then the settings is struck stop showing the conversions
     if (userSettings["Units.Show Conversions"]== "false" || measurementsInside.isEmpty()){//if can not find measurements just show the ingredient or the setting is disabled
         Text ( text = "${intToRoman(index+1)}: $convertedText",
             modifier = Modifier
@@ -498,14 +504,20 @@ fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Re
             //update the instructions list
             for ((index,instruction) in recipeData.value.instructions.list.withIndex()) {
                 val correctUnitsAndMultipliedText = MakeFormatting.getCorrectUnitsAndValuesInIngredients(instruction.text,multiplier.value,settings)
+                val colour = if (settings["Making.Walk Though Instructions"] == "true") {
+                    getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.onBackground)
+                }else {
+                    MaterialTheme.colorScheme.onBackground
+                }
                 instruction(
+                    settings,
                     correctUnitsAndMultipliedText,
                     instruction.index,
                     (index == strikeIndex),
                     (index < strikeIndex),
-                    getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.onBackground)
+                    colour
                 )
-                if (index == strikeIndex && instruction.linkedCookingStepIndex != null){
+                if (settings["Making.Walk Though Instructions"] == "true" && index == strikeIndex && instruction.linkedCookingStepIndex != null){
                     CookingStepDisplay(recipeData.value.data.cookingSteps.list[instruction.linkedCookingStepIndex!!],getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface),settings)
                 }
 
@@ -543,15 +555,22 @@ fun CookingStepDisplayPreview() {
     }
 }
 @Composable
-fun instruction (value : String,index : Int,isBig : Boolean, isStrike: Boolean, linkedColor : androidx.compose.ui.graphics.Color){
-    var style =  if (isBig) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodySmall
-    if (isStrike) style = style.copy(textDecoration = TextDecoration.LineThrough)
+fun instruction (userSettings: Map<String,String>, value : String,index : Int,isBig : Boolean, isStrike: Boolean, linkedColor : androidx.compose.ui.graphics.Color){
+    var style = if (userSettings["Making.Walk Though Instructions"] == "false"){
+        MaterialTheme.typography.bodyMedium
+    } else if (isBig){
+        MaterialTheme.typography.titleLarge
+    }else {
+        MaterialTheme.typography.bodySmall
+    }
+
+    if (isStrike && userSettings["Making.Walk Though Instructions"] == "true") style = style.copy(textDecoration = TextDecoration.LineThrough)
     Text ( text = "${intToRoman(index+1)}: $value",
         modifier = Modifier
             .padding(5.dp)
             .fillMaxWidth(),
         style = style,
-        color = linkedColor
+        color =  linkedColor
     )
 }
 

@@ -161,6 +161,10 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Round Numbers","round larger numbers to the nearest whole number", mutableStateOf(true)),
             SettingsOptionToggle("Show Conversions","make it so you can click on a measurement and conversions for that will show up", mutableStateOf(true)),
             )),
+        SettingsSubMenu("Making","",listOf(
+            SettingsOptionToggle("Walk Though Ingredients","Tap though the ingredient to highlight the next one when making a recipe", mutableStateOf(true)),
+            SettingsOptionToggle("Walk Though Instructions","Tap though the instructions to highlight the next one when making a recipe", mutableStateOf(true)),
+        )),
         SettingsSubMenu("Creation","",listOf(
             SettingsSubMenu("Website Loading","",listOf(
                 SettingsOptionToggle("Generate cooking steps","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false)),
