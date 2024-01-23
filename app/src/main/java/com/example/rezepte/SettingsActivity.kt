@@ -160,6 +160,7 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Fractional Numbers","display measurements as fractions or decimals", mutableStateOf(true)),
             SettingsOptionToggle("Round Numbers","round larger numbers to the nearest whole number", mutableStateOf(true)),
             SettingsOptionToggle("Show Conversions","make it so you can click on a measurement and conversions for that will show up", mutableStateOf(true)),
+            SettingsOptionToggle("Remove Duplicates","when units have all been converted to the same type there may be duplicate in the ingredients list. remove these", mutableStateOf(true)),
             )),
         SettingsSubMenu("Making","",listOf(
             SettingsOptionToggle("Walk Though Ingredients","Tap though the ingredient to highlight the next one when making a recipe", mutableStateOf(true)),

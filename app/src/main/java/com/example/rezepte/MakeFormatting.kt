@@ -81,6 +81,11 @@ class MakeFormatting {
                 .findAll(this?: "")
                 .map { it.range.first }
                 .toList()
+        private fun String?.rangesOf(pat: String, ignoreCase: Boolean = true): List<IntRange> = //returns every index a value is found
+            pat.toRegex(ignoreCaseOpt(ignoreCase))
+                .findAll(this?: "")
+                .map { it.range }
+                .toList()
         private fun String.replaceNumberBeforeValues(
             oldNumber: String,
             newNumber: String,
@@ -107,10 +112,48 @@ class MakeFormatting {
                     }
                 }
             }
-            if (bestDistance == -1) return this //could not find sutible pair the value is before the old number
+            if (bestDistance == -1) return this //could not find suitable pair the value is before the old number
             //replace old number with new number
             return this.replaceRange(bestNumberIndex,bestNumberIndex+oldNumber.length,newNumber)
         }
+        private fun String.removeNumberBeforeValues(
+            number: String,
+            values: List<String>
+        ): String {
+            //get all index of both bits of information
+            val valuesIndexes = mutableListOf<Int>()
+            val valuesEnds = mutableListOf<Int>()
+            for(value in values){ //add the index of the whole list of possible values
+                val options = this.rangesOf(value,true)
+                valuesIndexes.addAll(options.map{range -> range.first})
+                valuesEnds.addAll(options.map{ range -> range.last})
+            }
+            val oldNumberIndexes = this.indexesOf(number, true)
+            //if one can not be found return now
+            if (valuesIndexes.isEmpty() || oldNumberIndexes.isEmpty()) return this
+            //chose the number closest to and before and index of the value
+            var bestNumberIndex = -1
+            var bestEndIndex = -1
+            var bestDistance = -1 //smallest distance found
+            for (valueIndex in valuesIndexes) {
+                for (oldNumberIndex in oldNumberIndexes) {
+                    if (oldNumberIndex > valueIndex) break // if to big break and look at next one
+                    //else if distance if better than best replace distance and the best value
+                    if (valueIndex - oldNumberIndex < bestDistance || bestDistance == -1) {
+                        bestDistance = valueIndex - oldNumberIndex
+                        bestNumberIndex = oldNumberIndex
+                        bestEndIndex = valuesEnds[valuesIndexes.indexOf(valueIndex)]
+                    }
+                }
+            }
+            if (bestDistance == -1) return this //could not find suitable pair the value is before the old number
+            //remove number and values
+            println("string:$this")
+            println("index:$bestNumberIndex,$bestEndIndex")
+            return this.removeRange(bestNumberIndex,bestEndIndex+1)
+        }
+
+
 
 
         private val fractions = arrayOf(
@@ -175,6 +218,11 @@ class MakeFormatting {
             var output = convertUnitOfString(string,settings)
             //remove a singular space between a fraction and a number as it is not necessary and is the best way to make sure they are combined
             output = combineNumbersWithThereFractions(output)
+            //remove duplicate values todo add setting for this
+            if (settings["Units.Remove Duplicates"] == "true"){
+                output = removeDuplicateMeasurements(output)
+            }
+
             //replace numbers with multiplied value
             return multiplyBy(output,multiplier,settings["Units.Fractional Numbers"]== "true",if (settings["Units.Round Numbers"] == "true") 0.02f else -1f)
         }
@@ -427,6 +475,58 @@ class MakeFormatting {
             }
             return output
         }
+        /**
+         * if there are multiple measurements in the ingredient next to each other that are basically the same value delete one. To save space. (to be run after measurements are converted to the same units)
+         *
+         *
+         * @param string The ingredient to fix multiple measurements in.
+         * @param settings The settings to see which one to keep.
+         */
+        private fun removeDuplicateMeasurements(string: String):String{
+            var output = string
+            //clean the string from brackets and other things in the way
+            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
+            val units = getAllUnitsInString(string)
+            for (unit in units){
+                if (unit.value.count()>1){//there is more than one of a type of unit see if one needs to be removed
+                    //get values for each number
+                    val values = mutableMapOf<String,Float>()
+                    var total = 0f
+                    for (value in unit.value){
+                        if (value != 0 && cleanWords[value-1].matches(numberRegex)) {
+                            total += cleanWords[value-1].vulgarFraction
+                            values[cleanWords[value-1]] = cleanWords[value-1].vulgarFraction
+                        }
+                    }
+                    if (total <= 1f) break//only one really value found
+                    //if there is a smaller than 5% difference from an average then remove the extra numbers
+                    val average = total/values.count()
+                    val keepingValue = values.keys.first()
+                    if (abs(values[keepingValue]!!- average)<average * 0.05f){
+                        //do not need multiple numbers remove the rest
+                        values.remove(keepingValue)
+                        for (value in values){
+                            output = output.removeNumberBeforeValues(value.key, unitsLut[unit.key]!!)
+                        }
+                    }
+                }
+            }
+            return output
+        }
+        private val standAloneIngredients = listOf("egg","eggs","cucumber")//todo add more
+        private fun getIngredientsInString(string:String) : MutableMap<String, Int> {
+            //clean the string from brackets and other things in the way
+            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
+            //find the existing units in the string
+            val ingredientIndexes: MutableMap<String,Int> = mutableMapOf()
+            for (option in standAloneIngredients){
+                val ingredientIndex = cleanWords.indexOf(option)
+                if (ingredientIndex != -1){
+                    ingredientIndexes[option]  = ingredientIndex
+                }
+            }
+            return ingredientIndexes
+        }
 
         /**
          * multiplies the numbers in a string only if they have a measurement after them so it can work inside instructions
@@ -444,7 +544,6 @@ class MakeFormatting {
             var output = wholeString
 
             for (unit in units){
-
                 //if there units starting an item just ignore them
                 if (unit.value == 0) continue
                 val value = cleanWords[unit.value-1]
@@ -453,13 +552,25 @@ class MakeFormatting {
                     val newNumber = roundSmallGaps(value.vulgarFraction * multiplier, roundPercentage).vulgarFraction
                     val replacement : String=   if (isVulgar) newNumber.first else newNumber.second.toString()
                     output = output.replaceNumberBeforeValues(value,replacement, unitsLut[unit.key]!!)
-
-
+                }
+            }
+            //there are a few ingredient names that need number before them multiplied
+            val ingredients = getIngredientsInString(wholeString)
+            for (ingredient in ingredients){
+                //if there ingredient starting an item just ignore them
+                if (ingredient.value == 0) continue
+                val value = cleanWords[ingredient.value-1]
+                //make sure that there is a number being passed
+                if (value.matches(numberRegex)) {
+                    val newNumber = roundSmallGaps(value.vulgarFraction * multiplier, roundPercentage).vulgarFraction
+                    val replacement : String=   if (isVulgar) newNumber.first else newNumber.second.toString()
+                    output = output.replaceNumberBeforeValues(value,replacement, listOf(ingredient.key))
                 }
             }
 
             return output
         }
+
         private fun roundSmallGaps (value: Float, roundPercentage: Float ) : Float{
             if (roundPercentage> 0 && abs(value - value.roundToInt()) /value < roundPercentage){//if enabled e.g. bigger than 0 and then if the rounding to a whole number effects it less than the percentage round it
                 return value.roundToInt().toFloat()
@@ -509,6 +620,24 @@ class MakeFormatting {
                 val unitIndex = cleanWords.indexOf(option.value)
                 if (unitIndex != -1){
                     unitIndexes[option.key]  = unitIndex
+                }
+            }
+            return unitIndexes
+        }
+        private fun getAllUnitsInString(string:String) : MutableMap<CookingUnit, List<Int>> {
+            //clean the string from brackets and other things in the way
+            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
+            //find the existing units in the string
+            val unitIndexes: MutableMap<CookingUnit,List<Int>> = mutableMapOf()
+            for (option in unitsLut.entries){
+                val localIndexes = mutableListOf<Int>()
+                for ((index,word) in cleanWords.withIndex()){
+                    if (option.value.contains(word)){
+                        localIndexes.add(index)
+                    }
+                }
+                if (localIndexes.isNotEmpty()){
+                    unitIndexes[option.key]  = localIndexes
                 }
             }
             return unitIndexes
