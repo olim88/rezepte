@@ -116,7 +116,7 @@ class MakeFormatting {
             //replace old number with new number
             return this.replaceRange(bestNumberIndex,bestNumberIndex+oldNumber.length,newNumber)
         }
-        private fun String.removeNumberBeforeValues(
+        private fun String.removeMesurment(
             number: String,
             values: List<String>
         ): String {
@@ -147,9 +147,30 @@ class MakeFormatting {
                 }
             }
             if (bestDistance == -1) return this //could not find suitable pair the value is before the old number
+            //if there are brackets around this value add to range to include them
+            if (bestNumberIndex >0 && bestEndIndex<this.length){
+                if (this[bestNumberIndex-1]=='('&& this[bestEndIndex+1]==')'){
+                    bestNumberIndex -=1
+                    bestEndIndex += 1
+                }
+            }
+            //if there is a slash before the number and only spaces between add this to the index
+            val slashLocation = this.indexesOf("/", true)
+            for (location in slashLocation){
+                if (location < bestNumberIndex){
+                    if (this.substring(location+1,bestNumberIndex).matches("\\s*".toRegex())){//if the gap between is just spaces move the index down to that location
+                        bestNumberIndex = location
+                    }
+                }else if (location > bestEndIndex){
+                    if (this.substring(bestEndIndex+1,location).matches("\\s*".toRegex())){//the same but for the end index
+                        bestEndIndex = location
+                    }
+                }
+            }
+
+
+
             //remove number and values
-            println("string:$this")
-            println("index:$bestNumberIndex,$bestEndIndex")
             return this.removeRange(bestNumberIndex,bestEndIndex+1)
         }
 
@@ -218,7 +239,7 @@ class MakeFormatting {
             var output = convertUnitOfString(string,settings)
             //remove a singular space between a fraction and a number as it is not necessary and is the best way to make sure they are combined
             output = combineNumbersWithThereFractions(output)
-            //remove duplicate values todo add setting for this
+            //remove duplicate values
             if (settings["Units.Remove Duplicates"] == "true"){
                 output = removeDuplicateMeasurements(output)
             }
@@ -506,7 +527,7 @@ class MakeFormatting {
                         //do not need multiple numbers remove the rest
                         values.remove(keepingValue)
                         for (value in values){
-                            output = output.removeNumberBeforeValues(value.key, unitsLut[unit.key]!!)
+                            output = output.removeMesurment(value.key, unitsLut[unit.key]!!)
                         }
                     }
                 }
@@ -889,7 +910,7 @@ class MakeFormatting {
                             //replace unit
                             unitsLut[CookingUnit.Pint]?.let { output =  output.replace (it, "ml") }
                         }
-                        
+
                         return output
                     }
                     //if already correct
