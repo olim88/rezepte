@@ -3,6 +3,7 @@ package com.example.rezepte
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import java.io.File
+import java.util.Date
 
 class FileSync {
 
@@ -153,11 +154,14 @@ class FileSync {
         }
         fun downloadThumbnail  (data : Data, file: FileBatchInfo, returnThumbnails: (Map<out String, Bitmap?>) -> Unit  ){
             val localThumbnails  = hashMapOf<String,Bitmap?>()
+            val localDates  = hashMapOf<String,Date?>()
             var localThumbnailExists = false
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
                 for (thumbnailName in file.fileNames){
-                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg")?.first)
+                    val localFile = LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg")
+                    localThumbnails[thumbnailName]= (localFile?.first)
+                    localDates[thumbnailName]= (localFile?.second)
                     if (localThumbnails[thumbnailName] != null){
                         localThumbnailExists = true
                     }
@@ -170,24 +174,65 @@ class FileSync {
             }
 
             //sort online
-            val onlineData = if (data.priority != FilePriority.LocalOnly){
+            //val online dates if looking at newest else just get all online
+            val onlineDates = if (data.priority == FilePriority.Newist){
+                val dropbox = getTokenAndOnline(data.dropboxPrefrence)
+                if (dropbox.second) {
+                    val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
+                    downloader.getFilesDates(file.dropboxPath )
+                }else {null}
+            }else {null}
+
+            val onlineData = if (data.priority != FilePriority.LocalOnly && data.priority != FilePriority.Newist){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
                 if (dropbox.second) {
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
                     downloader.getThumbnails(file.dropboxPath , file.fileNames)
                 }else {null}
             }else {null}
+
             //depending on the priority / dates see if the online file should be returned
-            if (onlineData == null) return //if no online data do not need to check
+            if (onlineData == null && onlineDates== null) return //if no online data do not need to check
             if (!localThumbnailExists){//no local just return online
-                returnThumbnails(onlineData)
+                if (onlineData != null) {
+                    returnThumbnails(onlineData)
+                }
                 return
             }
             when (data.priority){
                 FilePriority.OnlineFirst->{
-                    returnThumbnails(onlineData)
+                    if (onlineData != null) {
+                        returnThumbnails(onlineData)
+                    }
                 }
-                //new can not work as there are multiple dates
+                FilePriority.Newist -> {
+                    if (onlineDates == null) return //complains without this
+                    //find the files that have newer versions online
+                    val neededNames = mutableListOf<String>()
+                    val removedThumbnails = mutableMapOf<String,Bitmap?>()
+                    for (thumbnailKey in file.fileNames) {
+                        if (onlineDates[thumbnailKey] != null){//if there is a online file
+                            //if the online file is newer add to download list
+                            if (!localThumbnails.contains(thumbnailKey) || localThumbnails[thumbnailKey] == null || onlineDates[thumbnailKey]!!.toInstant().toEpochMilli() - localDates[thumbnailKey]?.toInstant()!!.toEpochMilli() > 5000){
+                                neededNames.add(thumbnailKey)
+                            }
+                        } else{
+                            //set the value to null for this name as the image no longer exists
+                            removedThumbnails[thumbnailKey] = null
+                        }
+                    }
+                    //get the needed thumbnails from dropbox if there is any
+                    if (neededNames.isEmpty()) return
+                    val dropbox = getTokenAndOnline(data.dropboxPrefrence)
+                    val neededThumbnails = if (dropbox.second) {
+                        val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
+                        downloader.getThumbnails(file.dropboxPath , neededNames)
+                    }else {null}
+                    if (neededThumbnails != null){
+                        returnThumbnails(localThumbnails + neededThumbnails + removedThumbnails)
+                    }
+                }
+                //there is no other way to sync thumbnails currently
                 else -> {}
             }
             return
@@ -231,7 +276,7 @@ class FileSync {
         /**
          * syncs file version between local files and files on dropbox basted on the priority.
          * when given a first priority that file is uploaded to the other location.
-         * when given the newist the dates of both files are compared and the newest one is uploaded to the other location.
+         * when given the newest the dates of both files are compared and the newest one is uploaded to the other location.
          * 
          *
          * @param data The general data for syncing.
@@ -291,16 +336,25 @@ class FileSync {
             success()
         }
         fun syncThumbnail  (data : Data, file: FileBatchInfo, success: () -> Unit  ){ //todo add newist get time functionality
-            val localThumbnails  = hashMapOf<String,Bitmap?>()
+            val localThumbnails  = hashMapOf<String,Pair<Bitmap, Date>?>()
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
                 for (thumbnailName in file.fileNames){
-                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg")?.first)
+                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg"))
                 }
 
             }
             //sort online
-            val onlineData = if (data.priority != FilePriority.LocalOnly){
+            //val online dates if looking at newest else just get all online
+            val onlineDates = if (data.priority == FilePriority.Newist){
+                val dropbox = getTokenAndOnline(data.dropboxPrefrence)
+                if (dropbox.second) {
+                    val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
+                    downloader.getFilesDates(file.dropboxPath )
+                }else {null}
+            }else {null}
+
+            val onlineData = if (data.priority != FilePriority.LocalOnly && data.priority != FilePriority.Newist){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
                 if (dropbox.second) {
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
@@ -309,12 +363,13 @@ class FileSync {
             }else {null}
 
             //depending on the priority / dates see if the online file should be returned
-            if (onlineData == null) return //if no online data do not need to check
+            if (onlineData == null && onlineDates == null) return //if no online data do not need to check
             when (data.priority){
                 FilePriority.OnlineFirst->{
+                    if (onlineData == null) return //complains without this
                     for (thumbnailKey in file.fileNames) {
                         if (onlineData[thumbnailKey] != null) {
-                            if (onlineData[thumbnailKey]?.sameAs(localThumbnails[thumbnailKey]) == false){
+                            if (onlineData[thumbnailKey]?.sameAs(localThumbnails[thumbnailKey]?.first) == false){
                                 LocalFilesTask.saveBitmap(
                                     onlineData[thumbnailKey]!!,
                                     file.localPath,
@@ -333,10 +388,11 @@ class FileSync {
                     success()
                 }
                 FilePriority.OnlineOnly->{
+                    if (onlineData == null) return //complains without this
                     for (thumbnailKey in file.fileNames) {
                         if (onlineData[thumbnailKey] != null) {
                             LocalFilesTask.saveBitmap(
-                                localThumbnails[thumbnailKey]!!,
+                                localThumbnails[thumbnailKey]?.first!!,
                                 file.localPath,
                                 "$thumbnailKey.jpg"
                             )
@@ -349,6 +405,53 @@ class FileSync {
                         }
                     }
                     success()
+                }
+                FilePriority.Newist -> {
+                    if (onlineDates == null) return //complains without this
+                    //find the files that have newer versions online
+                    val neededNames = mutableListOf<String>()
+                    for (thumbnailKey in file.fileNames) {
+                        if (onlineDates[thumbnailKey] != null){//if there is a online file
+                            //if the online file is newer add to download list
+                            if (!localThumbnails.contains(thumbnailKey) || localThumbnails[thumbnailKey] == null || onlineDates[thumbnailKey]!!.toInstant().toEpochMilli() - localThumbnails[thumbnailKey]?.second?.toInstant()!!.toEpochMilli() > 5000){
+                                neededNames.add(thumbnailKey)
+                            }
+                        } else {
+                            //delete the file if not on dropbox
+                            LocalFilesTask.removeFile(
+                                file.localPath,
+                                "$thumbnailKey.jpg"
+                            )
+                        }
+                    }
+                    //get the needed thumbnails from dropbox if there is any
+                    if (neededNames.isEmpty()) {success(); return}
+                    val dropbox = getTokenAndOnline(data.dropboxPrefrence)
+                    val neededThumbnails = if (dropbox.second) {
+                        val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
+                        downloader.getThumbnails(file.dropboxPath , file.fileNames)
+                    }else {null}
+                    if (neededThumbnails != null){
+                        for (thumbnailKey in neededNames) {
+                            if (neededThumbnails[thumbnailKey] != null) {
+                                if (neededThumbnails[thumbnailKey]?.sameAs(localThumbnails[thumbnailKey]?.first) == false){
+                                    LocalFilesTask.saveBitmap(
+                                        neededThumbnails[thumbnailKey]!!,
+                                        file.localPath,
+                                        "$thumbnailKey.jpg"
+                                    )
+                                }
+                            } else {
+                                //delete the file if not on dropbox (this should not come up unless it get deleted while the function is running)
+                                LocalFilesTask.removeFile(
+                                    file.localPath,
+                                    "$thumbnailKey.jpg"
+                                )
+                            }
+
+                        }
+                        success()
+                    }
                 }
                 //there is no other way to sync thumbnails currently
                 else -> {}

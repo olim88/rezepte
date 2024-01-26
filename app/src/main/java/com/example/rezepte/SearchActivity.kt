@@ -219,7 +219,7 @@ class SearchActivity : ComponentActivity() {
 
                 //load thumbnails when file names are finalised
                 val priority =
-                    if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized") FileSync.FilePriority.OnlineFirst else FileSync.FilePriority.OnlineOnly
+                    if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized") FileSync.FilePriority.Newist else FileSync.FilePriority.OnlineOnly
                 val thumbNailsData = FileSync.Data(priority,dropboxPreference)
                 val thumbnailFiles = FileSync.FileBatchInfo("/image/","${this@SearchActivity.filesDir}/thumbnail/",recipeNameData.value)
                 FileSync.downloadThumbnail(thumbNailsData,thumbnailFiles){
@@ -236,7 +236,7 @@ class SearchActivity : ComponentActivity() {
                     }
 
                 }
-                val thumbNailSyncData = FileSync.Data(FileSync.FilePriority.OnlineFirst,dropboxPreference) //sync the thumbnails to device
+                val thumbNailSyncData = FileSync.Data(FileSync.FilePriority.Newist,dropboxPreference) //sync the thumbnails to device
                 FileSync.syncThumbnail(thumbNailSyncData,thumbnailFiles){}
 
             }

@@ -103,7 +103,7 @@ class DownloadTask(client: DbxClientV2)  {
         //get thumb nails in baches of 25
         var index = 0
         val output = hashMapOf<String,Bitmap?>()
-        while (index <fileNames.size-1){
+        while (index <fileNames.size){
             val args = mutableListOf<ThumbnailArg>()
             val startIndex = index
             for ( name in fileNames.subList(startIndex,fileNames.size)){
@@ -141,6 +141,25 @@ class DownloadTask(client: DbxClientV2)  {
 
         return results.serverModified //last modified time
     }
-    //todo may be able to user a batch but it is under sharing so idk if it works
+    fun getFilesDates(dir:String): Map<String,Date?>?{
+        val results = try {
+            dbxClient.files().listFolder(dir)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
+        val dates = mutableMapOf<String,Date?>()
+        for (value in results.entries){
+            try {
+                dates[value.name.removeSuffix(".jpg")] = (value as FileMetadata).serverModified
+            }catch (ignore : Exception){
+                //it is not a file
+            }
+        }
+        //todo add request more
+
+        return  dates
+    }
+
 
     }

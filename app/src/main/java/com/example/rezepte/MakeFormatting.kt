@@ -116,7 +116,7 @@ class MakeFormatting {
             //replace old number with new number
             return this.replaceRange(bestNumberIndex,bestNumberIndex+oldNumber.length,newNumber)
         }
-        private fun String.removeMesurment(
+        private fun String.removeMeasurement(
             number: String,
             values: List<String>
         ): String {
@@ -527,7 +527,7 @@ class MakeFormatting {
                         //do not need multiple numbers remove the rest
                         values.remove(keepingValue)
                         for (value in values){
-                            output = output.removeMesurment(value.key, unitsLut[unit.key]!!)
+                            output = output.removeMeasurement(value.key, unitsLut[unit.key]!!)
                         }
                     }
                 }
