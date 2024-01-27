@@ -683,7 +683,7 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
         )
 
         Row{
-            if (image.value == null || savedBitmap.value != null){
+            if (image.value == null && savedBitmap.value == null){
                 Text (text = "Image", modifier = Modifier.align(Alignment.CenterVertically),   style = MaterialTheme.typography.titleLarge )
                 Spacer(
                     Modifier
@@ -696,7 +696,7 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
             }
             ,modifier = Modifier.padding(5.dp)
             ) {
-                Icon(if (image.value == null || savedBitmap.value != null) Icons.Filled.Add else Icons.Filled.Edit, "contentDescription")
+                Icon(if (image.value == null && savedBitmap.value == null) Icons.Filled.Add else Icons.Filled.Edit, "contentDescription")
             }
 
         }
