@@ -340,6 +340,27 @@ class MakeFormatting {
                     val grams = splitMeasurement[0].vulgarFraction * 0.4535924f
                     getWeightConversions(grams ,wholeIngredient,settings)
                 }
+                CookingUnit.Centimeter -> {
+                    val centimeters = splitMeasurement[0].vulgarFraction
+                    getLengthConversions(centimeters )
+                }
+                CookingUnit.Meter -> {
+                    val centimeters = splitMeasurement[0].vulgarFraction /100
+                    getLengthConversions(centimeters )
+                }
+                CookingUnit.Inch -> {
+                    val centimeters = splitMeasurement[0].vulgarFraction /2.51f
+                    getLengthConversions(centimeters )
+                }
+                CookingUnit.TemperatureC -> {
+                    val c = splitMeasurement[0].vulgarFraction
+                    getTemperatureConversions(c)
+                }
+                CookingUnit.TemperatureF -> {
+                    val c = (splitMeasurement[0].vulgarFraction -32)  * 5/9
+                    getTemperatureConversions(c)
+                }
+
 
 
                 else -> return listOf() //no unit return empty list
@@ -438,6 +459,30 @@ class MakeFormatting {
 
             return  output
         }
+        private fun getLengthConversions(length: Float) : Map<CookingUnit,Float>{
+            //return all the conversions for a weight measure used for grams kg ...
+            val output = mutableMapOf<CookingUnit,Float>()
+
+            //cm
+            output[CookingUnit.Centimeter] = length
+            //m
+            if (length>50){
+                output[CookingUnit.Meter] = length/100
+            }
+            //in
+            output[CookingUnit.Centimeter] = length * 2.51f
+            return  output
+        }
+        private fun getTemperatureConversions(temperature: Float) : Map<CookingUnit,Float>{
+            //return all the conversions for a weight measure used for grams kg ...
+            val output = mutableMapOf<CookingUnit,Float>()
+
+            //C
+            output[CookingUnit.TemperatureC] = temperature
+            //F
+            output[CookingUnit.TemperatureF] = (temperature *9/5) +32
+            return  output
+        }
 
         private enum class CookingUnit {
             Teaspoon,
@@ -453,9 +498,9 @@ class MakeFormatting {
             Pound,
             Centimeter,
             Meter,
-            ImperialLength,
-            TeperatureC,
-            TeperatureF,
+            Inch,
+            TemperatureC,
+            TemperatureF,
 
         }
         private val unitsLut = mapOf(
@@ -472,7 +517,9 @@ class MakeFormatting {
             Pair(CookingUnit.Pound , listOf("lb","pound") ),
             Pair(CookingUnit.Centimeter , listOf("cm","centimeter") ),
             Pair(CookingUnit.Meter , listOf("m","meter") ),
-            Pair(CookingUnit.ImperialLength , listOf("in","inch") ),
+            Pair(CookingUnit.Inch , listOf("in","inch") ),
+            Pair(CookingUnit.TemperatureC , listOf("°c","ºc","c") ),
+            Pair(CookingUnit.TemperatureF , listOf("°f","ºf","f") ),
 
             )
 
