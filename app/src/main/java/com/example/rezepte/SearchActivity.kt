@@ -68,9 +68,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -125,7 +129,7 @@ class SearchActivity : ComponentActivity() {
         ACCESS_TOKEN = tokenHandler.retrieveAccessToken()
 
         val recipeNameData : MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
-        val extraData : MutableMap<String,BasicData> = mutableMapOf()
+        val extraData  = mutableStateMapOf<String,BasicData>()
         val thumbnails = mutableMapOf<String,Bitmap?>()
         val hasThumbnails = mutableStateOf(false)
 
@@ -481,14 +485,17 @@ fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName 
 @Composable
 fun RecipeList(
     names: MutableState<MutableList<String>>,
-    extraData:MutableMap<String,BasicData>,
+    extraData:SnapshotStateMap<String, BasicData>,
     thumbnails: MutableMap<String, Bitmap?>,
     searchFieldState: MutableState<TextFieldValue>,
-    filters: MutableState<Map<String, MutableState<Boolean>>>,
     getName: Boolean,
     settings: Map<String,String>
 ) {
     var filteredNames: List<String>
+    val filters  = {
+        getFilters(names.value,extraData.values)
+    }
+    var currentFilters = remember { mutableStateListOf<String>()}
 
 
 
@@ -522,11 +529,14 @@ fun RecipeList(
             //add the filterer at the top
             if (settings["Search menu.Suggestion Filters"] == "true") {
                 item {
-                    SearchFilters(filters, firstItemTranslationY, visibility)
+                    SearchFilters(filters, firstItemTranslationY, visibility){
+                        currentFilters = it as SnapshotStateList<String>
+                     }
+
                 }
             }
 
-            filteredNames = filterItems(names.value,extraData,filters.value,searchFieldState.value.text)
+            filteredNames = filterItems(names.value,extraData,currentFilters,searchFieldState.value.text)
 
             items(filteredNames) { name ->
 
@@ -567,10 +577,13 @@ fun RecipeList(
             //add spacer for filters at the top if its enabled
             if (settings["Search menu.Suggestion Filters"] == "true") {
                 item(span =  StaggeredGridItemSpan.FullLine ) {
-                    SearchFilters(filters, firstItemTranslationY, visibility)
+                    SearchFilters(filters, firstItemTranslationY, visibility){
+                        currentFilters.clear()
+                        currentFilters.addAll(it)
+                    }
                 }
             }
-            filteredNames = filterItems(names.value,extraData,filters.value,searchFieldState.value.text)
+            filteredNames = filterItems(names.value,extraData,currentFilters,searchFieldState.value.text)
             items(filteredNames) { name ->
 
                 RecipeTile(name, getColor(index = filteredNames.indexOf(name), default = MaterialTheme.colorScheme.primary), thumbnails[name]) {
@@ -587,7 +600,9 @@ fun RecipeList(
         }
     }
 }
-fun filterItems(names:List<String>, authors:Map<String,BasicData>,filters: Map<String, MutableState<Boolean>>, searchFilter:String): List<String>{
+fun filterItems(
+    names:List<String>, authors:Map<String,BasicData>,
+    filters: SnapshotStateList<String>, searchFilter:String): List<String>{
     val resultList = mutableListOf<String>()
     //check all of the recipe names to see which one fits the filters
     for (name in names){
@@ -599,7 +614,7 @@ fun filterItems(names:List<String>, authors:Map<String,BasicData>,filters: Map<S
             var matches = true
             for (filter in filters){
                 //if there is a filter enabled see if the filter word is in the name (or author) and if it is not remove matches
-                if(filter.value.value && !searchedValue.contains(filter.key, ignoreCase = true)){
+                if( !searchedValue.contains(filter, ignoreCase = true)){
                     matches = false
                     break
                 }
@@ -810,10 +825,12 @@ fun SearchView(state: MutableState<TextFieldValue>) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchFilters(
-    filters: MutableState<Map<String, MutableState<Boolean>>>,
+    filters: () -> Map<String, MutableState<Boolean>>,
     firstItemTranslationY: Float,
-    visibility: Float
+    visibility: Float,
+    updateSelectedFilters: (List<String>) -> Unit,
 ){
+    val currentFilters by remember { mutableStateOf(filters())}
 
     Row (modifier = Modifier
         .horizontalScroll(rememberScrollState())
@@ -821,9 +838,15 @@ fun SearchFilters(
             translationY = firstItemTranslationY
             alpha = 1f - visibility
         }) {
-        for (filter in filters.value){
+        for (filter in currentFilters){
             FilterChip(
-                onClick = { filter.value.value = !filter.value.value },
+                onClick = {
+                            filter.value.value = !filter.value.value
+                            //get current filters that are set and update that value
+                            val checked = mutableListOf<String>()
+                            val active = currentFilters.filter { state -> state.value.value }
+                            updateSelectedFilters(active.keys.toList())
+                          },
                 label = {
                     Text(filter.key)
                 },
@@ -860,7 +883,9 @@ fun getFilters (recipeNames: List<String>, authors: MutableCollection<BasicData>
             }
         }
     }
-    for (author in authors){ //todo this never works because authors is empty when this is called
+    for (author in authors){
+
+        if (author.author == "") continue // do do this for empty authors
         if (usedWordsCount[author.author] == null){
             usedWordsCount[author.author] = 1
         }else {
@@ -881,11 +906,10 @@ fun getFilters (recipeNames: List<String>, authors: MutableCollection<BasicData>
 @Composable
 private fun MainScreen(
     names: MutableState<MutableList<String>>,
-    extraData: MutableMap<String,BasicData>, thumbnails: MutableMap<String,Bitmap?>,
+    extraData: SnapshotStateMap<String, BasicData>, thumbnails: MutableMap<String,Bitmap?>,
     getName: Boolean, updatedThumbnail: MutableState<Boolean>,
     settings: Map<String,String>) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
-    val filters = remember { mutableStateOf( getFilters(names.value,extraData.values))}
     if (names.value.isNotEmpty()) {
         Column(
             modifier = Modifier
@@ -894,7 +918,7 @@ private fun MainScreen(
         ) {
             SearchView(textState)
 
-            RecipeList(names, extraData, thumbnails, textState, filters, getName, settings)
+            RecipeList(names, extraData, thumbnails, textState, getName, settings)
             if (updatedThumbnail.value) {
                 //this will update the thumbnails
                 updatedThumbnail.value = false
@@ -1000,7 +1024,7 @@ fun NoReciepsFoundOuput(){
 private fun MainScreenPreview() {
     RezepteTheme {
         MainScreen((mutableStateOf(mutableListOf("Carrot Cake", "other Cake"))),
-            mutableMapOf(), hashMapOf(),false, mutableStateOf(false),mapOf())
+            mutableStateMapOf(), hashMapOf(),false, mutableStateOf(false),mapOf())
     }
 }
 @Preview(
@@ -1059,10 +1083,9 @@ fun previewRecipeCards(){
         Surface {
             RecipeList(
                 (mutableStateOf(mutableListOf("Carrot Cake", "other Cake" ))),
-                mutableMapOf(),
+                mutableStateMapOf(),
                 hashMapOf(),
                 textState,
-                filters,
                 false,
                 mapOf()
             )

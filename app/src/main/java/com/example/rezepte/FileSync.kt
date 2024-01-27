@@ -335,7 +335,7 @@ class FileSync {
             }
             success()
         }
-        fun syncThumbnail  (data : Data, file: FileBatchInfo, success: () -> Unit  ){ //todo add newist get time functionality
+        fun syncThumbnail  (data : Data, file: FileBatchInfo, success: () -> Unit  ){
             val localThumbnails  = hashMapOf<String,Pair<Bitmap, Date>?>()
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
