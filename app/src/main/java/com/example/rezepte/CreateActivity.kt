@@ -359,9 +359,11 @@ class CreateActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             //upload the file data
             val priorityXml = if (settings["Local Saves.Cache recipe names"] == "true" ) FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
-            val priorityImage = if (settings["Local Saves.Cache recipe image"]== "full sized"  || settings["Local Saves.Cache recipe image"]== "thumbnail") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val priorityImage = if (settings["Local Saves.Cache recipe image"]== "full sized") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val saveThumbnail =  settings["Local Saves.Cache recipe image"]== "full sized" || settings["Local Saves.Cache recipe image"]== "thumbnail";
             val dataXml = FileSync.Data(priorityXml, dropboxPreference)
             val dataImage = FileSync.Data(priorityImage, dropboxPreference)
+            val dataThumbnail = FileSync.Data(FileSync.FilePriority.LocalOnly, dropboxPreference)
             val xmlSaveFile =
                 FileSync.FileInfo(
                     "/xml/",
@@ -374,21 +376,32 @@ class CreateActivity : ComponentActivity() {
                     "${this@CreateActivity.filesDir}/image/",
                     "$name.jpg"
                 )
+            val thumbnailFile =
+                FileSync.FileInfo(
+                    "",
+                    "${this@CreateActivity.filesDir}/thumbnail/",
+                    "$name.jpg"
+                )
             FileSync.uploadString(dataXml, xmlSaveFile, xmlData) {}
             if (uriBitmap != null) {
                 FileSync.uploadImage(dataImage, imageSaveFile, uriBitmap) {}
+                if (saveThumbnail){
+                    val thumbnailBitmap = Bitmap.createScaledBitmap(uriBitmap,128,128,false);
+                    FileSync.uploadImage(dataThumbnail, thumbnailFile, thumbnailBitmap) {}
+                }
             } else if (bitmapImage != null) {
                 FileSync.uploadImage(dataImage, imageSaveFile, bitmapImage) {}
+                if (saveThumbnail){
+                    val thumbnailBitmap = Bitmap.createScaledBitmap(bitmapImage,128,128,false);
+                    FileSync.uploadImage(dataThumbnail, thumbnailFile, thumbnailBitmap) {}
+                }
             } else {
                 FileSync.deleteFile(dataImage, imageSaveFile) {}
-
-
-
+                FileSync.deleteFile(dataThumbnail, thumbnailFile) {}
             }
         }
         CoroutineScope(Dispatchers.IO).launch {
             //update search data to include recipe
-
             val priority =
                 if (DbTokenHandling(dropboxPreference).isLoggedIn()) FileSync.FilePriority.OnlineOnly else FileSync.FilePriority.LocalOnly
             val searchDataData = FileSync.Data(priority, dropboxPreference)

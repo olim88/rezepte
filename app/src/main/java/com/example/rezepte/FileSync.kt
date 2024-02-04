@@ -41,8 +41,6 @@ class FileSync {
                 returnString(localData.first)
             }
 
-
-
             //sort online
             val onlineData = if (data.priority != FilePriority.LocalOnly){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
