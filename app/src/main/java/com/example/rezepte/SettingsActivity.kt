@@ -1,6 +1,7 @@
 package com.example.rezepte
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
@@ -91,14 +92,19 @@ class SettingsActivity : ComponentActivity() {
         fun convertToDictionary(settings : List<SettingOptionInterface>, start: String) : Map<String,String>{
             val settingDictionary  = mutableMapOf<String,String> ()
             for (setting in settings){
-                if (setting is SettingsOptionToggle) {//if its a toggle save bool
-                   settingDictionary[start+setting.name] = setting.state.value.toString()
-                }
-                if (setting is SettingsOptionDropDown) {//if it is a drop down save value at index
-                    settingDictionary[start+setting.name] = setting.options[setting.currentOptionIndex.value]
-                }
-                if (setting is SettingsSubMenu) {
-                    settingDictionary += convertToDictionary(setting.subSettings,start+setting.name+".")
+                when (setting) {
+                    is SettingsOptionToggle -> {//if its a toggle save bool
+                        settingDictionary[start+setting.name] = setting.state.value.toString()
+                    }
+                    is SettingsOptionDropDown -> {//if it is a drop down save value at index
+                        settingDictionary[start+setting.name] = setting.options[setting.currentOptionIndex.value]
+                    }
+                    is SettingsSubMenu -> {
+                        settingDictionary += convertToDictionary(setting.subSettings,start+setting.name+".")
+                    }
+                    is SettingsConditionalSubMenu -> {
+                        settingDictionary += convertToDictionary(setting.subSettings,start+setting.name+".")
+                    }
                 }
             }
             return  settingDictionary
@@ -121,6 +127,9 @@ class SettingsActivity : ComponentActivity() {
                     }
                     if (option is SettingsSubMenu) {
                         option.subSettings = loadToOptions(settings,option.subSettings,start + option.name + ".")
+                    }
+                    if (option is SettingsConditionalSubMenu){//just set to default settings values
+                        option.subSettings = option.subSettings
                     }
                 }
             } catch (e : Exception){
@@ -184,11 +193,17 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
             SettingsOptionToggle("Suggestion Filters","show list of suggestion word to filter by", mutableStateOf(true)),
         )),
 
-        SettingsSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet. only works if linked to dropbox",listOf(
+        SettingsConditionalSubMenu("Local Saves","saves data locally so they it can be loaded quicker without internet. only works if linked to dropbox",listOf(
             SettingsOptionToggle("Cache recipes","save a copy of recipes", mutableStateOf(true)),
             SettingsOptionToggle("Cache recipe names","save a copy of names", mutableStateOf(true)),
-            SettingsOptionDropDown("Cache recipe image","save a copy of images (can use up more space )", mutableStateOf(1),listOf("none","thumbnail","full sized")),
-        )),
+            SettingsOptionDropDown("Cache recipe image","save a copy of images (can use up more space )", mutableStateOf(2),listOf("none","thumbnail","full sized")),
+        )
+        ) {
+            val login = DbTokenHandling(it.getSharedPreferences("com.example.rezepte.dropboxintegration",
+                ComponentActivity.MODE_PRIVATE
+            ))
+            login.isLoggedIn()
+          },
         SettingsIntent("Walk Through","restart the walk through to be able to go though it again",WalkThoughActivity::class.java),
         )
 }
@@ -204,6 +219,7 @@ data class SettingsOptionToggle (override val name : String, override  val descr
 data class SettingsOptionDropDown (override val name : String, override  val description: String, var currentOptionIndex : MutableState<Int>, val options: List<String>) : SettingOptionInterface
 data class SettingsIntent(override val name: String, override val description: String, val intentActivity: Class<*>) : SettingOptionInterface
 data class SettingsSubMenu (override val name : String, override  val description: String, var subSettings: List<SettingOptionInterface>) : SettingOptionInterface
+data class SettingsConditionalSubMenu(override val name: String, override val description: String, var subSettings: List<SettingOptionInterface>, val condition: (Context) -> Boolean) : SettingOptionInterface
 @Composable
 private fun SettingsHeader(header: String, onclick: () -> Unit){
     Surface(
@@ -250,7 +266,6 @@ private fun SettingsIntentButton(header: String, body: String, intentActivity: C
             Text(text = header,style = MaterialTheme.typography.titleMedium)
             Text(text = body,style = MaterialTheme.typography.bodyMedium)
         }
-
     }
 }
 @Composable
@@ -410,6 +425,19 @@ private fun MainScreen(loadedSettings : Map<String,String>){
                                 settingsMenuStack.add(Pair(menu.name, menu.subSettings))
                                 update = true
                                 direction = true
+                            }
+                        }
+                        if (menu is SettingsConditionalSubMenu) {
+                            if (menu.condition(mContext)) {
+                                SettingsMenuSubMenuButton(
+                                    header = menu.name,
+                                    body = menu.description
+                                ) {
+                                    //when clicked add to the stack
+                                    settingsMenuStack.add(Pair(menu.name, menu.subSettings))
+                                    update = true
+                                    direction = true
+                                }
                             }
                         }
                         if (menu is SettingsIntent) {

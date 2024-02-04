@@ -289,7 +289,6 @@ class MakeFormatting {
                 val unitIndex = splitMeasurement.indexOf(option.value)
                 if (unitIndex != -1){
                     unitType = option.key
-
                 }
             }
             //based on what type of unit it is convert to other different units and and add to output list
@@ -297,7 +296,6 @@ class MakeFormatting {
                 CookingUnit.Teaspoon -> {
                     val ml = splitMeasurement[0].vulgarFraction * teaSpoonVolume(settings)
                     getVolumeConversions(ml,wholeIngredient,settings["Units.metric Volume"] == "true",settings)
-
                 }
                 CookingUnit.Tablespoon -> {
                     val ml = splitMeasurement[0].vulgarFraction * tableSpoonVolume(settings)
@@ -361,8 +359,6 @@ class MakeFormatting {
                     getTemperatureConversions(c)
                 }
 
-
-
                 else -> return listOf() //no unit return empty list
             }
             // for the items in the converted list add them to the possible conversions output with unit
@@ -375,9 +371,7 @@ class MakeFormatting {
 
                     possibleConversions.add("${if (settings["Units.Fractional Numbers"]== "true") vulgarValue.first else value.value}${unitsLut[value.key]?.get(0)}")
                 }
-
             }
-
 
             //return the converted list
             return  possibleConversions
@@ -520,7 +514,6 @@ class MakeFormatting {
             Pair(CookingUnit.Inch , listOf("in","inch") ),
             Pair(CookingUnit.TemperatureC , listOf("°c","ºc","c") ),
             Pair(CookingUnit.TemperatureF , listOf("°f","ºf","f") ),
-
             )
 
         private fun multiplyBy (wholeString: String, multiplier: Float, isVulgar: Boolean, roundPercentage : Float): String{
