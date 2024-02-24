@@ -589,10 +589,7 @@ fun RecipeList(
                 RecipeTile(name, getColor(index = filteredNames.indexOf(name), default = MaterialTheme.colorScheme.primary), thumbnails[name]) {
                     selectedName = name
                 }
-
             }
-
-
         }
         //when a recipe is selected show an expanded bottom sheet with extra detail and the button to link or make the recipe
         RecipeExpanded(selectedName,extraData[selectedName], thumbnails[selectedName], getName) {

@@ -249,10 +249,10 @@ class MakeFormatting {
         }
         fun listUnitsInValue(string: String): List<String>{
             //clean the string from brackets and other things in the way
-            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
+            val cleanWords = removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(string)))
             //find the existing units in the string
             var unitType : CookingUnit? = null
-            val unitIndexes: MutableMap<CookingUnit,Int> = mutableMapOf()
+            val unitIndexes : MutableMap<CookingUnit,Int> = mutableMapOf()
             for (option in unitsLut.entries){
                 val unitIndex = cleanWords.indexOf(option.value)
                 if (unitIndex != -1){
@@ -261,12 +261,17 @@ class MakeFormatting {
 
                 }
             }
+
+            //order the units based on when they appear
+            val order = getUnitsInString(string)
+            val orderedUnitIndexes = unitIndexes.toList().sortedBy { (unit, index) -> order[unit] }.toMap()
+
             //find units with the values (measurements)
             val measurements = mutableListOf<String>()
             if (unitType == null) return measurements // can not find units so return empty list
 
             //check all the units found
-            for (unit in unitIndexes){
+            for (unit in orderedUnitIndexes){
                 //if there units starting an item just ignore them
                 if (unit.value == 0) continue
                 val value = cleanWords[unit.value-1]
@@ -600,13 +605,15 @@ class MakeFormatting {
          */
         private fun multiplyByOnlyValues (wholeString: String, multiplier: Float, isVulgar: Boolean, roundPercentage : Float): String{
             //clean the string from brackets and other things in the way
-            val cleanWords= removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(wholeString)))
-            val units= getUnitsInString(wholeString)
+            val cleanWords = removeUnnecessarySlash(slitTextFromNumbers(getWordsWithNumbers(wholeString)))
+            val units = getUnitsInString(wholeString)
             var output = wholeString
 
             for (unit in units){
                 //if there units starting an item just ignore them
                 if (unit.value == 0) continue
+                //make sure it is a unit we want ot change and not a measurement or temp
+                if (unit.key == CookingUnit.Inch || unit.key == CookingUnit.Centimeter || unit.key == CookingUnit.Meter || unit.key == CookingUnit.TemperatureC || unit.key == CookingUnit.TemperatureF) continue
                 val value = cleanWords[unit.value-1]
                 //make sure that there is a number being passed
                 if (value.matches(numberRegex)) {

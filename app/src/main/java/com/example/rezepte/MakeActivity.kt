@@ -372,7 +372,7 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                 .fillMaxWidth(),
             style = style
         )
-    }else{//highly measurements and make the clickable to be able to expand conversions on them
+    }else{//highlight measurements and make the clickable to be able to expand conversions on them
         Column (modifier = Modifier.padding(3.dp)) {
             FlowRow (modifier = Modifier
                 .fillMaxWidth()
@@ -418,11 +418,10 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
                             modifier = Modifier.padding(start = 2.dp, end = 2.dp),
                             style = style,
                             textAlign = TextAlign.Center,
-
                             )
                     }
                     //update ingredientLeft
-                    if (split.count()<2){//if end of string break
+                    if (split.count() < 2){//if end of string break
                         break
                     }
                     ingredientLeft = split[1]
