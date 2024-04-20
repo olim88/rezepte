@@ -109,20 +109,14 @@ class DownloadWebsite {
                                 var instructionsData =
                                     json.decodeFromJsonElement<String>(extractedData.recipeInstructions)
                                 var index = 0
-                                for (instruction in instructionsData.split("<li>")) {
-                                    if (!instruction.startsWith("<ol")) {//make sure its the steps
-                                        instructions.add(
-                                            Instruction(
-                                                index,
-                                                instruction.replace(
-                                                    "</([a-zA-Z]+)*>".toRegex(),
-                                                    ""
-                                                ),
-                                                null
-                                            )
-                                        ) //add with all the html tags removed
-                                        index++
-                                    }
+                                for ((index, instruction) in convertHtmlInstructions(instructionsData).withIndex()) {
+                                    instructions.add(
+                                        Instruction(
+                                            index,
+                                            instruction,
+                                            null
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -138,7 +132,7 @@ class DownloadWebsite {
                         break
                     } else if (type == "HowTo") { //if a website that is a how to is used only has instructions and image but still works
                         val extractedData = json.decodeFromJsonElement<ExtractedHowTo>(data)
-                        //set recipe values based on the extraced data
+                        //set recipe values based on the extracted data
                         recipe.data.name = extractedData.name
                         //find the author
                         try {
@@ -168,22 +162,14 @@ class DownloadWebsite {
                             } catch (e: Exception) {
                                 var instructionsData =
                                     json.decodeFromJsonElement<String>(extractedData.step)
-                                var index = 0
-                                for (instruction in instructionsData.split("<li>")) {
-                                    if (!instruction.startsWith("<ol")) {//make sure its the steps
-                                        instructions.add(
-                                            Instruction(
-                                                index,
-                                                instruction.replace(
-                                                    "</([a-zA-Z]+)*>".toRegex(),
-                                                    ""
-                                                ),
-                                                null
-                                            )
-                                        ) //add with all the html tags removed
-                                        index++
-                                    }
-
+                                for ((index, instruction) in convertHtmlInstructions(instructionsData).withIndex()) {
+                                    instructions.add(
+                                        Instruction(
+                                            index,
+                                            instruction,
+                                            null
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -223,18 +209,14 @@ class DownloadWebsite {
                 val instructions: MutableList<Instruction> = mutableListOf()
                 val instructionsData =
                     doc.getElementsByAttributeValueMatching("itemprop", "recipeInstructions").html()
-                var index = 0
-                for (instruction in instructionsData.split("<li>")) {
-                    if (!instruction.startsWith("<ol")) {//make sure its the steps
-                        instructions.add(
-                            Instruction(
-                                index,
-                                instruction.replace("</([a-zA-Z]+)*>".toRegex(), ""),
-                                null
-                            )
-                        ) //add with all the html tags removed
-                        index++
-                    }
+                for ((index, instruction) in convertHtmlInstructions(instructionsData).withIndex()) {
+                    instructions.add(
+                        Instruction(
+                            index,
+                            instruction,
+                            null
+                        )
+                    )
                 }
                 recipe.instructions = Instructions(instructions)
                 //find image linked to recipe
@@ -266,6 +248,20 @@ class DownloadWebsite {
             }
             //return the recipe and image link if there is one
             return Pair(recipe, imageLink)
+        }
+
+        /**
+         * some instructions are formatted using html extract the form this and just return the text of the instructions
+         *  @param instructions the html formatted instructions
+         *  @return plain text of the instructions
+         */
+        private fun convertHtmlInstructions(instructions: String) : List<String> {
+            var output : MutableList<String> = mutableListOf();
+            val html = Jsoup.parse(instructions)
+            for (element in html.getElementsByTag("li")) {
+                output.add(element.text())
+            }
+            return  output
         }
 
         fun downloadImageToBitmap(url: String): Bitmap? {
