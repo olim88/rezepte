@@ -30,63 +30,99 @@ class XmlExtraction {
 }
 
 
-data class Data(var name: String, var author : String, var serves : String, var cookingSteps : CookingSteps, var website: String?, var notes :String?, var linked: LinkedRecipes?){
+data class Data(
+    var name: String,
+    var author: String,
+    var serves: String,
+    var cookingSteps: CookingSteps,
+    var website: String?,
+    var notes: String?,
+    var linked: LinkedRecipes?
+) {
     companion object {
         fun xml(k: Konsumer): Data {
             k.checkCurrent("data")
             return Data(k.childText("name"),
                 k.childText("author"),
                 k.childText("servings"),
-                k.child("cookingSteps"){CookingSteps.xml(this)},
+                k.child("cookingSteps") { CookingSteps.xml(this) },
                 k.childTextOrNull("website"),
                 k.childTextOrNull("notes"),
-                k.childOrNull("linkedRecipes"){LinkedRecipes.xml(this)})
+                k.childOrNull("linkedRecipes") { LinkedRecipes.xml(this) })
         }
 
     }
 }
-data class CookingStepContainer( var type : TinOrPanOptions, var dimensionOne : Float?, var dimensionTwo : Float?, var volume : Float?){
+
+data class CookingStepContainer(
+    var type: TinOrPanOptions,
+    var dimensionOne: Float?,
+    var dimensionTwo: Float?,
+    var volume: Float?
+) {
     companion object {
         fun xml(k: Konsumer): CookingStepContainer {
 
-            return CookingStepContainer( enumValueOf(k.childText("type")),k.childTextOrNull("tinSize")?.toFloatOrNull(),k.childTextOrNull("tinSizeTwo")?.toFloatOrNull(),k.childTextOrNull("tinVolume")?.toFloatOrNull())
+            return CookingStepContainer(
+                enumValueOf(k.childText("type")),
+                k.childTextOrNull("tinSize")?.toFloatOrNull(),
+                k.childTextOrNull("tinSizeTwo")?.toFloatOrNull(),
+                k.childTextOrNull("tinVolume")?.toFloatOrNull()
+            )
         }
 
     }
 }
-data class CookingStepTemperature( var temperature : Int?, var hobTemperature: HobOption, var isFan : Boolean?){
+
+data class CookingStepTemperature(
+    var temperature: Int?, var hobTemperature: HobOption, var isFan: Boolean?
+) {
     companion object {
         fun xml(k: Konsumer): CookingStepTemperature {
 
-            return CookingStepTemperature(k.childTextOrNull("temperature")?.toInt(),enumValueOf(k.childText("hobTemperature")),k.childTextOrNull("isFan")=="true")
+            return CookingStepTemperature(
+                k.childTextOrNull("temperature")?.toInt(),
+                enumValueOf(k.childText("hobTemperature")),
+                k.childTextOrNull("isFan") == "true"
+            )
         }
 
     }
 }
-data class CookingStep(var index: Int, var time : String, var type: CookingStage, var container : CookingStepContainer?,var cookingTemperature: CookingStepTemperature?){
+
+data class CookingStep(
+    var index: Int,
+    var time: String,
+    var type: CookingStage,
+    var container: CookingStepContainer?,
+    var cookingTemperature: CookingStepTemperature?
+) {
     companion object {
         fun xml(k: Konsumer): CookingStep {
 
-            return CookingStep(k.attributes["index"].toInt(),k.childText("time"),
+            return CookingStep(
+                k.attributes["index"].toInt(), k.childText("time"),
                 enumValueOf(k.childText("cookingStage")),
-                k.childOrNull("cookingStepContainer"){CookingStepContainer.xml(this)},
-                k.childOrNull("cookingStepTemperature"){CookingStepTemperature.xml(this)},
-                )
+                k.childOrNull("cookingStepContainer") { CookingStepContainer.xml(this) },
+                k.childOrNull("cookingStepTemperature") { CookingStepTemperature.xml(this) },
+            )
         }
 
     }
 }
-data class CookingSteps(var list: MutableList<CookingStep>){
+
+data class CookingSteps(var list: MutableList<CookingStep>) {
     companion object {
         fun xml(k: Konsumer): CookingSteps {
             k.checkCurrent("cookingSteps")
-            return CookingSteps((k.child("list") { children("entry") { CookingStep.xml(this) } }.toMutableList()))
+            return CookingSteps((k.child("list") { children("entry") { CookingStep.xml(this) } }
+                .toMutableList()))
         }
 
     }
 }
 
-data class LinkedRecipe(var name : String){
+data class LinkedRecipe(var name: String) {
     companion object {
         fun xml(k: Konsumer): LinkedRecipe {
 
@@ -95,7 +131,8 @@ data class LinkedRecipe(var name : String){
 
     }
 }
-data class LinkedRecipes(var list: MutableList<LinkedRecipe>){
+
+data class LinkedRecipes(var list: MutableList<LinkedRecipe>) {
     companion object {
         fun xml(k: Konsumer): LinkedRecipes {
             k.checkCurrent("linkedRecipes")
@@ -105,16 +142,17 @@ data class LinkedRecipes(var list: MutableList<LinkedRecipe>){
     }
 }
 
-data class Ingredient(var index: Int, var text : String){
+data class Ingredient(var index: Int, var text: String) {
     companion object {
         fun xml(k: Konsumer): Ingredient {
 
-            return Ingredient(k.attributes["index"].toInt(),k.childText("value"))
+            return Ingredient(k.attributes["index"].toInt(), k.childText("value"))
         }
 
     }
 }
-data class Ingredients(var list: List<Ingredient>){
+
+data class Ingredients(var list: List<Ingredient>) {
     companion object {
         fun xml(k: Konsumer): Ingredients {
             k.checkCurrent("ingredients")
@@ -123,16 +161,22 @@ data class Ingredients(var list: List<Ingredient>){
 
     }
 }
-data class Instruction(var index: Int, var text: String, var linkedCookingStepIndex: Int?){
+
+data class Instruction(var index: Int, var text: String, var linkedCookingStepIndex: Int?) {
     companion object {
         fun xml(k: Konsumer): Instruction {
 
-            return Instruction(k.attributes["index"].toInt(),k.childText("value"),k.childTextOrNull("linkedStep")?.toIntOrNull())
+            return Instruction(
+                k.attributes["index"].toInt(),
+                k.childText("value"),
+                k.childTextOrNull("linkedStep")?.toIntOrNull()
+            )
         }
 
     }
 }
-data class Instructions(var list: List<Instruction>){
+
+data class Instructions(var list: List<Instruction>) {
     companion object {
         fun xml(k: Konsumer): Instructions {
             k.checkCurrent("instructions")
@@ -141,86 +185,86 @@ data class Instructions(var list: List<Instruction>){
 
     }
 }
-data class Recipe(var data : Data, var ingredients : Ingredients, var instructions : Instructions){
+
+data class Recipe(var data: Data, var ingredients: Ingredients, var instructions: Instructions) {
     companion object {
         fun xml(k: Konsumer): Recipe {
             k.checkCurrent("recipe")
-            return Recipe(k.child("data"){Data.xml(this)},k.child("ingredients"){Ingredients.xml(this)},k.child("instructions"){Instructions.xml(this)})
+            return Recipe(k.child("data") { Data.xml(this) },
+                k.child("ingredients") { Ingredients.xml(this) },
+                k.child("instructions") { Instructions.xml(this) })
         }
 
     }
 }
 
-enum class CookingStage(val text: String){
-    prep("prep"),
-    hob("hob"),
-    oven("oven"),
-    fridge("fridge"),
-    wait("wait"),
-}
-enum class TinOrPanOptions(val text: String,val sizeing: TinOrPanSizeOptions){
-    none("none",TinOrPanSizeOptions.None),
-    fryingPan("frying pan",TinOrPanSizeOptions.None),
-    wok("wok",TinOrPanSizeOptions.None),
-    saucePan("sauce pan",TinOrPanSizeOptions.None),
-    bowl("bowl",TinOrPanSizeOptions.None),
-    tray("tray",TinOrPanSizeOptions.None),
-    roastingTin("roasting tin",TinOrPanSizeOptions.None),
-    roundTin("round tin",TinOrPanSizeOptions.OneDimension),
-    rectangleTin("rectangular tin",TinOrPanSizeOptions.TwoDimension),
-    loafTin("loaf tin",TinOrPanSizeOptions.TwoDimension),
-    dish("dish",TinOrPanSizeOptions.Volume),
-
-}
-enum class TinOrPanSizeOptions{
-    None,
-    OneDimension,
-    TwoDimension,
-    Volume
+enum class CookingStage(val text: String) {
+    prep("prep"), hob("hob"), oven("oven"), fridge("fridge"), wait("wait"),
 }
 
-enum class HobOption(val text: String){
-    zero ("none"),
-    low("low"),
-    lowMedium("medium low"),
-    medium("medium"),
-    highMedium("medium high"),
-    high("high"),
+enum class TinOrPanOptions(val text: String, val sizeing: TinOrPanSizeOptions) {
+    none("none", TinOrPanSizeOptions.None), fryingPan(
+        "frying pan",
+        TinOrPanSizeOptions.None
+    ),
+    wok("wok", TinOrPanSizeOptions.None), saucePan(
+        "sauce pan",
+        TinOrPanSizeOptions.None
+    ),
+    bowl("bowl", TinOrPanSizeOptions.None), tray(
+        "tray",
+        TinOrPanSizeOptions.None
+    ),
+    roastingTin("roasting tin", TinOrPanSizeOptions.None), roundTin(
+        "round tin",
+        TinOrPanSizeOptions.OneDimension
+    ),
+    rectangleTin("rectangular tin", TinOrPanSizeOptions.TwoDimension), loafTin(
+        "loaf tin",
+        TinOrPanSizeOptions.TwoDimension
+    ),
+    dish("dish", TinOrPanSizeOptions.Volume),
+
+}
+
+enum class TinOrPanSizeOptions {
+    None, OneDimension, TwoDimension, Volume
+}
+
+enum class HobOption(val text: String) {
+    zero("none"), low("low"), lowMedium("medium low"), medium("medium"), highMedium("medium high"), high(
+        "high"
+    ),
     max("max"),
 }
 
-fun GetEmptyRecipe() : Recipe{
+fun GetEmptyRecipe(): Recipe {
     return Recipe(
         Data(
-            "",
-            "",
-            "",
-            CookingSteps(mutableListOf() ),
-            null,
-            null,
-            null
-        ),
-        Ingredients(listOf()),
-        Instructions(listOf())
+            "", "", "", CookingSteps(mutableListOf()), null, null, null
+        ), Ingredients(listOf()), Instructions(listOf())
     )
 }
 
-data class SearchData(var data : MutableList<BasicData>){
+data class SearchData(var data: MutableList<BasicData>) {
     companion object {
         fun xml(k: Konsumer): SearchData {
             k.checkCurrent("searchData")
-            return SearchData(k.child("list") { children("entry") { BasicData.xml(this) } }.toMutableList())
+            return SearchData(k.child("list") { children("entry") { BasicData.xml(this) } }
+                .toMutableList())
         }
     }
 }
-data class BasicData(var name: String, var servings:String, var author: String ){
-    companion object{
+
+data class BasicData(var name: String, var servings: String, var author: String) {
+    companion object {
         fun xml(k: Konsumer): BasicData {
 
-            return BasicData(k.childText("name"),k.childText("servings"),k.childText("author"))
+            return BasicData(k.childText("name"), k.childText("servings"), k.childText("author"))
         }
     }
 }
-fun getEmptySeachData():SearchData {
+
+fun getEmptySearchData(): SearchData {
     return SearchData(mutableListOf())
 }

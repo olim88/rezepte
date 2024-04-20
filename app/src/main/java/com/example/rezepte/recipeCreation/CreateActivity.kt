@@ -112,7 +112,7 @@ import com.example.rezepte.TinOrPanSizeOptions
 import com.example.rezepte.XmlExtraction
 import com.example.rezepte.fileManagment.FileSync
 import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
-import com.example.rezepte.getEmptySeachData
+import com.example.rezepte.getEmptySearchData
 import com.example.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import com.example.rezepte.ui.theme.RezepteTheme
 import com.google.android.material.internal.ContextUtils.getActivity
@@ -125,8 +125,6 @@ import org.redundent.kotlin.xml.xml
 
 class CreateActivity : ComponentActivity() {
     private var loadedRecipeName: String? = null
-
-
     @RequiresApi(Build.VERSION_CODES.P)
     @SuppressLint("UnrememberedMutableState")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -190,7 +188,7 @@ class CreateActivity : ComponentActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 //load the file data
                 val priority = if (settings["Local Saves.Cache recipes"] == "true") FileSync.FilePriority.OnlineFirst else FileSync.FilePriority.OnlineOnly
-                val imagePriority = if (settings["Local Saves.Cache recipe image"]== "full sized") FileSync.FilePriority.Newist else FileSync.FilePriority.OnlineOnly
+                val imagePriority = if (settings["Local Saves.Cache recipe image"]== "full sized") FileSync.FilePriority.Newest else FileSync.FilePriority.OnlineOnly
                 val data = FileSync.Data(priority, dropboxPreference)
                 val imageData = FileSync.Data(imagePriority, dropboxPreference)
                 val file =
@@ -234,8 +232,6 @@ class CreateActivity : ComponentActivity() {
                 }
             }
         }
-
-
     }
 
     private fun deleteRecipe() {
@@ -327,7 +323,7 @@ class CreateActivity : ComponentActivity() {
                     searchData = XmlExtraction.getSearchData(it)
                 }
             if (!searchDataExists || searchData == null) {
-                searchData = getEmptySeachData()
+                searchData = getEmptySearchData()
             }
             //remove name
             if (loadedRecipeName != null) {
@@ -446,7 +442,7 @@ class CreateActivity : ComponentActivity() {
                     searchData = XmlExtraction.getSearchData(it)
                 }
             if (!searchDataExists || searchData == null) {
-                searchData = getEmptySeachData()
+                searchData = getEmptySearchData()
             }
             //remove name
             if (loadedRecipeName != null) {
@@ -494,19 +490,12 @@ class CreateActivity : ComponentActivity() {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
-
-
-
-
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
-
     }
-
-
 }
 fun parseSearchData(searchData: SearchData): String{
     val recipeXml = xml("searchData") {
@@ -597,7 +586,6 @@ fun parseSearchData(searchData: SearchData): String{
                             }
                         }
                     }
-
                 }
             }
             if ( recipe.data.website != null){
@@ -621,7 +609,6 @@ fun parseSearchData(searchData: SearchData): String{
                             }
                         }
                     }
-
                 }
             }
         }
@@ -656,21 +643,10 @@ fun parseSearchData(searchData: SearchData): String{
                 }
             }
         }
-
-
     }
 
     return recipeXml.toString(true)
-
-
 }
-
-
-
-
-
-
-
 
 @Composable
 fun TitleInput(data : MutableState<Recipe>){
@@ -687,7 +663,6 @@ fun TitleInput(data : MutableState<Recipe>){
         singleLine = true,
         shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
         label = { Text("Name") }
-
     )
 }
 @Composable
@@ -708,7 +683,6 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
             .fillMaxWidth()
             .animateContentSize()
             .padding(1.dp),
-
         ) {
 
         AsyncImage(
@@ -752,7 +726,6 @@ fun ImageInput( image : MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>){
             showImageSelectionMenu = false //re hide the menu when got image
         }
     }
-
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -812,7 +785,6 @@ fun DataInput(settings: Map<String, String>, data : MutableState<Recipe>, update
             )
         }
     }
-
 }
 @SuppressLint("RestrictedApi") //todo remove this idk another way to do it
 @Composable
@@ -851,7 +823,6 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
                     update = true
                 }
             }
-
         }
     }
 
@@ -919,7 +890,6 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
                 }
             }
         }
-
     }
 }
 @Composable
@@ -945,7 +915,9 @@ fun LinkedRecipe(data : MutableState<Recipe>, index : Int, onItemClick: (Int) ->
             .padding(5.dp)
         ) {
         Row{
-            Text(text = data.value.data.linked!!.list[index].name, modifier = Modifier.padding(5.dp).align(Alignment.CenterVertically), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
+            Text(text = data.value.data.linked!!.list[index].name, modifier = Modifier
+                .padding(5.dp)
+                .align(Alignment.CenterVertically), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
             Spacer(
                 Modifier
                     .weight(1f)
@@ -959,7 +931,6 @@ fun LinkedRecipe(data : MutableState<Recipe>, index : Int, onItemClick: (Int) ->
                 )
             }
         }
-
     }
 }
 @SuppressLint("UnrememberedMutableState")
@@ -978,15 +949,12 @@ fun CookingStepsInput(settings: Map<String, String>, data : MutableState<Recipe>
             .padding(all = 5.dp)
             .fillMaxWidth()
             .animateContentSize()
-
-
         ) {
         Column {
             Row {
                 Text(
                     text = "Cooking Steps",
                     style = MaterialTheme.typography.titleLarge,
-
                 )
                 Spacer(
                     Modifier
@@ -1003,7 +971,6 @@ fun CookingStepsInput(settings: Map<String, String>, data : MutableState<Recipe>
                 Column {
 
                     for (step in steps) {
-
                         CookingStep(settings,step,mutableStateOf(false)) { index ->
                             steps.removeAt(index)
                             steps.forEach { edit -> if (edit.index > index) edit.index -= 1 }
@@ -1137,11 +1104,7 @@ fun CookingStep(settings: Map<String,String>, data : CookingStep, isExpanded : M
                         modifier = Modifier
                             .size(24.dp)
                     )
-
-
                 }
-
-
             }
         }
         else{
@@ -1208,8 +1171,6 @@ fun CookingStep(settings: Map<String,String>, data : CookingStep, isExpanded : M
                             },
                         )
                     }
-
-
                 }
                 if (data.type == CookingStage.hob){
                     MenuItemWithDropDown("Hob Temperature",
@@ -1246,7 +1207,6 @@ fun CookingStep(settings: Map<String,String>, data : CookingStep, isExpanded : M
                             data.container?.type = enumValueOf(value)
                         }
                     }
-
                 }
                 //if container needs show size configure inputs
                 when (data.container?.type?.sizeing) {
@@ -1339,8 +1299,6 @@ fun CookingStep(settings: Map<String,String>, data : CookingStep, isExpanded : M
                         data.container?.dimensionOne = null
                         data.container?.dimensionTwo = null
                         data.container?.volume = null
-
-
                     }
                 }
             }
@@ -1395,7 +1353,6 @@ inline fun <reified T> MenuItemWithDropDown(textLabel: String, value: String, va
                         mExpanded = false
                     }, text = { Text(label.text) })
                 }
-
             }
         }
     }
@@ -1425,7 +1382,6 @@ fun Notes(data: MutableState<Recipe>) {
                 .fillMaxWidth(),
             textStyle = TextStyle( fontSize = 18.sp),
             label = { Text(text = "Notes") }
-
         )
     }
 }
@@ -1713,7 +1669,6 @@ fun FinishButton(data: MutableState<Recipe>, image: MutableState<Uri?>, update: 
                     Modifier
                         .weight(1f)
                 )
-
             }
         }
     }
@@ -1757,7 +1712,6 @@ private fun MainScreen(userSettings: Map<String,String>, recipeDataInput: Mutabl
             Spacer(modifier = Modifier.height(10.dp))
         }
     }
-
 }
 
 @SuppressLint("UnrememberedMutableState")

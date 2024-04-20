@@ -55,14 +55,13 @@ import com.example.rezepte.recipeMaking.CookingStepDisplay
 import com.example.rezepte.recipeMaking.getColor
 import com.example.rezepte.ui.theme.RezepteTheme
 
-class WalkThoughActivity : AppCompatActivity()
-{
+class WalkThoughActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         //get the users settings
 
-        
+
         setContent {
             RezepteTheme {
                 MainScreen()
@@ -73,9 +72,10 @@ class WalkThoughActivity : AppCompatActivity()
 
 
 }
+
 @Composable
-fun StartUpExplanationPage(title: String, explanation: String){
-    Column (modifier = Modifier.fillMaxWidth(),horizontalAlignment = Alignment.CenterHorizontally) {
+fun StartUpExplanationPage(title: String, explanation: String) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
 
         //title
         Text(
@@ -84,7 +84,12 @@ fun StartUpExplanationPage(title: String, explanation: String){
         )
         Spacer(modifier = Modifier.height(10.dp))
         //logo
-        Image(painter = painterResource(id = R.drawable.icon), contentDescription = "logo image", contentScale = ContentScale.Inside, modifier = Modifier)
+        Image(
+            painter = painterResource(id = R.drawable.icon),
+            contentDescription = "logo image",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier
+        )
         Spacer(modifier = Modifier.weight(1f))
         //description
         Text(
@@ -98,15 +103,18 @@ fun StartUpExplanationPage(title: String, explanation: String){
 }
 
 @Composable
-fun StartUpDropboxPage(title: String, description: String){
+fun StartUpDropboxPage(title: String, description: String) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     //get current login status
-    val login = DbTokenHandling(mContext.getSharedPreferences("com.example.rezepte.dropboxintegration",
-        ComponentActivity.MODE_PRIVATE
-    ))
-    var isLoggedIn by remember { mutableStateOf(login.isLoggedIn())}
-    Column (modifier = Modifier.fillMaxWidth(),horizontalAlignment = Alignment.CenterHorizontally) {
+    val login = DbTokenHandling(
+        mContext.getSharedPreferences(
+            "com.example.rezepte.dropboxintegration",
+            ComponentActivity.MODE_PRIVATE
+        )
+    )
+    var isLoggedIn by remember { mutableStateOf(login.isLoggedIn()) }
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
 
         //title
         Text(
@@ -128,15 +136,15 @@ fun StartUpDropboxPage(title: String, description: String){
             transitionSpec = {
 
                 fadeIn() + expandIn() togetherWith
-                        fadeOut()  + shrinkOut()
+                        fadeOut() + shrinkOut()
 
             },
         ) {
-            if (!it){
-                mainLoginUi{
+            if (!it) {
+                mainLoginUi {
                     isLoggedIn = true
                 }
-            }else{
+            } else {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -147,7 +155,9 @@ fun StartUpDropboxPage(title: String, description: String){
                         text = "You are logged into dropbox and you files are being synced. \n Nothing more to do here",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(10.dp).align(Alignment.CenterHorizontally)
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .align(Alignment.CenterHorizontally)
 
                     )
                 }
@@ -162,12 +172,15 @@ fun StartUpDropboxPage(title: String, description: String){
 }
 
 
-
-
 @Composable
-fun StartUpSettingsPage(currentSettings: List<SettingOptionInterface>, title: String, description: String, options: List<String>){
+fun StartUpSettingsPage(
+    currentSettings: List<SettingOptionInterface>,
+    title: String,
+    description: String,
+    options: List<String>
+) {
 
-    Column (modifier = Modifier.fillMaxWidth(),horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
 
         //title
         Text(
@@ -188,7 +201,7 @@ fun StartUpSettingsPage(currentSettings: List<SettingOptionInterface>, title: St
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(15.dp)
-                
+
         ) {
             for (setting in options) {//find the option interface in all settings for the named option
                 var currentSubSettingsList = currentSettings
@@ -235,11 +248,12 @@ fun StartUpSettingsPage(currentSettings: List<SettingOptionInterface>, title: St
 
 
 }
+
 @Composable
-fun FinishedConfirmation(completed: List<Int>, onDismiss : ()-> Unit){
-    var isFinished by remember {mutableStateOf(completed.count() >= CurrentScreen.values().size-1)}
+fun FinishedConfirmation(completed: List<Int>, onDismiss: () -> Unit) {
+    var isFinished by remember { mutableStateOf(completed.count() >= CurrentScreen.values().size - 1) }
     //if the user is not finished ask the user if they are sure they want to skip the setup and  tell the user they can go though it again in the settings page
-    if (!isFinished){
+    if (!isFinished) {
         Dialog(onDismissRequest = { onDismiss() }) {
             // Draw a rectangle shape with rounded corners inside the dialog
             Card(
@@ -249,13 +263,18 @@ fun FinishedConfirmation(completed: List<Int>, onDismiss : ()-> Unit){
                 shape = RoundedCornerShape(16.dp),
             ) {
                 Column(modifier = Modifier.padding(10.dp)) {
-                    Text(text = "You aren't finished are you sure you want to", textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Text(
+                        text = "You aren't finished are you sure you want to",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                     Spacer(modifier = Modifier.height(15.dp))
                     Row(modifier = Modifier.fillMaxWidth()) {
                         //camara button
                         Button(
                             onClick = {
-                               onDismiss()
+                                onDismiss()
                             }, modifier = Modifier
                                 .padding(0.dp, 5.dp)
                                 .weight(1f)
@@ -283,7 +302,7 @@ fun FinishedConfirmation(completed: List<Int>, onDismiss : ()-> Unit){
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Text(
-                            text ="(you can restart this from the settings page)",
+                            text = "(you can restart this from the settings page)",
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -294,12 +313,13 @@ fun FinishedConfirmation(completed: List<Int>, onDismiss : ()-> Unit){
         }
     }
     //save an go home if they are finished or have said they are finished
-    if (isFinished){
+    if (isFinished) {
         Finish()
     }
 }
+
 @Composable
-private fun Finish (){
+private fun Finish() {
     // Fetching the Local Context
     val mContext = LocalContext.current
     //finished the setup save this value so not shown again and take the user to the home screen
@@ -311,11 +331,15 @@ private fun Finish (){
     prefs.edit().putBoolean("completed", true).apply()
     //finish the walk though and go back to the activity before
     (mContext as Activity).finish()
-
 }
+
 @Composable
-fun StartUpHomePage(donePages: MutableList<Int>,goToPage: (CurrentScreen) -> Unit,onFinish : ()-> Unit){
-    Column (modifier = Modifier.fillMaxWidth(),horizontalAlignment = Alignment.CenterHorizontally) {
+fun StartUpHomePage(
+    donePages: MutableList<Int>,
+    goToPage: (CurrentScreen) -> Unit,
+    onFinish: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         //title
         Text(
             text = "Welcome to Rezepite",
@@ -324,7 +348,12 @@ fun StartUpHomePage(donePages: MutableList<Int>,goToPage: (CurrentScreen) -> Uni
         )
         Spacer(modifier = Modifier.height(10.dp))
         //logo
-        Image(painter = painterResource(id = R.drawable.icon), contentDescription = "logo image", contentScale = ContentScale.Inside, modifier = Modifier)
+        Image(
+            painter = painterResource(id = R.drawable.icon),
+            contentDescription = "logo image",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier
+        )
         Spacer(modifier = Modifier.height(10.dp))
         //description
         Text(
@@ -367,7 +396,7 @@ fun StartUpHomePage(donePages: MutableList<Int>,goToPage: (CurrentScreen) -> Uni
         }
         Spacer(modifier = Modifier.weight(1f))
         //show finish button
-        val isFinished =donePages.count() >= CurrentScreen.values().size-1
+        val isFinished = donePages.count() >= CurrentScreen.values().size - 1
         val colour =
             if (isFinished) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
         Button(
@@ -375,11 +404,13 @@ fun StartUpHomePage(donePages: MutableList<Int>,goToPage: (CurrentScreen) -> Uni
                 onFinish()
             }, modifier = if (isFinished) Modifier
                 .padding(5.dp)
-                .fillMaxWidth() else Modifier.padding(5.dp)
-            ,
+                .fillMaxWidth() else Modifier.padding(5.dp),
             colors = ButtonDefaults.buttonColors(containerColor = colour)
         ) {
-            Text(text = CurrentScreen.FinishPage.text, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium,
+            Text(
+                text = CurrentScreen.FinishPage.text,
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleMedium,
                 modifier = if (isFinished) Modifier.padding(vertical = 10.dp) else Modifier
             )
         }
@@ -387,8 +418,9 @@ fun StartUpHomePage(donePages: MutableList<Int>,goToPage: (CurrentScreen) -> Uni
         Spacer(modifier = Modifier.weight(5f))
     }
 }
+
 @Composable
-fun StartUpStepExample( title: String, description: String){
+fun StartUpStepExample(title: String, description: String) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     //get settings
@@ -398,7 +430,7 @@ fun StartUpStepExample( title: String, description: String){
             AppCompatActivity.MODE_PRIVATE
         )
     )
-    Column (modifier = Modifier.fillMaxWidth(),horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         //title
         Text(
             text = title,
@@ -414,37 +446,45 @@ fun StartUpStepExample( title: String, description: String){
         )
         Spacer(modifier = Modifier.weight(1f))
         //show the example step
-        val exampleStepData = CookingStep(0,"20 minutes",CookingStage.oven,
-            CookingStepContainer(TinOrPanOptions.tray, null, null,null),
-            CookingStepTemperature(200,HobOption.zero,true)
+        val exampleStepData = CookingStep(
+            0, "20 minutes", CookingStage.oven,
+            CookingStepContainer(TinOrPanOptions.tray, null, null, null),
+            CookingStepTemperature(200, HobOption.zero, true)
         )
-        CookingStepDisplay(step = exampleStepData, color = getColor(0,MaterialTheme.colorScheme.surface),settings )
+        CookingStepDisplay(
+            step = exampleStepData,
+            color = getColor(0, MaterialTheme.colorScheme.surface),
+            settings
+        )
         Text(
             text = "or",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
 
         )
-        val exampleStepData2 = CookingStep(0,"5-10 minutes",CookingStage.hob,
-            CookingStepContainer(TinOrPanOptions.saucePan, null, null,null),
-            CookingStepTemperature(null,HobOption.highMedium,true)
+        val exampleStepData2 = CookingStep(
+            0, "5-10 minutes", CookingStage.hob,
+            CookingStepContainer(TinOrPanOptions.saucePan, null, null, null),
+            CookingStepTemperature(null, HobOption.highMedium, true)
         )
-        CookingStepDisplay(step = exampleStepData2, color = getColor(1,MaterialTheme.colorScheme.surface),settings )
+        CookingStepDisplay(
+            step = exampleStepData2,
+            color = getColor(1, MaterialTheme.colorScheme.surface),
+            settings
+        )
         Spacer(modifier = Modifier.weight(5f))
-
-
     }
 }
 
 
 @Composable
-private fun MainScreen(){
+private fun MainScreen() {
     // Fetching the Local Context
     val mContext = LocalContext.current
-    var currentScreen by remember { mutableStateOf(CurrentScreen.HomePage)}
+    var currentScreen by remember { mutableStateOf(CurrentScreen.HomePage) }
     var animationDirection by remember { (mutableStateOf(false)) }
     val donePages = mutableListOf(0)//homepage is already done
-    var finishConfirmation by remember { mutableStateOf(false)}
+    var finishConfirmation by remember { mutableStateOf(false) }
     //get settings
     val settings = SettingsActivity.loadSettings(
         mContext.getSharedPreferences(
@@ -453,7 +493,15 @@ private fun MainScreen(){
         )
     )
     //get the layout and data
-    val allSettingsMenuData by remember { mutableStateOf(SettingsActivity.loadToOptions(settings, createSettingsMenu(),"")) }
+    val allSettingsMenuData by remember {
+        mutableStateOf(
+            SettingsActivity.loadToOptions(
+                settings,
+                createSettingsMenu(),
+                ""
+            )
+        )
+    }
     //make the back gesture do the same as the back button
     BackHandler(enabled = true, onBack = {
         //save the settings
@@ -513,6 +561,7 @@ private fun MainScreen(){
                             }
                         )
                     }
+
                     CurrentScreen.UnitsPage -> {
                         StartUpSettingsPage(
                             allSettingsMenuData,
@@ -541,19 +590,22 @@ private fun MainScreen(){
                             ),
                         )
                     }
+
                     CurrentScreen.FinishPage -> {
                         StartUpExplanationPage(
                             title = "Finished",
                             explanation = "You have finished setting up the application now you can start your recipe making journey."
                         )
                     }
-                    CurrentScreen.DropboxPage ->{
+
+                    CurrentScreen.DropboxPage -> {
                         StartUpDropboxPage(
                             title = "Syncing to the cloud",
                             description = "To be able to sync your recipes between devices and back up online you need to login to a dropbox account for the files to be stored in or you can skip this for now and login later from the home screen. To login click the button then copy the code you get into the input box. "
                         )
                     }
-                    CurrentScreen.ReadabilityPage-> {
+
+                    CurrentScreen.ReadabilityPage -> {
                         StartUpSettingsPage(
                             allSettingsMenuData,
                             title = "Formatting",
@@ -566,13 +618,15 @@ private fun MainScreen(){
                             ),
                         )
                     }
-                    CurrentScreen.ExplainingStepsPage-> {
+
+                    CurrentScreen.ExplainingStepsPage -> {
                         StartUpStepExample(
                             title = "Steps In Recipes",
                             description = "Rezepte has a unique feature where you can create simplified steps that combine multiple instructions in a recipe. E.g. you could have a step that is a combination of the preheat oven and put in oven step. so when you are on one of those steps you can see the important information gained in the other. You can edit these steps your self in the creation mode and then link them to the instruction when you finish creating/editing a recipe or use the auto generate feature that automatically generates and links the step for you. here is an example step bellow:",
 
-                        )
+                            )
                     }
+
                     CurrentScreen.AdvancedPage -> {
                         StartUpSettingsPage(
                             allSettingsMenuData,
@@ -595,10 +649,10 @@ private fun MainScreen(){
             //control buttons
             AnimatedVisibility(
                 visible = currentScreen != CurrentScreen.HomePage, label = "",
-                enter = expandVertically(initialHeight = { -it }, expandFrom = Alignment.Bottom) ,
-                exit =  shrinkVertically(targetHeight = { -it }, shrinkTowards = Alignment.Bottom) ,
-                ) {
-                 Row{
+                enter = expandVertically(initialHeight = { -it }, expandFrom = Alignment.Bottom),
+                exit = shrinkVertically(targetHeight = { -it }, shrinkTowards = Alignment.Bottom),
+            ) {
+                Row {
                     //back button
                     Button(
                         onClick = {
@@ -623,7 +677,7 @@ private fun MainScreen(){
 
                     ) {
                         Text(text = "back", textAlign = TextAlign.Center)
-                        if (!donePages.contains(currentScreen.ordinal)){
+                        if (!donePages.contains(currentScreen.ordinal)) {
                             donePages.add(currentScreen.ordinal)
                         }
                     }
@@ -643,18 +697,19 @@ private fun MainScreen(){
                             //set next page
                             if (currentScreen.ordinal == CurrentScreen.values().size - 1) {
                                 finishConfirmation = true
-                            }else{
-                                if (!donePages.contains(currentScreen.ordinal)){
+                            } else {
+                                if (!donePages.contains(currentScreen.ordinal)) {
                                     donePages.add(currentScreen.ordinal)
                                 }
-                                currentScreen = if (currentScreen.ordinal == CurrentScreen.values().size - 2 && donePages.count() >= CurrentScreen.values().size - 1) {
-                                    (CurrentScreen from currentScreen.ordinal + 1)!!
-                                } else if (currentScreen.ordinal == CurrentScreen.values().size - 2) {
-                                    //if the user is not finished take them back to the home page
-                                    CurrentScreen.HomePage
-                                } else {
-                                    (CurrentScreen from currentScreen.ordinal + 1)!!
-                                }
+                                currentScreen =
+                                    if (currentScreen.ordinal == CurrentScreen.values().size - 2 && donePages.count() >= CurrentScreen.values().size - 1) {
+                                        (CurrentScreen from currentScreen.ordinal + 1)!!
+                                    } else if (currentScreen.ordinal == CurrentScreen.values().size - 2) {
+                                        //if the user is not finished take them back to the home page
+                                        CurrentScreen.HomePage
+                                    } else {
+                                        (CurrentScreen from currentScreen.ordinal + 1)!!
+                                    }
                             }
 
                         }, modifier = Modifier
@@ -670,18 +725,16 @@ private fun MainScreen(){
 
             }
         }
-        if (finishConfirmation){//run the finsihed comfermation if its set to true
-            FinishedConfirmation(donePages){
+        if (finishConfirmation) {//run the finished confirmation if its set to true
+            FinishedConfirmation(donePages) {
                 finishConfirmation = false
             }
 
         }
     }
-
-
-    
 }
-enum class CurrentScreen(val text: String){ //this is in the order they get listed to the user
+
+enum class CurrentScreen(val text: String) { //this is in the order they get listed to the user
     HomePage("Home Page"),
 
     DropboxPage("Online Syncing"),
@@ -691,13 +744,11 @@ enum class CurrentScreen(val text: String){ //this is in the order they get list
     ReadabilityPage("Interface Options"),
     AdvancedPage("Advanced Options"),
     FinishPage("Finish");
+
     companion object {
         infix fun from(value: Int): CurrentScreen? = values().firstOrNull { it.ordinal == value }
     }
-
 }
-
-
 
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,

@@ -60,12 +60,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import com.dropbox.core.v2.users.FullAccount
-import com.example.rezepte.recipeCreation.externalLoading.DownloadWebsite
-import com.example.rezepte.recipeCreation.externalLoading.ImageToRecipe
 import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
 import com.example.rezepte.fileManagment.dropbox.DownloadTask
 import com.example.rezepte.fileManagment.dropbox.DropboxClient
 import com.example.rezepte.recipeCreation.CreateActivity
+import com.example.rezepte.recipeCreation.externalLoading.DownloadWebsite
+import com.example.rezepte.recipeCreation.externalLoading.ImageToRecipe
 import com.example.rezepte.recipeCreation.parseData
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
@@ -76,9 +76,6 @@ import java.io.File
 
 
 class MainActivity : ComponentActivity() {
-
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -88,17 +85,23 @@ class MainActivity : ComponentActivity() {
                 "com.example.rezepte.walkThrough",
                 Context.MODE_PRIVATE
             )
-        if (!prefs.getBoolean("completed", false)){
+        if (!prefs.getBoolean("completed", false)) {
             val intent = Intent(this, WalkThoughActivity::class.java)
             this.startActivity(intent)
         }
 
         //account data
-        val accountData: MutableState<Pair<FullAccount?,Boolean>> = mutableStateOf(Pair(null,true))
+        val accountData: MutableState<Pair<FullAccount?, Boolean>> =
+            mutableStateOf(Pair(null, true))
         //dropbox account handling
-        val login = DbTokenHandling(getSharedPreferences("com.example.rezepte.dropboxintegration", MODE_PRIVATE))
-        if(login.isLoggedIn()) { //only check the login if the user is logged in
-                login.refreshIfExpired(this) {
+        val login = DbTokenHandling(
+            getSharedPreferences(
+                "com.example.rezepte.dropboxintegration",
+                MODE_PRIVATE
+            )
+        )
+        if (login.isLoggedIn()) { //only check the login if the user is logged in
+            login.refreshIfExpired(this) {
                 //get token
                 val token = DbTokenHandling(
                     getSharedPreferences(
@@ -122,41 +125,41 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }else {
+        } else {
             accountData.value = Pair(null, false)
         }
-
-
-
 
         setContent {
             RezepteTheme {
                 MainScreen(accountData)
             }
         }
-
-        }
-
     }
-
-
-
+}
 
 @Composable
-private fun MainScreen(accountData: MutableState<Pair<FullAccount?,Boolean>>) {
+private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
 
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .fillMaxHeight()
-        .background(MaterialTheme.colorScheme.background)
-        .verticalScroll(rememberScrollState()),horizontalAlignment = Alignment.CenterHorizontally){
-        //logo
-        Image(painter = painterResource(id = R.drawable.icon), contentDescription = "logo image", contentScale = ContentScale.Inside, modifier = Modifier
-            .fillMaxHeight(0.6f)
+    Column(
+        modifier = Modifier
             .fillMaxWidth()
-            .weight(1f))
+            .fillMaxHeight()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        //logo
+        Image(
+            painter = painterResource(id = R.drawable.icon),
+            contentDescription = "logo image",
+            contentScale = ContentScale.Inside,
+            modifier = Modifier
+                .fillMaxHeight(0.6f)
+                .fillMaxWidth()
+                .weight(1f)
+        )
         //main options
         Card(
             modifier = Modifier
@@ -167,12 +170,14 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?,Boolean>>) {
             //create buttons
             CreateButtonOptions()
             //search button (my recipes)
-            Button(onClick = {
-                val intent = Intent(mContext, SearchActivity::class.java)
-                mContext.startActivity(intent);
-            }, modifier = Modifier
-                .padding(5.dp, 0.dp, 5.dp, 5.dp)
-                .fillMaxWidth()) {
+            Button(
+                onClick = {
+                    val intent = Intent(mContext, SearchActivity::class.java)
+                    mContext.startActivity(intent);
+                }, modifier = Modifier
+                    .padding(5.dp, 0.dp, 5.dp, 5.dp)
+                    .fillMaxWidth()
+            ) {
                 Text(text = "My Recipes")
             }
         }
@@ -182,7 +187,6 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?,Boolean>>) {
                 .weight(0.9f)
         )
         DropboxInfo(accountData)
-
     }
     //settings button
     Row {
@@ -196,15 +200,15 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?,Boolean>>) {
                 Modifier
                     .padding(10.dp)
                     .size(24.dp),
-                tint =  MaterialTheme.colorScheme.primary)
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropboxInfo(accountData : MutableState<Pair<FullAccount?,Boolean>>) {
+fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     Card(
@@ -251,11 +255,16 @@ fun DropboxInfo(accountData : MutableState<Pair<FullAccount?,Boolean>>) {
                     Text(text = "Logout", textAlign = TextAlign.Center)
                 }
             }
-        } else{ //the user is not logged in (show the option to log in
+        } else { //the user is not logged in (show the option to log in
             Row {
-                Text(text = "Login to dropbox to be able to  sync between devices",style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(1f))
+                Text(
+                    text = "Login to dropbox to be able to  sync between devices",
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .weight(1f)
+                )
                 Spacer(
                     Modifier
                         .weight(0.1f)
@@ -281,12 +290,14 @@ fun DropboxInfo(accountData : MutableState<Pair<FullAccount?,Boolean>>) {
 fun CreateButtonOptions() {
     // Fetching the Local Context
     val mContext = LocalContext.current
-    var urlInput by remember { mutableStateOf(false)}
-    var imageInput by remember { mutableStateOf(false)}
+    var urlInput by remember { mutableStateOf(false) }
+    var imageInput by remember { mutableStateOf(false) }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
-        .fillMaxWidth()
-        .padding(5.dp, 5.dp)) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
+            .fillMaxWidth()
+            .padding(5.dp, 5.dp)
+    ) {
 
         Button(
             onClick = {
@@ -319,12 +330,12 @@ fun CreateButtonOptions() {
             }
         }
 
-        if (urlInput){
+        if (urlInput) {
             GetStringDialog(
                 label = "Website",
                 descriptionText = "Input the url of the website you would like to load",
                 onDismiss = { urlInput = false }
-            ){
+            ) {
                 CoroutineScope(Dispatchers.IO).launch {
                     val settings =
                         SettingsActivity.loadSettings( //todo already have this loaded
@@ -359,13 +370,26 @@ fun CreateButtonOptions() {
             }
         }
 
-        if (imageInput){
-            AddImageDialog("the image needs to be upright and only the text of one recipe visible and clearly readable", onDismiss = { imageInput = false})
-            {imageUri : Uri ->
-                ImageToRecipe.convert(imageUri,mContext, settings = SettingsActivity.loadSettings(  mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE )), error = { Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()})
+        if (imageInput) {
+            AddImageDialog(
+                "the image needs to be upright and only the text of one recipe visible and clearly readable",
+                onDismiss = { imageInput = false })
+            { imageUri: Uri ->
+                ImageToRecipe.convert(
+                    imageUri,
+                    mContext,
+                    settings = SettingsActivity.loadSettings(
+                        mContext.getSharedPreferences(
+                            "com.example.rezepte.settings",
+                            ComponentActivity.MODE_PRIVATE
+                        )
+                    ),
+                    error = {
+                        Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
+                    })
                 {
                     //if the recipe is still empty don't start create just give error
-                    if (it == GetEmptyRecipe()){
+                    if (it == GetEmptyRecipe()) {
                         Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
                         return@convert
                     }
@@ -378,14 +402,18 @@ fun CreateButtonOptions() {
                     imageInput = false
                 }
             }
-
         }
-
     }
 }
+
 @Composable
-fun GetStringDialog (label: String, descriptionText : String, onDismiss: () -> Unit, onReturnString: (String)-> Unit){
-    var stringInput by remember { mutableStateOf("")}
+fun GetStringDialog(
+    label: String,
+    descriptionText: String,
+    onDismiss: () -> Unit,
+    onReturnString: (String) -> Unit
+) {
+    var stringInput by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = { onDismiss() }) {
         // Draw a rectangle shape with rounded corners inside the dialog
@@ -395,8 +423,13 @@ fun GetStringDialog (label: String, descriptionText : String, onDismiss: () -> U
                 .padding(5.dp),
             shape = RoundedCornerShape(16.dp),
         ) {
-            Column (modifier = Modifier.padding(10.dp)) {
-                Text(text = label, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = label,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
                 Spacer(modifier = Modifier.height(15.dp))
                 TextField(
                     value = stringInput,
@@ -405,7 +438,7 @@ fun GetStringDialog (label: String, descriptionText : String, onDismiss: () -> U
                     },
                     keyboardActions = KeyboardActions(
                         onDone = {
-                        onReturnString(stringInput)
+                            onReturnString(stringInput)
                         }
 
                     ),
@@ -434,7 +467,7 @@ fun GetStringDialog (label: String, descriptionText : String, onDismiss: () -> U
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text =descriptionText,
+                        text = descriptionText,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -444,16 +477,18 @@ fun GetStringDialog (label: String, descriptionText : String, onDismiss: () -> U
         }
     }
 }
-@Composable
-fun AddImageDialog(descriptionText : String,onDismiss: () -> Unit,onReturnUri: (Uri)-> Unit){
-    val mContext = LocalContext.current
-    val getImageContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        //if the user gave an image convert it to a recipe and take that to the create
-        if (uri != null){
-           onReturnUri(uri)
 
+@Composable
+fun AddImageDialog(descriptionText: String, onDismiss: () -> Unit, onReturnUri: (Uri) -> Unit) {
+    val mContext = LocalContext.current
+    val getImageContent =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            //if the user gave an image convert it to a recipe and take that to the create
+            if (uri != null) {
+                onReturnUri(uri)
+
+            }
         }
-    }
     val builder = VmPolicy.Builder()
     StrictMode.setVmPolicy(builder.build())
     val imageUri = FileProvider.getUriForFile(
@@ -461,13 +496,14 @@ fun AddImageDialog(descriptionText : String,onDismiss: () -> Unit,onReturnUri: (
         "package.fileprovider",
         createTempFile(mContext)
     )
-    val takeImageContent = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { sucsess: Boolean ->
-        //if the user gave an image convert it to a recipe and take that to the create
-        if (sucsess) {
-            onReturnUri(imageUri)
+    val takeImageContent =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { sucsess: Boolean ->
+            //if the user gave an image convert it to a recipe and take that to the create
+            if (sucsess) {
+                onReturnUri(imageUri)
 
+            }
         }
-    }
     Dialog(onDismissRequest = { onDismiss() }) {
         // Draw a rectangle shape with rounded corners inside the dialog
         Card(
@@ -476,8 +512,13 @@ fun AddImageDialog(descriptionText : String,onDismiss: () -> Unit,onReturnUri: (
                 .padding(5.dp),
             shape = RoundedCornerShape(16.dp),
         ) {
-            Column (modifier = Modifier.padding(10.dp)) {
-                Text(text = "Select method to load Image", textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = "Select method to load Image",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
                 Spacer(modifier = Modifier.height(15.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
                     //camara button
@@ -511,7 +552,7 @@ fun AddImageDialog(descriptionText : String,onDismiss: () -> Unit,onReturnUri: (
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text =descriptionText,
+                        text = descriptionText,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -520,9 +561,8 @@ fun AddImageDialog(descriptionText : String,onDismiss: () -> Unit,onReturnUri: (
             }
         }
     }
-
-
 }
+
 fun createTempFile(context: Context): File {
     return File.createTempFile(
         System.currentTimeMillis().toString(),
@@ -531,12 +571,11 @@ fun createTempFile(context: Context): File {
     )
 }
 
-
 @SuppressLint("UnrememberedMutableState")
 @Preview(showBackground = true)
 @Composable
 fun homePreview() {
     RezepteTheme {
-        MainScreen(mutableStateOf(Pair(null,false)))
+        MainScreen(mutableStateOf(Pair(null, false)))
     }
 }

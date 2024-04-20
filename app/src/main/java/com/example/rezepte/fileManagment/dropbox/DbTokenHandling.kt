@@ -12,13 +12,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
-class  DbTokenHandling(sharedPreferences: SharedPreferences)  {
+class DbTokenHandling(sharedPreferences: SharedPreferences) {
 
-    private var prefs :SharedPreferences = sharedPreferences
-
-
-
-
+    private var prefs: SharedPreferences = sharedPreferences
     fun retrieveAccessToken(): String? {
         //check if ACCESS_TOKEN is stored on previous app launches
 
@@ -32,11 +28,12 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences)  {
             accessToken
         }
     }
-    fun isLoggedIn(): Boolean{ //return if the user is logged in or not
+
+    fun isLoggedIn(): Boolean { //return if the user is logged in or not
         return prefs.getBoolean("logged-in", false)
     }
 
-    private fun retrieveSavedData(label :String): String? {
+    private fun retrieveSavedData(label: String): String? {
         //check if ACCESS_TOKEN is stored on previous app launches
 
         val accessToken = prefs.getString(label, null)
@@ -50,40 +47,40 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences)  {
         }
     }
 
-     fun refreshIfExpired(context: Context, onRefreshed : () -> Unit) : Boolean {
+    fun refreshIfExpired(context: Context, onRefreshed: () -> Unit): Boolean {
         val accessToken = retrieveSavedData("access-token") ?: return true
 
         val refreshToken = retrieveSavedData("refresh-token")
         val expiresAt = retrieveSavedData("expired-at")
 
 
-         if (refreshToken != null && expiresAt != null ) {
-             val cred = DbxCredential(accessToken, expiresAt.toLong(), refreshToken, context.resources.getString(
-                 R.string.dropbox_api_key
-             ))
-             CoroutineScope(Dispatchers.IO).launch {
-                 val client = DropboxClient.getClient(cred)
-                 val tokens = try{
-                     client.refreshAccessToken()
-                 }catch (e : DbxException){
-                     null
-                 }
-                 withContext(Dispatchers.Main) {
-                     //resave new data
-                     if (tokens!= null){//if its not null
-                         prefs.edit().putString("expired-at", tokens.expiresAt.toString()).apply()
-                         prefs.edit().putString("access-token", tokens.accessToken).apply()
-                     }
+        if (refreshToken != null && expiresAt != null) {
+            val cred = DbxCredential(
+                accessToken, expiresAt.toLong(), refreshToken, context.resources.getString(
+                    R.string.dropbox_api_key
+                )
+            )
+            CoroutineScope(Dispatchers.IO).launch {
+                val client = DropboxClient.getClient(cred)
+                val tokens = try {
+                    client.refreshAccessToken()
+                } catch (e: DbxException) {
+                    null
+                }
+                withContext(Dispatchers.Main) {
+                    //re-save new data
+                    if (tokens != null) {//if its not null
+                        prefs.edit().putString("expired-at", tokens.expiresAt.toString()).apply()
+                        prefs.edit().putString("access-token", tokens.accessToken).apply()
+                    }
 
-                     //call the onRefreshed so that the caller will know tha the program can be used
-                     onRefreshed()
-
-                 }
-             }
-         }
-         else {
-             return true
-         }
+                    //call the onRefreshed so that the caller will know tha the program can be used
+                    onRefreshed()
+                }
+            }
+        } else {
+            return true
+        }
         return false
     }
 }

@@ -63,9 +63,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
-class LoginActivity : AppCompatActivity()
-{
-
+class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -73,34 +71,37 @@ class LoginActivity : AppCompatActivity()
                 MainScreen()
             }
         }
-
     }
-
-
 }
+
 @Composable
-fun mainLoginUi(finished: ()-> Unit){
+fun mainLoginUi(finished: () -> Unit) {
     // Fetching the Local Context
     val mContext = LocalContext.current
-    val webAuth = DbxPKCEWebAuth(DbxRequestConfig("examples-authorize"), DbxAppInfo(mContext.resources.getString(R.string.dropbox_api_key)))
-    var linkValue by remember { mutableStateOf("")}
+    val webAuth = DbxPKCEWebAuth(
+        DbxRequestConfig("examples-authorize"),
+        DbxAppInfo(mContext.resources.getString(R.string.dropbox_api_key))
+    )
+    var linkValue by remember { mutableStateOf("") }
     Column {
         //login button
         Spacer(modifier = Modifier.weight(0.1f))
-        Button(onClick = {
-            Toast.makeText(mContext, "Link Dropbox", Toast.LENGTH_SHORT).show()
-            //start login
-            //Auth.startOAuth2Authentication(applicationContext, "ktd7xc7sg55pb8d")
-            val webAuthRequest = DbxWebAuth.newRequestBuilder()
-                .withTokenAccessType(TokenAccessType.OFFLINE)
-                .build()
+        Button(
+            onClick = {
+                Toast.makeText(mContext, "Link Dropbox", Toast.LENGTH_SHORT).show()
+                //start login
+                //Auth.startOAuth2Authentication(applicationContext, "ktd7xc7sg55pb8d")
+                val webAuthRequest = DbxWebAuth.newRequestBuilder()
+                    .withTokenAccessType(TokenAccessType.OFFLINE)
+                    .build()
 
-            val authorizeUrl = webAuth.authorize(webAuthRequest)
-            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(authorizeUrl))
-            mContext.startActivity(browserIntent)
-        }, modifier = Modifier
-            .padding(5.dp)
-            .fillMaxWidth()) {
+                val authorizeUrl = webAuth.authorize(webAuthRequest)
+                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(authorizeUrl))
+                mContext.startActivity(browserIntent)
+            }, modifier = Modifier
+                .padding(5.dp)
+                .fillMaxWidth()
+        ) {
             Text(text = "Login To Dropbox", modifier = Modifier.padding(15.dp))
         }
 
@@ -111,10 +112,9 @@ fun mainLoginUi(finished: ()-> Unit){
             onValueChange = { value ->
                 linkValue = value //update its value
                 CoroutineScope(Dispatchers.IO).launch {
-                    val auth = try{
+                    val auth = try {
                         webAuth.finishFromCode(linkValue)
-                    }
-                    catch (e : Exception){
+                    } catch (e: Exception) {
                         null
                     }
                     withContext(Dispatchers.Main) {
@@ -128,7 +128,8 @@ fun mainLoginUi(finished: ()-> Unit){
                                     )
                                 prefs.edit().putString("access-token", auth.accessToken).apply()
                                 prefs.edit().putString("refresh-token", auth.refreshToken).apply()
-                                prefs.edit().putString("expired-at", auth.expiresAt.toString()).apply()
+                                prefs.edit().putString("expired-at", auth.expiresAt.toString())
+                                    .apply()
                                 //set the status of the user being logged in to true
                                 prefs.edit().putBoolean("logged-in", true).apply()
 
@@ -147,8 +148,9 @@ fun mainLoginUi(finished: ()-> Unit){
                     val uploader = UploadTask(dbClient)
                     //loop though recipes and upload if there is not a newer version on dropbox
                     if (recipes != null) {
-                        for (file in recipes){
-                            val fileData = LocalFilesTask.loadString("${mContext.filesDir}/xml/",file)
+                        for (file in recipes) {
+                            val fileData =
+                                LocalFilesTask.loadString("${mContext.filesDir}/xml/", file)
                             if (fileData != null) {//there should not be possible to have a null file but just incase do not do anything if there is
                                 val dbFile = try {
                                     downloader.getXml("/xml/${file}")
@@ -156,7 +158,10 @@ fun mainLoginUi(finished: ()-> Unit){
                                     null
                                 }
                                 if (dbFile != null) {//if the file already exists
-                                    if (dbFile.second.toInstant().toEpochMilli() - fileData.second.toInstant().toEpochMilli() > 5000){ //and the online version is more than 5 seconds older
+                                    if (dbFile.second.toInstant()
+                                            .toEpochMilli() - fileData.second.toInstant()
+                                            .toEpochMilli() > 5000
+                                    ) { //and the online version is more than 5 seconds older
                                         //upload the new file
                                         uploader.uploadXml(fileData.first, "/xml/${file}")
                                     }
@@ -165,13 +170,13 @@ fun mainLoginUi(finished: ()-> Unit){
                                     uploader.uploadXml(fileData.first, "/xml/${file}")
                                 }
                             }
-
                         }
                     }
                     //do the same for images
                     if (images != null) {
-                        for (image in images){
-                            val fileData = LocalFilesTask.loadString("${mContext.filesDir}/image/",image)
+                        for (image in images) {
+                            val fileData =
+                                LocalFilesTask.loadString("${mContext.filesDir}/image/", image)
                             if (fileData != null) {//there should not be possible to have a null image but just incase do not do anything if there is
                                 val dbFile = try {
                                     downloader.getXml("/image/${image}")
@@ -179,7 +184,10 @@ fun mainLoginUi(finished: ()-> Unit){
                                     null
                                 }
                                 if (dbFile != null) {//if the image already exists
-                                    if (dbFile.second.toInstant().toEpochMilli() - fileData.second.toInstant().toEpochMilli() > 5000){ //and the online version is more than 5 seconds older
+                                    if (dbFile.second.toInstant()
+                                            .toEpochMilli() - fileData.second.toInstant()
+                                            .toEpochMilli() > 5000
+                                    ) { //and the online version is more than 5 seconds older
                                         //upload the new image
                                         uploader.uploadXml(fileData.first, "/image/${image}")
                                     }
@@ -188,7 +196,6 @@ fun mainLoginUi(finished: ()-> Unit){
                                     uploader.uploadXml(fileData.first, "/image/${image}")
                                 }
                             }
-
                         }
                     }
                 }
@@ -204,37 +211,51 @@ fun mainLoginUi(finished: ()-> Unit){
         )
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainScreen(){
+private fun MainScreen() {
     // Fetching the Local Context
     val mContext = LocalContext.current
-    Column (modifier = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)
-        .verticalScroll(rememberScrollState())) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+    ) {
         //return home button
         Button(onClick = {
-            
+
             val intent = Intent(mContext, MainActivity::class.java)
             mContext.startActivity(intent)
-        },modifier = Modifier.align(Alignment.End)){
+        }, modifier = Modifier.align(Alignment.End)) {
             Icon(
                 Icons.Filled.Home, "home",
                 Modifier
-                    .size(24.dp),)
-
+                    .size(24.dp),
+            )
         }
         //title
-        Text(text = "Login to Dropbox to sync between devices", modifier = Modifier
-            .padding(15.dp)
-            .align(Alignment.CenterHorizontally), textAlign = TextAlign.Center, color =MaterialTheme.colorScheme.onBackground,style = MaterialTheme.typography.titleLarge )
+        Text(
+            text = "Login to Dropbox to sync between devices",
+            modifier = Modifier
+                .padding(15.dp)
+                .align(Alignment.CenterHorizontally),
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.titleLarge
+        )
         //logo
-        Image(painter = painterResource(id = R.drawable.book), contentDescription = "logo image", contentScale = ContentScale.FillHeight, modifier = Modifier
-            .align(Alignment.CenterHorizontally)
-            .fillMaxHeight()
-            .weight(0.5f))
-        mainLoginUi(){
+        Image(
+            painter = painterResource(id = R.drawable.book),
+            contentDescription = "logo image",
+            contentScale = ContentScale.FillHeight,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .fillMaxHeight()
+                .weight(0.5f)
+        )
+        mainLoginUi() {
             //Proceed to MainActivity
             val intent = Intent(mContext, MainActivity::class.java)
             mContext.startActivity(intent)
@@ -254,9 +275,7 @@ private fun MainScreen(){
             )
         }
     }
-
 }
-
 
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
@@ -264,7 +283,7 @@ private fun MainScreen(){
     name = "Dark Mode"
 )
 @Composable
-fun loginPreview(){
+fun loginPreview() {
     RezepteTheme {
         MainScreen()
     }

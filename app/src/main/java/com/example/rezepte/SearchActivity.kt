@@ -119,13 +119,15 @@ class SearchActivity : ComponentActivity() {
 
         //see if there are extra data sent e.g. geting name of recipe not just opening it
         val extras = intent.extras
-        var returnName =  (extras != null && extras.getBoolean("get recipe name"))
+        var returnName = (extras != null && extras.getBoolean("get recipe name"))
 
         //get settings
-        val settings = SettingsActivity.loadSettings(getSharedPreferences(
-            "com.example.rezepte.settings",
-            MODE_PRIVATE
-        ))
+        val settings = SettingsActivity.loadSettings(
+            getSharedPreferences(
+                "com.example.rezepte.settings",
+                MODE_PRIVATE
+            )
+        )
 
         //set access token
         val tokenHandler = DbTokenHandling(
@@ -137,16 +139,23 @@ class SearchActivity : ComponentActivity() {
         val isOnline = tokenHandler.isLoggedIn()
         ACCESS_TOKEN = tokenHandler.retrieveAccessToken()
 
-        val recipeNameData : MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
-        val extraData  = mutableStateMapOf<String,BasicData>()
-        val thumbnails = mutableMapOf<String,Bitmap?>()
+        val recipeNameData: MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
+        val extraData = mutableStateMapOf<String, BasicData>()
+        val thumbnails = mutableMapOf<String, Bitmap?>()
         val hasThumbnails = mutableStateOf(false)
 
 
         //set the content of the window
         setContent {
             RezepteTheme {
-                MainScreen(recipeNameData,extraData, thumbnails,returnName,hasThumbnails,settings)
+                MainScreen(
+                    recipeNameData,
+                    extraData,
+                    thumbnails,
+                    returnName,
+                    hasThumbnails,
+                    settings
+                )
             }
         }
         //get token
@@ -155,11 +164,11 @@ class SearchActivity : ComponentActivity() {
                 "com.example.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
-        var localList : String? = null
+        var localList: String? = null
         //load the file data
         val loadLocalFileData = FileSync.Data(FileSync.FilePriority.LocalOnly, dropboxPreference)
         val file =
-            FileSync.FileInfo("", "${this@SearchActivity.filesDir}","listOfRecipes.xml")
+            FileSync.FileInfo("", "${this@SearchActivity.filesDir}", "listOfRecipes.xml")
         CoroutineScope(Dispatchers.IO).launch {
             if (settings["Local Saves.Cache recipe names"] == "true") {
                 FileSync.downloadString(loadLocalFileData, file) {
@@ -167,25 +176,29 @@ class SearchActivity : ComponentActivity() {
                 }
             }
 
-            if (localList != null){
-                recipeNameData.value = localList!!.replace(".xml","").split("\n").toMutableList()
+            if (localList != null) {
+                recipeNameData.value = localList!!.replace(".xml", "").split("\n").toMutableList()
 
 
             }
             //add local only files to that list
             val localFiles = LocalFilesTask.listFolder("${this@SearchActivity.filesDir}/xml/")
-            if (settings["Local Saves.Cache recipes"] == "true" && !localFiles.isNullOrEmpty()){
-                for (fileName in localFiles){
-                    if (!recipeNameData.value.contains(fileName.removeSuffix(".xml"))){//if the list dose not contain the file name add it to the list
+            if (settings["Local Saves.Cache recipes"] == "true" && !localFiles.isNullOrEmpty()) {
+                for (fileName in localFiles) {
+                    if (!recipeNameData.value.contains(fileName.removeSuffix(".xml"))) {//if the list dose not contain the file name add it to the list
                         recipeNameData.value.add(fileName.removeSuffix(".xml"))
                     }
                 }
             }
             //if there are locally saved thumbnails load them if data is not empty
-            if (recipeNameData.value.isNotEmpty()){
-                if (settings["Local Saves.Cache recipe image"]== "thumbnail"||settings["Local Saves.Cache recipe image"]== "full sized" || !isOnline){
-                    val thumbnailFiles =  FileSync.FileBatchInfo("", "${this@SearchActivity.filesDir}/thumbnail/",recipeNameData.value)
-                    FileSync.downloadThumbnail(loadLocalFileData,thumbnailFiles){
+            if (recipeNameData.value.isNotEmpty()) {
+                if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized" || !isOnline) {
+                    val thumbnailFiles = FileSync.FileBatchInfo(
+                        "",
+                        "${this@SearchActivity.filesDir}/thumbnail/",
+                        recipeNameData.value
+                    )
+                    FileSync.downloadThumbnail(loadLocalFileData, thumbnailFiles) {
                         thumbnails.putAll(it)
                         hasThumbnails.value = true
                     }
@@ -196,8 +209,9 @@ class SearchActivity : ComponentActivity() {
             val priority =
                 if (settings["Local Saves.Cache recipes"] == "true") FileSync.FilePriority.OnlineFirst else FileSync.FilePriority.OnlineOnly
             val searchDataData = FileSync.Data(priority, dropboxPreference)
-            val searchDataFile =  FileSync.FileInfo("/", "${this@SearchActivity.filesDir}/","searchData.xml")
-            FileSync.downloadString(searchDataData,searchDataFile){
+            val searchDataFile =
+                FileSync.FileInfo("/", "${this@SearchActivity.filesDir}/", "searchData.xml")
+            FileSync.downloadString(searchDataData, searchDataFile) {
                 val searchData = XmlExtraction.getSearchData(it)
                 //convert to dictionary
                 for (recipeData in searchData.data) {
@@ -225,32 +239,43 @@ class SearchActivity : ComponentActivity() {
                     ) { //if the lists are different use the online version and save to to local if enabled
                         recipeNameData.value = onlineList
                         if (settings["Local Saves.Cache recipe names"] == "true") {
-                            FileSync.uploadString(loadLocalFileData,file,onlineList.joinToString("\n")){}
+                            FileSync.uploadString(
+                                loadLocalFileData,
+                                file,
+                                onlineList.joinToString("\n")
+                            ) {}
                         }
                     }
                 }
 
                 //load thumbnails when file names are finalised
                 val priority =
-                    if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized") FileSync.FilePriority.Newist else FileSync.FilePriority.OnlineOnly
-                val thumbNailsData = FileSync.Data(priority,dropboxPreference)
-                val thumbnailFiles = FileSync.FileBatchInfo("/image/","${this@SearchActivity.filesDir}/thumbnail/",recipeNameData.value)
-                FileSync.downloadThumbnail(thumbNailsData,thumbnailFiles){
-                    for (thumbnailKey in recipeNameData.value){
-                        if(thumbnails.contains(thumbnailKey) && thumbnails[thumbnailKey] != null ){
+                    if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized") FileSync.FilePriority.Newest else FileSync.FilePriority.OnlineOnly
+                val thumbNailsData = FileSync.Data(priority, dropboxPreference)
+                val thumbnailFiles = FileSync.FileBatchInfo(
+                    "/image/",
+                    "${this@SearchActivity.filesDir}/thumbnail/",
+                    recipeNameData.value
+                )
+                FileSync.downloadThumbnail(thumbNailsData, thumbnailFiles) {
+                    for (thumbnailKey in recipeNameData.value) {
+                        if (thumbnails.contains(thumbnailKey) && thumbnails[thumbnailKey] != null) {
                             if (!thumbnails[thumbnailKey]!!.sameAs(it[thumbnailKey])) {
                                 thumbnails[thumbnailKey] = it[thumbnailKey]
                                 hasThumbnails.value = true
                             }
-                        }else if (it[thumbnailKey] != null) {
-                            thumbnails[thumbnailKey]  = it[thumbnailKey]
+                        } else if (it[thumbnailKey] != null) {
+                            thumbnails[thumbnailKey] = it[thumbnailKey]
                             hasThumbnails.value = true
                         }
                     }
 
                 }
-                val thumbNailSyncData = FileSync.Data(FileSync.FilePriority.Newist,dropboxPreference) //sync the thumbnails to device
-                FileSync.syncThumbnail(thumbNailSyncData,thumbnailFiles){}
+                val thumbNailSyncData = FileSync.Data(
+                    FileSync.FilePriority.Newest,
+                    dropboxPreference
+                ) //sync the thumbnails to device
+                FileSync.syncThumbnail(thumbNailSyncData, thumbnailFiles) {}
 
             }
 
@@ -264,7 +289,7 @@ class SearchActivity : ComponentActivity() {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName : Boolean) {
+fun RecipeCard(name: String, extraData: BasicData?, thumbNail: Bitmap?, getName: Boolean) {
 
     // Fetching the Local Context
     val mContext = LocalContext.current
@@ -369,6 +394,7 @@ fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName 
                                 Modifier.width(120.dp)
                             )
                         }
+
                         false -> {
                             Spacer(
                                 Modifier.width(60.dp)
@@ -392,7 +418,7 @@ fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName 
                     style = MaterialTheme.typography.titleMedium,
                     softWrap = true,
                 )
-                if(extraData != null){
+                if (extraData != null) {
                     Text(
                         "Author: ${extraData.author}",
                         modifier = Modifier.padding(start = 4.dp),
@@ -424,6 +450,7 @@ fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName 
                             Modifier.width(110.dp)
                         )
                     }
+
                     false -> {
 
                     }
@@ -479,32 +506,21 @@ fun RecipeCard(name: String,extraData: BasicData?, thumbNail : Bitmap?, getName 
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecipeList(
     names: MutableState<MutableList<String>>,
-    extraData:SnapshotStateMap<String, BasicData>,
+    extraData: SnapshotStateMap<String, BasicData>,
     thumbnails: MutableMap<String, Bitmap?>,
     searchFieldState: MutableState<TextFieldValue>,
     getName: Boolean,
-    settings: Map<String,String>
+    settings: Map<String, String>
 ) {
     var filteredNames: List<String>
-    val filters  = {
-        getFilters(names.value,extraData.values)
+    val filters = {
+        getFilters(names.value, extraData.values)
     }
-    var currentFilters = remember { mutableStateListOf<String>()}
+    var currentFilters = remember { mutableStateListOf<String>() }
 
 
 
@@ -538,24 +554,23 @@ fun RecipeList(
             //add the filterer at the top
             if (settings["Search menu.Suggestion Filters"] == "true") {
                 item {
-                    SearchFilters(filters, firstItemTranslationY, visibility){
+                    SearchFilters(filters, firstItemTranslationY, visibility) {
                         currentFilters = it as SnapshotStateList<String>
-                     }
+                    }
 
                 }
             }
 
-            filteredNames = filterItems(names.value,extraData,currentFilters,searchFieldState.value.text)
+            filteredNames =
+                filterItems(names.value, extraData, currentFilters, searchFieldState.value.text)
 
             items(filteredNames) { name ->
 
-                RecipeCard(name,extraData[name], thumbnails[name], getName)
+                RecipeCard(name, extraData[name], thumbnails[name], getName)
 
             }
         }
-    }
-
-    else {
+    } else {
 
         //animated the suggesting in and out when they are in sue
         val lazyGridState = rememberLazyStaggeredGridState()
@@ -582,51 +597,64 @@ fun RecipeList(
             }
         }
         var selectedName by remember { mutableStateOf("") }
-        LazyVerticalStaggeredGrid(columns = StaggeredGridCells.Adaptive(128.dp),state = lazyGridState) {
+        LazyVerticalStaggeredGrid(
+            columns = StaggeredGridCells.Adaptive(128.dp),
+            state = lazyGridState
+        ) {
             //add spacer for filters at the top if its enabled
             if (settings["Search menu.Suggestion Filters"] == "true") {
-                item(span =  StaggeredGridItemSpan.FullLine ) {
-                    SearchFilters(filters, firstItemTranslationY, visibility){
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    SearchFilters(filters, firstItemTranslationY, visibility) {
                         currentFilters.clear()
                         currentFilters.addAll(it)
                     }
                 }
             }
-            filteredNames = filterItems(names.value,extraData,currentFilters,searchFieldState.value.text)
+            filteredNames =
+                filterItems(names.value, extraData, currentFilters, searchFieldState.value.text)
             items(filteredNames) { name ->
 
-                RecipeTile(name, getColor(index = filteredNames.indexOf(name), default = MaterialTheme.colorScheme.primary), thumbnails[name]) {
+                RecipeTile(
+                    name,
+                    getColor(
+                        index = filteredNames.indexOf(name),
+                        default = MaterialTheme.colorScheme.primary
+                    ),
+                    thumbnails[name]
+                ) {
                     selectedName = name
                 }
             }
         }
         //when a recipe is selected show an expanded bottom sheet with extra detail and the button to link or make the recipe
-        RecipeExpanded(selectedName,extraData[selectedName], thumbnails[selectedName], getName) {
+        RecipeExpanded(selectedName, extraData[selectedName], thumbnails[selectedName], getName) {
             selectedName = ""
         }
     }
 }
+
 fun filterItems(
-    names:List<String>, authors:Map<String,BasicData>,
-    filters: SnapshotStateList<String>, searchFilter:String): List<String>{
+    names: List<String>, authors: Map<String, BasicData>,
+    filters: SnapshotStateList<String>, searchFilter: String
+): List<String> {
     val resultList = mutableListOf<String>()
     //check all of the recipe names to see which one fits the filters
-    for (name in names){
+    for (name in names) {
         //combine the name and author so both can be searched at once if the author is not null
-        val searchedValue = "$name ${if (authors[name] != null)authors[name]?.author else ""}"
+        val searchedValue = "$name ${if (authors[name] != null) authors[name]?.author else ""}"
         //if the name (or author) contains what is in the search box
-        if(searchedValue.contains(searchFilter, ignoreCase = true)){
+        if (searchedValue.contains(searchFilter, ignoreCase = true)) {
             //see if it also fits the enabled search filter buttons
             var matches = true
-            for (filter in filters){
+            for (filter in filters) {
                 //if there is a filter enabled see if the filter word is in the name (or author) and if it is not remove matches
-                if( !searchedValue.contains(filter, ignoreCase = true)){
+                if (!searchedValue.contains(filter, ignoreCase = true)) {
                     matches = false
                     break
                 }
             }
             //if still matches the extra filters add it to the results
-            if (matches){
+            if (matches) {
                 resultList.add(name)
             }
         }
@@ -636,7 +664,7 @@ fun filterItems(
 
 
 @Composable
-fun RecipeTile(name: String,color : Color, thumbNail : Bitmap?,onSelect : () -> Unit)  {
+fun RecipeTile(name: String, color: Color, thumbNail: Bitmap?, onSelect: () -> Unit) {
     // Fetching the Local Context
 
     val random = Random()
@@ -686,12 +714,19 @@ fun RecipeTile(name: String,color : Color, thumbNail : Bitmap?,onSelect : () -> 
 
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeExpanded(name: String,basicData: BasicData?, thumbNail : Bitmap?, getName : Boolean,onSelect : () -> Unit){
+fun RecipeExpanded(
+    name: String,
+    basicData: BasicData?,
+    thumbNail: Bitmap?,
+    getName: Boolean,
+    onSelect: () -> Unit
+) {
     // Fetching the Local Context
     val mContext = LocalContext.current
-    if (name != ""){
+    if (name != "") {
         ModalBottomSheet(onDismissRequest = {
             onSelect()
         }) {
@@ -735,9 +770,15 @@ fun RecipeExpanded(name: String,basicData: BasicData?, thumbNail : Bitmap?, getN
                         softWrap = true,
                     )
                     Spacer(modifier = Modifier.height(10.dp))
-                    if(basicData != null) {
-                        Text(text = "Author: ${basicData.author}", modifier = Modifier.padding(5.dp))
-                        Text(text = "Servings: ${basicData.servings}", modifier = Modifier.padding(5.dp))
+                    if (basicData != null) {
+                        Text(
+                            text = "Author: ${basicData.author}",
+                            modifier = Modifier.padding(5.dp)
+                        )
+                        Text(
+                            text = "Servings: ${basicData.servings}",
+                            modifier = Modifier.padding(5.dp)
+                        )
                     }
                 }
             }
@@ -785,6 +826,7 @@ fun MyTopBar() {
 
         )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchView(state: MutableState<TextFieldValue>) {
@@ -795,7 +837,7 @@ fun SearchView(state: MutableState<TextFieldValue>) {
         },
         modifier = Modifier
             .fillMaxWidth(),
-        textStyle = TextStyle( fontSize = 18.sp),
+        textStyle = TextStyle(fontSize = 18.sp),
         leadingIcon = {
             Icon(
                 Icons.Default.Search,
@@ -828,6 +870,7 @@ fun SearchView(state: MutableState<TextFieldValue>) {
 
     )
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchFilters(
@@ -835,29 +878,29 @@ fun SearchFilters(
     firstItemTranslationY: Float,
     visibility: Float,
     updateSelectedFilters: (List<String>) -> Unit,
-){
-    val currentFilters by remember { mutableStateOf(filters())}
+) {
+    val currentFilters by remember { mutableStateOf(filters()) }
 
-    Row (modifier = Modifier
+    Row(modifier = Modifier
         .horizontalScroll(rememberScrollState())
         .graphicsLayer {
             translationY = firstItemTranslationY
             alpha = 1f - visibility
         }) {
-        for (filter in currentFilters){
+        for (filter in currentFilters) {
             FilterChip(
                 onClick = {
-                            filter.value.value = !filter.value.value
-                            //get current filters that are set and update that value
-                            val checked = mutableListOf<String>()
-                            val active = currentFilters.filter { state -> state.value.value }
-                            updateSelectedFilters(active.keys.toList())
-                          },
+                    filter.value.value = !filter.value.value
+                    //get current filters that are set and update that value
+                    val checked = mutableListOf<String>()
+                    val active = currentFilters.filter { state -> state.value.value }
+                    updateSelectedFilters(active.keys.toList())
+                },
                 label = {
                     Text(filter.key)
                 },
-                selected =  filter.value.value,
-                leadingIcon = if ( filter.value.value) {
+                selected = filter.value.value,
+                leadingIcon = if (filter.value.value) {
                     {
                         Icon(
                             imageVector = Icons.Filled.Done,
@@ -868,7 +911,7 @@ fun SearchFilters(
                 } else {
                     null
                 },
-                colors = FilterChipDefaults.filterChipColors(containerColor =MaterialTheme.colorScheme.background )
+                colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.background)
 
 
             )
@@ -877,44 +920,49 @@ fun SearchFilters(
         }
     }
 }
-fun getFilters (recipeNames: List<String>, authors: MutableCollection<BasicData>): Map<String,MutableState<Boolean>>{ //get common words to use as suggested filters
-    val popularWords = mutableMapOf<String,MutableState<Boolean>>()
-    val usedWordsCount = mutableMapOf<String,Int>()
-    for (name in recipeNames){
-        for (word in CreateAutomations.getWords(name)){
-            if (usedWordsCount[word] == null){
+
+fun getFilters(
+    recipeNames: List<String>,
+    authors: MutableCollection<BasicData>
+): Map<String, MutableState<Boolean>> { //get common words to use as suggested filters
+    val popularWords = mutableMapOf<String, MutableState<Boolean>>()
+    val usedWordsCount = mutableMapOf<String, Int>()
+    for (name in recipeNames) {
+        for (word in CreateAutomations.getWords(name)) {
+            if (usedWordsCount[word] == null) {
                 usedWordsCount[word] = 1
-            }else {
+            } else {
                 usedWordsCount[word] = usedWordsCount[word]!! + 1
             }
         }
     }
-    for (author in authors){
+    for (author in authors) {
 
         if (author.author == "") continue // do do this for empty authors
-        if (usedWordsCount[author.author] == null){
+        if (usedWordsCount[author.author] == null) {
             usedWordsCount[author.author] = 1
-        }else {
+        } else {
             usedWordsCount[author.author] = usedWordsCount[author.author]!! + 1
         }
     }
 
-    for (word in usedWordsCount){
+    for (word in usedWordsCount) {
         if (word.key == "and" && word.key == "with") continue //this is not a useful filter
-        if(word.value >=3){//todo settings for this value and filters at all
+        if (word.value >= 3) {//todo settings for this value and filters at all
             popularWords[word.key] = mutableStateOf(false)
         }
     }
 
-
-    return  popularWords
+    return popularWords
 }
+
 @Composable
 private fun MainScreen(
     names: MutableState<MutableList<String>>,
-    extraData: SnapshotStateMap<String, BasicData>, thumbnails: MutableMap<String,Bitmap?>,
+    extraData: SnapshotStateMap<String, BasicData>, thumbnails: MutableMap<String, Bitmap?>,
     getName: Boolean, updatedThumbnail: MutableState<Boolean>,
-    settings: Map<String,String>) {
+    settings: Map<String, String>
+) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     if (names.value.isNotEmpty()) {
         Column(
@@ -930,15 +978,13 @@ private fun MainScreen(
                 updatedThumbnail.value = false
             }
         }
-    }else {//if there are not recipes loaded show message say none found and to login or create with buttons
-        
-            NoReciepsFoundOuput()
-        
-        
+    } else {//if there are not recipes loaded show message say none found and to login or create with buttons
+        NoReciepsFoundOuput()
     }
 }
+
 @Composable
-fun NoReciepsFoundOuput(){
+fun NoReciepsFoundOuput() {
     // Fetching the Local Context
     val mContext = LocalContext.current
     val tokenHandler = DbTokenHandling(
@@ -973,13 +1019,11 @@ fun NoReciepsFoundOuput(){
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
 
-                )
+            )
             Button(
                 onClick = {
                     val intent = Intent(mContext, CreateActivity::class.java)
                     mContext.startActivity(intent)
-
-
                 }, modifier = Modifier
                     .padding(15.dp)
                     .fillMaxWidth()
@@ -987,10 +1031,8 @@ fun NoReciepsFoundOuput(){
                 Text(
                     text = "Create",
                     textAlign = TextAlign.Center,
-
-                )
+                    )
             }
-
 
             if (!isOnline) {//only suggest login if the user is not logged in
                 Text(
@@ -1003,8 +1045,6 @@ fun NoReciepsFoundOuput(){
                     onClick = {
                         val intent = Intent(mContext, LoginActivity::class.java)
                         mContext.startActivity(intent)
-
-
                     }, modifier = Modifier
                         .padding(15.dp)
                         .fillMaxWidth()
@@ -1013,7 +1053,6 @@ fun NoReciepsFoundOuput(){
                         text = "Login",
                         textAlign = TextAlign.Center,
                     )
-
                 }
             }
         }
@@ -1029,10 +1068,13 @@ fun NoReciepsFoundOuput(){
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen((mutableStateOf(mutableListOf("Carrot Cake", "other Cake"))),
-            mutableStateMapOf(), hashMapOf(),false, mutableStateOf(false),mapOf())
+        MainScreen(
+            (mutableStateOf(mutableListOf("Carrot Cake", "other Cake"))),
+            mutableStateMapOf(), hashMapOf(), false, mutableStateOf(false), mapOf()
+        )
     }
 }
+
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
     showBackground = true,
@@ -1057,7 +1099,8 @@ fun TopBarPreview() {
         Surface {
             MyTopBar()
         }
-    }}
+    }
+}
 
 @SuppressLint("UnrememberedMutableState")
 @Preview(
@@ -1067,13 +1110,15 @@ fun TopBarPreview() {
 )
 
 @Composable
-fun previewRecipeCard(){
+fun previewRecipeCard() {
     RezepteTheme {
         Surface {
-            RecipeCard(name = "Carrot Cake",null,null,false)
+            RecipeCard(name = "Carrot Cake", null, null, false)
 
         }
-    }}
+    }
+}
+
 @SuppressLint("UnrememberedMutableState")
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
@@ -1081,14 +1126,23 @@ fun previewRecipeCard(){
     name = "Dark Mode"
 )
 @Composable
-fun previewRecipeCards(){
+fun previewRecipeCards() {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
-    val filters = remember { mutableStateOf(mapOf(Pair("cake", mutableStateOf(false)),Pair("dffffffffffdf2", mutableStateOf(false)),Pair("fasdf", mutableStateOf(false)),Pair("asfdasdf", mutableStateOf(false))))}
+    val filters = remember {
+        mutableStateOf(
+            mapOf(
+                Pair("cake", mutableStateOf(false)),
+                Pair("dffffffffffdf2", mutableStateOf(false)),
+                Pair("fasdf", mutableStateOf(false)),
+                Pair("asfdasdf", mutableStateOf(false))
+            )
+        )
+    }
 
     RezepteTheme {
         Surface {
             RecipeList(
-                (mutableStateOf(mutableListOf("Carrot Cake", "other Cake" ))),
+                (mutableStateOf(mutableListOf("Carrot Cake", "other Cake"))),
                 mutableStateMapOf(),
                 hashMapOf(),
                 textState,
@@ -1096,4 +1150,5 @@ fun previewRecipeCards(){
                 mapOf()
             )
         }
-    }}
+    }
+}

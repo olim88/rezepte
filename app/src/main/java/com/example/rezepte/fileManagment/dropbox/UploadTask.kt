@@ -13,12 +13,12 @@ import java.io.IOException
 import java.io.InputStream
 
 
-class UploadTask (private val client: DbxClientV2){
+class UploadTask(private val client: DbxClientV2) {
 
-    fun uploadXml(fileData: String, filepath: String){ //uploads string as a file
+    fun uploadXml(fileData: String, filepath: String) { //uploads string as a file
         try {
             //upload xml
-            val inputStream2: InputStream =  fileData.byteInputStream(charset = Charsets.UTF_8)
+            val inputStream2: InputStream = fileData.byteInputStream(charset = Charsets.UTF_8)
             client.files()
                 .uploadBuilder(filepath) //Path in the user's Dropbox to save the file.
                 .withMode(WriteMode.OVERWRITE) //always overwrite existing file
@@ -31,7 +31,8 @@ class UploadTask (private val client: DbxClientV2){
             e.printStackTrace()
         }
     }
-    fun uploadFile(file : File, filepath: String){ //uploads a file to dropbox
+
+    fun uploadFile(file: File, filepath: String) { //uploads a file to dropbox
         try {
             //upload xml
             val inputStream: InputStream = FileInputStream(file)
@@ -49,11 +50,12 @@ class UploadTask (private val client: DbxClientV2){
             e.printStackTrace()
         }
     }
-    fun uploadBitmap(bitmap : Bitmap, filepath: String){ //uploads a file to dropbox
+
+    fun uploadBitmap(bitmap: Bitmap, filepath: String) { //uploads a file to dropbox
         try {
             //upload bitmap
             val bos = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG,90,bos)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, bos)
             val inputStream: InputStream = ByteArrayInputStream(bos.toByteArray())
             client.files()
                 .uploadBuilder(
@@ -69,30 +71,25 @@ class UploadTask (private val client: DbxClientV2){
             e.printStackTrace()
         }
     }
-    fun removeFile(path: String){
+
+    fun removeFile(path: String) {
         client.files().deleteV2(path)
     }
 
-    suspend fun removeImage(path: String){
+    suspend fun removeImage(path: String) {
         val imageName = path.split("/").last()
         val dir = path.removeSuffix(imageName)
-        if (getImagePath(dir,imageName) == null) return
-        client.files().deleteV2(getImagePath(dir,imageName))
+        if (getImagePath(dir, imageName) == null) return
+        client.files().deleteV2(getImagePath(dir, imageName))
 
     }
-    private suspend fun getImagePath(dir: String, name :String): String? {
+
+    private suspend fun getImagePath(dir: String, name: String): String? {
         val nameOptions = DownloadTask(client).listDir(dir) ?: return null
-        val fullName = nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
+        val fullName =
+            nameOptions.filter { x -> x.contains(name) } //if the file extension is unknown
         if (fullName.isEmpty()) return null
         return "$dir${fullName[0]}"
     }
-
-
-
-
-
-
-
-
 }
 

@@ -27,7 +27,7 @@ class DownloadWebsite {
             ignoreUnknownKeys = true
         }
 
-        fun main(websiteUrl: String,settings : Map<String,String>): Pair<Recipe,String> {
+        fun main(websiteUrl: String, settings: Map<String, String>): Pair<Recipe, String> {
             var recipe = GetEmptyRecipe()
             var imageLink = ""
             //set the website of the recipe
@@ -37,7 +37,7 @@ class DownloadWebsite {
             //get the data
             for (tag in doc.select("script[type=application/ld+json]")) { //there can be mutliple tags with this make sure we find the one with the recipe by looking at all of them
                 var data = tag?.let { Json.parseToJsonElement(it.html()) }
-                //uses formatting from standered https://developers.google.com/search/docs/appearance/structured-data/recipe#recipe-properties
+                //uses formatting from stander https://developers.google.com/search/docs/appearance/structured-data/recipe#recipe-properties
                 //the json may all be in a list for some reason so if that is the case sort it out
                 try {
                     if (data != null) {
@@ -46,7 +46,7 @@ class DownloadWebsite {
 
                 } catch (e: Exception) {
                 }
-                if (data != null){//there is the data needed from the website and we just need to convert the json into a recipe and load that in the app{
+                if (data != null) {//there is the data needed from the website and we just need to convert the json into a recipe and load that in the app{
 
                     //get the @type of the recipe could be a list or string or just not there ( if it is not there just quit)
                     val type = try {
@@ -123,21 +123,20 @@ class DownloadWebsite {
                                         ) //add with all the html tags removed
                                         index++
                                     }
-
                                 }
                             }
                         }
                         recipe.instructions = Instructions((instructions))
                         //get the image from the data
-                        imageLink = try{
-                            extractedData.image.jsonArray[0].toString().removeSuffix("\"").removePrefix("\"")
-                        }catch (e: Exception) {
+                        imageLink = try {
+                            extractedData.image.jsonArray[0].toString().removeSuffix("\"")
+                                .removePrefix("\"")
+                        } catch (e: Exception) {
                             json.decodeFromJsonElement<Image>(extractedData.image).url
                         }
 
-
                         break
-                    } else if (type == "HowTo"){ //if a website that is a how to is used only has instructions and image but still works
+                    } else if (type == "HowTo") { //if a website that is a how to is used only has instructions and image but still works
                         val extractedData = json.decodeFromJsonElement<ExtractedHowTo>(data)
                         //set recipe values based on the extraced data
                         recipe.data.name = extractedData.name
@@ -190,9 +189,10 @@ class DownloadWebsite {
                         }
                         recipe.instructions = Instructions((instructions))
                         //get the image from the data
-                        imageLink = try{
-                            extractedData.image.jsonArray[0].toString().removeSuffix("\"").removePrefix("\"")
-                        }catch (e: Exception) {
+                        imageLink = try {
+                            extractedData.image.jsonArray[0].toString().removeSuffix("\"")
+                                .removePrefix("\"")
+                        } catch (e: Exception) {
                             json.decodeFromJsonElement<Image>(extractedData.image).url
                         }
                         break
@@ -238,28 +238,36 @@ class DownloadWebsite {
                 }
                 recipe.instructions = Instructions(instructions)
                 //find image linked to recipe
-                imageLink = "https://www.nigella.com" + doc.getElementsByClass("image")[0].child(0).getElementsByAttributeValueMatching("itemprop","image")[0].attr("src")
+                imageLink = "https://www.nigella.com" + doc.getElementsByClass("image")[0].child(0)
+                    .getElementsByAttributeValueMatching("itemprop", "image")[0].attr("src")
 
 
             }
             //check settings to see if extra needs to be done
-            when (settings["Creation.Website Loading.Split instructions"]){
-                "intelligent" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,
-                    CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
-                "sentences" -> recipe.instructions = CreateAutomations.autoSplitInstructions(recipe.instructions,
-                    CreateAutomations.Companion.InstructionSplitStrength.Sentences)
+            when (settings["Creation.Website Loading.Split instructions"]) {
+                "intelligent" -> recipe.instructions = CreateAutomations.autoSplitInstructions(
+                    recipe.instructions,
+                    CreateAutomations.Companion.InstructionSplitStrength.Intelligent
+                )
+
+                "sentences" -> recipe.instructions = CreateAutomations.autoSplitInstructions(
+                    recipe.instructions,
+                    CreateAutomations.Companion.InstructionSplitStrength.Sentences
+                )
+
                 else -> {}
             }
 
-            if (settings["Creation.Website Loading.Generate cooking steps"] == "true")
-            {
-                val stepsAndLinks = CreateAutomations.autoGenerateStepsFromInstructions(recipe.instructions)
+            if (settings["Creation.Website Loading.Generate cooking steps"] == "true") {
+                val stepsAndLinks =
+                    CreateAutomations.autoGenerateStepsFromInstructions(recipe.instructions)
                 recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
                 recipe.instructions = stepsAndLinks.second
             }
             //return the recipe and image link if there is one
-            return Pair(recipe,imageLink)
+            return Pair(recipe, imageLink)
         }
+
         fun downloadImageToBitmap(url: String): Bitmap? {
             var image: Bitmap? = null
             try {
@@ -272,23 +280,34 @@ class DownloadWebsite {
             return image
         }
     }
-    }
+}
 
 
+@Serializable
+private data class ExtractedData(
+    val image: JsonElement,
+    val name: String,
+    val author: JsonElement,
+    val recipeIngredient: List<String>,
+    val recipeInstructions: JsonElement,
+    val recipeYield: JsonElement
+)
 
-    @Serializable
-    private data class ExtractedData(val image : JsonElement,val name: String, val author: JsonElement, val recipeIngredient : List<String>, val recipeInstructions : JsonElement, val recipeYield: JsonElement)
+@Serializable
+private data class Author(val name: String)
 
-    @Serializable
-    private data class Author(val name: String)
+@Serializable
+private data class Image(val url: String)
 
-    @Serializable
-    private data class Image(val url: String)
+@Serializable
+private data class InstructionJson(val text: String)
 
-    @Serializable
-    private data class InstructionJson(val text: String)
-
-    @Serializable
-    private data class ExtractedHowTo(val image : JsonElement,val name: String, val publisher: JsonElement, val step : JsonElement)
+@Serializable
+private data class ExtractedHowTo(
+    val image: JsonElement,
+    val name: String,
+    val publisher: JsonElement,
+    val step: JsonElement
+)
 
 

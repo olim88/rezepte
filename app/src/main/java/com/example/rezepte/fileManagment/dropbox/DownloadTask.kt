@@ -18,11 +18,11 @@ import java.util.LinkedList
 import java.util.Queue
 
 
-class DownloadTask(client: DbxClientV2)  {
+class DownloadTask(client: DbxClientV2) {
 
     private val dbxClient: DbxClientV2 = client
 
-    fun listDir (dir : String) : List<String>? {
+    fun listDir(dir: String): List<String>? {
         val results = try {
             dbxClient.files().listFolder(dir)
         } catch (e: Exception) {
@@ -32,14 +32,15 @@ class DownloadTask(client: DbxClientV2)  {
 
         val output = ArrayList<String>()
 
-        for (value in results.entries){
+        for (value in results.entries) {
             output.add(value.name)
         }
         //todo add request more
         return output
 
     }
-    fun getUserAccount(): FullAccount?{
+
+    fun getUserAccount(): FullAccount? {
         try {
             //get the users FullAccount
             return dbxClient.users().currentAccount
@@ -49,7 +50,8 @@ class DownloadTask(client: DbxClientV2)  {
 
         return null
     }
-    fun getXml(dir :String) : Pair<String, Date>{
+
+    fun getXml(dir: String): Pair<String, Date> {
         val results = dbxClient.files().download(dir)
         val time = results.result.serverModified //last modified time
         val reader = BufferedReader(results.inputStream.reader())
@@ -62,24 +64,26 @@ class DownloadTask(client: DbxClientV2)  {
             }
         }
 
-        return Pair(content.toString() ,time)
+        return Pair(content.toString(), time)
     }
-     fun getImage(dir: String, name :String): Pair<Bitmap, Date>? {
-        val results =try {
-            dbxClient.files().download("$dir$name") ?: return  null
-        } catch (e: Exception){
+
+    fun getImage(dir: String, name: String): Pair<Bitmap, Date>? {
+        val results = try {
+            dbxClient.files().download("$dir$name") ?: return null
+        } catch (e: Exception) {
             return null
         }
-         val time = results.result.serverModified //last modified time
+        val time = results.result.serverModified //last modified time
 
         val options = BitmapFactory.Options()
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
 
 
-        return Pair(BitmapFactory.decodeStream(results.inputStream),time)
+        return Pair(BitmapFactory.decodeStream(results.inputStream), time)
     }
-    fun getFile(dir: String, name :String): Pair<File, Date>? {
-        val results = dbxClient.files().download("$dir$name") ?: return  null
+
+    fun getFile(dir: String, name: String): Pair<File, Date>? {
+        val results = dbxClient.files().download("$dir$name") ?: return null
         val time = results.result.serverModified //last modified time
         val file: File = createTempFile()
 
@@ -90,76 +94,80 @@ class DownloadTask(client: DbxClientV2)  {
             }
         }
 
-        return Pair(file,time)
+        return Pair(file, time)
     }
 
-    fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>?{
+    fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>? {
         //set bitmap options
         val options = BitmapFactory.Options()
         options.inPreferredConfig = Bitmap.Config.ARGB_8888
 
         //create arguments for each thumbnail
-        val names : Queue<String> = LinkedList()
-        //get thumb nails in baches of 25
+        val names: Queue<String> = LinkedList()
+        //get thumb nails in batches of 25
         var index = 0
-        val output = hashMapOf<String,Bitmap?>()
-        while (index <fileNames.size){
+        val output = hashMapOf<String, Bitmap?>()
+        while (index < fileNames.size) {
             val args = mutableListOf<ThumbnailArg>()
             val startIndex = index
-            for ( name in fileNames.subList(startIndex,fileNames.size)){
+            for (name in fileNames.subList(startIndex, fileNames.size)) {
                 val path = "$dir$name.jpg"
-                val arg = ThumbnailArg(path,ThumbnailFormat.JPEG,ThumbnailSize.W128H128,ThumbnailMode.BESTFIT)
+                val arg = ThumbnailArg(
+                    path,
+                    ThumbnailFormat.JPEG,
+                    ThumbnailSize.W128H128,
+                    ThumbnailMode.BESTFIT
+                )
                 args.add(arg)
                 names.add(name)
 
-                index ++
-                if (index - startIndex == 25){ //if there has been 25 thumbnails done complete the bach before going onto the next
+                index++
+                if (index - startIndex == 25) { //if there has been 25 thumbnails done complete the bach before going onto the next
                     break
                 }
 
             }
-            val thumbNailBach  = dbxClient.files().getThumbnailBatch(args)
+            val thumbNailBach = dbxClient.files().getThumbnailBatch(args)
 
-            for (thumbNail in thumbNailBach.entries)
-            {
+            for (thumbNail in thumbNailBach.entries) {
                 val name = names.remove()
-                if (thumbNail.tag() == GetThumbnailBatchResultEntry.Tag.SUCCESS){
-                    val temp = Base64.decode(thumbNail.successValue.thumbnail,Base64.DEFAULT)
-                    output[name] = BitmapFactory.decodeByteArray(temp,0, temp.size)
+                if (thumbNail.tag() == GetThumbnailBatchResultEntry.Tag.SUCCESS) {
+                    val temp = Base64.decode(thumbNail.successValue.thumbnail, Base64.DEFAULT)
+                    output[name] = BitmapFactory.decodeByteArray(temp, 0, temp.size)
                 }
             }
         }
 
         return output
     }
-    fun getFileDate(dir: String, name :String):  Date? {
+
+    fun getFileDate(dir: String, name: String): Date? {
         val results = try {
             dbxClient.files().getMetadata("$dir$name") as FileMetadata
-        }catch (e: Exception){
+        } catch (e: Exception) {
             return null
         }
 
         return results.serverModified //last modified time
     }
-    fun getFilesDates(dir:String): Map<String,Date?>?{
+
+    fun getFilesDates(dir: String): Map<String, Date?>? {
         val results = try {
             dbxClient.files().listFolder(dir)
         } catch (e: Exception) {
             e.printStackTrace()
             return null
         }
-        val dates = mutableMapOf<String,Date?>()
-        for (value in results.entries){
+        val dates = mutableMapOf<String, Date?>()
+        for (value in results.entries) {
             try {
                 dates[value.name.removeSuffix(".jpg")] = (value as FileMetadata).serverModified
-            }catch (ignore : Exception){
+            } catch (ignore: Exception) {
                 //it is not a file
             }
         }
         //todo add request more
 
-        return  dates
+        return dates
     }
-
-
-    }
+}

@@ -11,6 +11,7 @@ object DropboxClient {
         val config = DbxRequestConfig("Repize/1.0")
         return DbxClientV2(config, ACCESS_TOKEN)
     }
+
     fun getClient(credential: DbxCredential): DbxClientV2 {
         // Create Dropbox client
         val config = DbxRequestConfig("Repize/1.0")
