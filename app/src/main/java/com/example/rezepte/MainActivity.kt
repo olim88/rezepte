@@ -60,6 +60,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import com.dropbox.core.v2.users.FullAccount
+import com.example.rezepte.recipeCreation.externalLoading.DownloadWebsite
+import com.example.rezepte.recipeCreation.externalLoading.ImageToRecipe
+import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
+import com.example.rezepte.fileManagment.dropbox.DownloadTask
+import com.example.rezepte.fileManagment.dropbox.DropboxClient
+import com.example.rezepte.recipeCreation.CreateActivity
+import com.example.rezepte.recipeCreation.parseData
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -161,7 +168,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?,Boolean>>) {
             CreateButtonOptions()
             //search button (my recipes)
             Button(onClick = {
-                val intent = Intent(mContext,SearchActivity::class.java)
+                val intent = Intent(mContext, SearchActivity::class.java)
                 mContext.startActivity(intent);
             }, modifier = Modifier
                 .padding(5.dp, 0.dp, 5.dp, 5.dp)
@@ -181,7 +188,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?,Boolean>>) {
     Row {
         Spacer(modifier = Modifier.weight(1f))
         IconButton(onClick = {
-            val intent = Intent(mContext,SettingsActivity::class.java)
+            val intent = Intent(mContext, SettingsActivity::class.java)
             mContext.startActivity(intent)
         }) {
             Icon(
@@ -363,9 +370,9 @@ fun CreateButtonOptions() {
                         return@convert
                     }
                     //when loaded send the recipe to the create menu
-                    val intent = Intent(mContext,CreateActivity::class.java)
+                    val intent = Intent(mContext, CreateActivity::class.java)
 
-                    intent.putExtra("data",parseData(it))
+                    intent.putExtra("data", parseData(it))
                     //intent.putExtra("imageData",recipe.second) add image
                     mContext.startActivity(intent)
                     imageInput = false

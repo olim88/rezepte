@@ -50,6 +50,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
+import com.example.rezepte.recipeMaking.CookingStepDisplay
+import com.example.rezepte.recipeMaking.getColor
 import com.example.rezepte.ui.theme.RezepteTheme
 
 class WalkThoughActivity : AppCompatActivity()

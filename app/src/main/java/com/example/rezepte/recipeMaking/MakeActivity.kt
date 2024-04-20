@@ -1,4 +1,4 @@
-package com.example.rezepte
+package com.example.rezepte.recipeMaking
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -63,6 +63,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.rezepte.CookingStage
+import com.example.rezepte.CookingStep
+import com.example.rezepte.CookingStepContainer
+import com.example.rezepte.CookingStepTemperature
+import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.HobOption
+import com.example.rezepte.MainActivity
+import com.example.rezepte.Recipe
+import com.example.rezepte.SettingsActivity
+import com.example.rezepte.TinOrPanOptions
+import com.example.rezepte.XmlExtraction
+import com.example.rezepte.fileManagment.FileSync
+import com.example.rezepte.recipeCreation.CreateActivity
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -151,7 +164,7 @@ private fun intToRoman(num: Int): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DataOutput(userSettings: Map<String,String>,recipeData: Recipe,multiplier : MutableState<Float>){
+fun DataOutput(userSettings: Map<String,String>, recipeData: Recipe, multiplier : MutableState<Float>){
     var multiplierInput by remember { mutableStateOf("")}
     Card(
         modifier = Modifier
@@ -171,7 +184,11 @@ fun DataOutput(userSettings: Map<String,String>,recipeData: Recipe,multiplier : 
             )
             //servings
             TextField(
-                value = MakeFormatting.getCorrectUnitsAndValues(recipeData.data.serves,multiplier.value, userSettings),
+                value = MakeFormatting.getCorrectUnitsAndValues(
+                    recipeData.data.serves,
+                    multiplier.value,
+                    userSettings
+                ),
                 onValueChange = {},
                 readOnly = true,
                 label = {Text("Servings")},
@@ -305,7 +322,7 @@ fun IngredientConversions(userSettings: Map<String,String>, measurement: String,
 }
 
 @Composable
-fun IngredientsOutput(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, multiplier: MutableState<Float>){
+fun IngredientsOutput(userSettings :Map<String,String>, recipeData: MutableState<Recipe>, multiplier: MutableState<Float>){
     var strikeIndex by remember {mutableStateOf(0)}
     Card(
         modifier = Modifier
@@ -361,8 +378,13 @@ fun Ingredient (userSettings: Map<String,String>,value : String,index : Int,isBi
         MaterialTheme.typography.bodySmall
     }
     if (isStrike && userSettings["Making.Walk Though Ingredients"] == "true") style = style.copy(textDecoration = TextDecoration.LineThrough)
-    val convertedText = MakeFormatting.getCorrectUnitsAndValues(value,multiplier.value, userSettings)//text adjusted to the user settings for the measurement options and the multiplier
-    val measurementsInside = MakeFormatting.listUnitsInValue(convertedText) //measurements inside the text
+    val convertedText = MakeFormatting.getCorrectUnitsAndValues(
+        value,
+        multiplier.value,
+        userSettings
+    )//text adjusted to the user settings for the measurement options and the multiplier
+    val measurementsInside =
+        MakeFormatting.listUnitsInValue(convertedText) //measurements inside the text
     var showingMeasurement by remember { mutableIntStateOf(-1) }//index inside of the measurements list of currently expanded measurement
     if (isStrike && userSettings["Making.Walk Though Ingredients"] == "true") showingMeasurement = -1 //when it is showing conversions and then the settings is struck stop showing the conversions
     if (userSettings["Units.Show Conversions"]== "false" || measurementsInside.isEmpty()){//if can not find measurements just show the ingredient or the setting is disabled
@@ -468,7 +490,7 @@ fun getColor (index: Int?, default : androidx.compose.ui.graphics.Color) :  andr
 
 }
 @Composable
-fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Recipe>, multiplier: MutableState<Float>){
+fun InstructionsOutput(settings: Map<String, String>, recipeData: MutableState<Recipe>, multiplier: MutableState<Float>){
     var strikeIndex by remember {mutableIntStateOf(0)}
 
     Card(
@@ -502,7 +524,12 @@ fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Re
             }
             //update the instructions list
             for ((index,instruction) in recipeData.value.instructions.list.withIndex()) {
-                val correctUnitsAndMultipliedText = MakeFormatting.getCorrectUnitsAndValuesInIngredients(instruction.text,multiplier.value,settings)
+                val correctUnitsAndMultipliedText =
+                    MakeFormatting.getCorrectUnitsAndValuesInIngredients(
+                        instruction.text,
+                        multiplier.value,
+                        settings
+                    )
                 val colour = if (settings["Making.Walk Though Instructions"] == "true") {
                     getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.onBackground)
                 }else {
@@ -517,7 +544,8 @@ fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Re
                     colour
                 )
                 if (settings["Making.Walk Though Instructions"] == "true" && index == strikeIndex && instruction.linkedCookingStepIndex != null){
-                    CookingStepDisplay(recipeData.value.data.cookingSteps.list[instruction.linkedCookingStepIndex!!],getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface),settings)
+                    CookingStepDisplay(recipeData.value.data.cookingSteps.list[instruction.linkedCookingStepIndex!!],
+                        getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface),settings)
                 }
 
             }
@@ -525,7 +553,7 @@ fun InstructionsOutput(settings: Map<String, String>,recipeData: MutableState<Re
     }
 }
 @Composable
-fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.Color,settings : Map<String,String>){
+fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.Color, settings : Map<String,String>){
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -535,7 +563,7 @@ fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
         )
     ){
         Column {
-            Text(text = MakeFormatting.getCookingStepDisplayText(step,settings), modifier = Modifier.padding(5.dp))
+            Text(text = MakeFormatting.getCookingStepDisplayText(step, settings), modifier = Modifier.padding(5.dp))
         }
     }
 }
@@ -547,9 +575,10 @@ fun CookingStepDisplay (step: CookingStep, color : androidx.compose.ui.graphics.
 @Composable
 fun CookingStepDisplayPreview() {
     RezepteTheme {
-        CookingStepDisplay(CookingStep(0,"20 mins",CookingStage.oven,
+        CookingStepDisplay(
+            CookingStep(0,"20 mins", CookingStage.oven,
             CookingStepContainer(TinOrPanOptions.roundTin,9f,null,null),
-            CookingStepTemperature(250,HobOption.zero,true)
+            CookingStepTemperature(250, HobOption.zero,true)
         ),MaterialTheme.colorScheme.primary, mapOf())
     }
 }
@@ -626,7 +655,7 @@ fun LinkedRecipesOutput(recipeData: Recipe){
 }
 
 @Composable
-private fun MainScreen(userSettings :Map<String,String>,recipeData: MutableState<Recipe>, image : MutableState<Bitmap?>){
+private fun MainScreen(userSettings :Map<String,String>, recipeData: MutableState<Recipe>, image : MutableState<Bitmap?>){
 
     val multiplier = remember { mutableFloatStateOf(1f) }
     // Fetching the Local Context

@@ -1,4 +1,14 @@
-package com.example.rezepte
+package com.example.rezepte.recipeCreation
+
+import com.example.rezepte.CookingStage
+import com.example.rezepte.CookingStep
+import com.example.rezepte.CookingStepContainer
+import com.example.rezepte.CookingStepTemperature
+import com.example.rezepte.HobOption
+import com.example.rezepte.Instruction
+import com.example.rezepte.Instructions
+import com.example.rezepte.TinOrPanOptions
+import com.example.rezepte.TinOrPanSizeOptions
 
 class CreateAutomations {
     companion object {
@@ -73,10 +83,14 @@ class CreateAutomations {
         }
         private fun getInstructionStage(text:String,lastStep: CookingStage?) : CookingStage {
             val cleanText = getCleanText(text)
-            if (cleanText.contains(" (wait)|(sit for)|(leave)|(off the heat)|(allow to) ".toRegex())) { return CookingStage.wait}
-            if (cleanText.contains(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ".toRegex())) { return CookingStage.hob}
-            if (cleanText.contains(" (oven)|(bake)|(roast) ".toRegex())) { return CookingStage.oven}
-            if (cleanText.contains(" fridge ")) { return CookingStage.fridge}
+            if (cleanText.contains(" (wait)|(sit for)|(leave)|(off the heat)|(allow to) ".toRegex())) { return CookingStage.wait
+            }
+            if (cleanText.contains(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ".toRegex())) { return CookingStage.hob
+            }
+            if (cleanText.contains(" (oven)|(bake)|(roast) ".toRegex())) { return CookingStage.oven
+            }
+            if (cleanText.contains(" fridge ")) { return CookingStage.fridge
+            }
             //if the last stage was hob infer cook as hob else infer it as oven
             if (cleanText.contains(" cook ")){
                 return if (lastStep == CookingStage.hob){
@@ -85,7 +99,7 @@ class CreateAutomations {
                     CookingStage.oven
                 }
             }
-            return  CookingStage.prep // most likely if can not find word hinting at what it is
+            return CookingStage.prep // most likely if can not find word hinting at what it is
         }
         private fun getInstructionTemp(text: String,isOven: Boolean) : CookingStepTemperature?{ //todo see if fan can be found if that is what the user wants
             val words = getWords(text)
@@ -267,7 +281,7 @@ class CreateAutomations {
         private  fun getCleanText(text: String) : String { return  text.lowercase().replace("[.;,()|/]".toRegex()," ")}
 
 
-        fun autoSplitInstructions(instructions: Instructions,strength: InstructionSplitStrength) : Instructions{
+        fun autoSplitInstructions(instructions: Instructions, strength: InstructionSplitStrength) : Instructions {
             //go though each instructions and split it in to the amount needed
             when(strength ){
                 InstructionSplitStrength.Sentences -> {

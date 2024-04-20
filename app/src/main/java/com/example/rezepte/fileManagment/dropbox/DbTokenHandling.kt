@@ -1,10 +1,11 @@
-package com.example.rezepte
+package com.example.rezepte.fileManagment.dropbox
 
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.dropbox.core.DbxException
 import com.dropbox.core.oauth.DbxCredential
+import com.example.rezepte.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -57,7 +58,9 @@ class  DbTokenHandling(sharedPreferences: SharedPreferences)  {
 
 
          if (refreshToken != null && expiresAt != null ) {
-             val cred = DbxCredential(accessToken, expiresAt.toLong(), refreshToken, context.resources.getString(R.string.dropbox_api_key))
+             val cred = DbxCredential(accessToken, expiresAt.toLong(), refreshToken, context.resources.getString(
+                 R.string.dropbox_api_key
+             ))
              CoroutineScope(Dispatchers.IO).launch {
                  val client = DropboxClient.getClient(cred)
                  val tokens = try{

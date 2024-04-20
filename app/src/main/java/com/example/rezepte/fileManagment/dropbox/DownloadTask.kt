@@ -1,4 +1,4 @@
-package com.example.rezepte
+package com.example.rezepte.fileManagment.dropbox
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

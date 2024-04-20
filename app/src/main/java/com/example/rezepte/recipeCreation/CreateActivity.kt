@@ -1,4 +1,4 @@
-package com.example.rezepte
+package com.example.rezepte.recipeCreation
 
 
 import android.annotation.SuppressLint
@@ -88,6 +88,32 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.rezepte.AddImageDialog
+import com.example.rezepte.BasicData
+import com.example.rezepte.CookingStage
+import com.example.rezepte.CookingStep
+import com.example.rezepte.CookingStepContainer
+import com.example.rezepte.CookingStepTemperature
+import com.example.rezepte.CookingSteps
+import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.HobOption
+import com.example.rezepte.Ingredient
+import com.example.rezepte.Ingredients
+import com.example.rezepte.Instruction
+import com.example.rezepte.Instructions
+import com.example.rezepte.LinkedRecipes
+import com.example.rezepte.MainActivity
+import com.example.rezepte.Recipe
+import com.example.rezepte.SearchActivity
+import com.example.rezepte.SearchData
+import com.example.rezepte.SettingsActivity
+import com.example.rezepte.TinOrPanOptions
+import com.example.rezepte.TinOrPanSizeOptions
+import com.example.rezepte.XmlExtraction
+import com.example.rezepte.fileManagment.FileSync
+import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
+import com.example.rezepte.getEmptySeachData
+import com.example.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import com.example.rezepte.ui.theme.RezepteTheme
 import com.google.android.material.internal.ContextUtils.getActivity
 import kotlinx.coroutines.CoroutineScope
@@ -247,10 +273,12 @@ class CreateActivity : ComponentActivity() {
         }
     }
     private fun deleteRecipeData(){
-        val settings = SettingsActivity.loadSettings(getSharedPreferences(
-            "com.example.rezepte.settings",
-            MODE_PRIVATE
-        ))
+        val settings = SettingsActivity.loadSettings(
+            getSharedPreferences(
+                "com.example.rezepte.settings",
+                MODE_PRIVATE
+            )
+        )
         //get token
         val dropboxPreference =
             getSharedPreferences(
@@ -322,10 +350,12 @@ class CreateActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.P)
     private fun finishRecipe(recipe: Recipe, image: Uri?, bitmapImage : Bitmap?, linking : Boolean) {
-        val settings = SettingsActivity.loadSettings(getSharedPreferences(
-            "com.example.rezepte.settings",
-            MODE_PRIVATE
-        ))
+        val settings = SettingsActivity.loadSettings(
+            getSharedPreferences(
+                "com.example.rezepte.settings",
+                MODE_PRIVATE
+            )
+        )
         //make sure there is a name for the recipe else don't ext
         if (recipe.data.name == ""){
             Handler(Looper.getMainLooper()).post { //show why can not be saved
@@ -811,12 +841,12 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
             }
             if (creating && name != ""){ //if right name and its not blank add it to the list of linked recipes
                 if (linkedRecipes == null){
-                    linkedRecipes  = mutableListOf(LinkedRecipe(name))
+                    linkedRecipes  = mutableListOf(com.example.rezepte.LinkedRecipe(name))
                     data.value.data.linked = LinkedRecipes(linkedRecipes!!)
                     update = true
                 }
-                else if (!linkedRecipes!!.contains(LinkedRecipe(name))){
-                    linkedRecipes?.add(LinkedRecipe(name))
+                else if (!linkedRecipes!!.contains(com.example.rezepte.LinkedRecipe(name))){
+                    linkedRecipes?.add(com.example.rezepte.LinkedRecipe(name))
                     data.value.data.linked?.list = linkedRecipes!!
                     update = true
                 }
@@ -871,7 +901,7 @@ fun LinkedRecipesInput(data : MutableState<Recipe>){
                     Button(
                         onClick = {
                             //open search to find recipe
-                            val intent = Intent(mContext,SearchActivity::class.java)
+                            val intent = Intent(mContext, SearchActivity::class.java)
                             intent.putExtra("get recipe name",true)
                             mContext.startActivity(intent)
 
@@ -907,7 +937,7 @@ fun rememberLifecycleEvent(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.
     return state
 }
 @Composable
-fun LinkedRecipe(data : MutableState<Recipe>,index : Int,onItemClick: (Int) -> Unit){
+fun LinkedRecipe(data : MutableState<Recipe>, index : Int, onItemClick: (Int) -> Unit){
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1035,7 +1065,7 @@ fun CookingStepsInput(settings: Map<String, String>, data : MutableState<Recipe>
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : MutableState<Boolean>, onItemClick: (Int) -> Unit){
+fun CookingStep(settings: Map<String,String>, data : CookingStep, isExpanded : MutableState<Boolean>, onItemClick: (Int) -> Unit){
 
     var isFan by remember {  if (data.cookingTemperature?.isFan == null) mutableStateOf(false) else mutableStateOf(data.cookingTemperature?.isFan!!)}
     var timeInput by remember { mutableStateOf(data.time)}
@@ -1116,7 +1146,7 @@ fun CookingStep(settings: Map<String,String>,data : CookingStep, isExpanded : Mu
         }
         else{
             Column (modifier = Modifier.padding(3.dp)) {
-                MenuItemWithDropDown("Type",data.type.toString(),CookingStage.values()) { value ->
+                MenuItemWithDropDown("Type",data.type.toString(), CookingStage.values()) { value ->
                     data.type = enumValueOf(value)
                     when (data.type) {
                         CookingStage.oven ->{
@@ -1344,7 +1374,7 @@ inline fun <reified T> MenuItemWithDropDown(textLabel: String, value: String, va
         DropdownMenu(expanded = mExpanded,
             onDismissRequest = { mExpanded = false }) {
             values.forEach { label ->
-                if (label is CookingStage ) { //todo do not repeat the code
+                if (label is CookingStage) { //todo do not repeat the code
                     DropdownMenuItem(onClick = {
                         onItemClick(label.name)
                         changedValue = label.text
@@ -1550,8 +1580,11 @@ fun InstructionsInput(userSettings: Map<String,String>,data : MutableState<Recip
                     .fillMaxWidth()
                     .padding(5.dp)) {
                     Button(onClick = {
-                                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,
-                                            CreateAutomations.Companion.InstructionSplitStrength.Intelligent)
+                                        data.value.instructions =
+                                            CreateAutomations.autoSplitInstructions(
+                                                data.value.instructions,
+                                                CreateAutomations.Companion.InstructionSplitStrength.Intelligent
+                                            )
                                         instructionsInput = getInstructions(data)
                                      },
                         modifier = Modifier.weight(1f)) {
@@ -1559,8 +1592,10 @@ fun InstructionsInput(userSettings: Map<String,String>,data : MutableState<Recip
                     }
                     Spacer(modifier = Modifier.weight(0.5f))
                     Button(onClick = {
-                        data.value.instructions = CreateAutomations.autoSplitInstructions(data.value.instructions,
-                            CreateAutomations.Companion.InstructionSplitStrength.Sentences)
+                        data.value.instructions = CreateAutomations.autoSplitInstructions(
+                            data.value.instructions,
+                            CreateAutomations.Companion.InstructionSplitStrength.Sentences
+                        )
                         instructionsInput = getInstructions(data)
                     },
                         modifier = Modifier.weight(1f)) {
@@ -1587,7 +1622,7 @@ fun buildAnnotatedStringWithColors(text:String, colors:  List<Color>): Annotated
     return builder.toAnnotatedString()
 }
 @Composable
-fun DeleteAndFinishButtons(data : MutableState<Recipe>,updatedSteps:MutableState<Boolean>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit,imageUri : MutableState<Uri?>,imageBitmap: MutableState<Bitmap?>){
+fun DeleteAndFinishButtons(data : MutableState<Recipe>, updatedSteps:MutableState<Boolean>, onDeleteClick: () -> Unit, onFinishClick: (Recipe, Uri?, Bitmap?, Boolean) -> Unit, imageUri : MutableState<Uri?>, imageBitmap: MutableState<Bitmap?>){
     Row{
         Button(onClick = onDeleteClick,
             modifier = Modifier.padding(all = 5.dp)) {
@@ -1607,7 +1642,7 @@ fun DeleteAndFinishButtons(data : MutableState<Recipe>,updatedSteps:MutableState
     }
 }
 @Composable
-fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: MutableState<Boolean>,onFinish: (Recipe, Uri?, Bitmap?,Boolean) -> Unit,imageBitmap: MutableState<Bitmap?>){
+fun FinishButton(data: MutableState<Recipe>, image: MutableState<Uri?>, update: MutableState<Boolean>, onFinish: (Recipe, Uri?, Bitmap?, Boolean) -> Unit, imageBitmap: MutableState<Bitmap?>){
     Card(
         modifier = Modifier
             .padding(5.dp)
@@ -1685,7 +1720,7 @@ fun FinishButton(data: MutableState<Recipe>,image: MutableState<Uri?>,update: Mu
 }
 
 @Composable
-private fun MainScreen(userSettings: Map<String,String>,recipeDataInput: MutableState<Recipe>,image : MutableState<Bitmap?>,onDeleteClick: () -> Unit,onFinishClick: (Recipe,Uri?, Bitmap?,Boolean) -> Unit){
+private fun MainScreen(userSettings: Map<String,String>, recipeDataInput: MutableState<Recipe>, image : MutableState<Bitmap?>, onDeleteClick: () -> Unit, onFinishClick: (Recipe, Uri?, Bitmap?, Boolean) -> Unit){
     val imageUri : MutableState<Uri?> = remember {mutableStateOf(null)}
     val updatedSteps = remember { mutableStateOf(false) }
 

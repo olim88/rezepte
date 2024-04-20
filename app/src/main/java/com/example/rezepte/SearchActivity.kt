@@ -95,6 +95,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.rezepte.fileManagment.FileSync
+import com.example.rezepte.fileManagment.LocalFilesTask
+import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
+import com.example.rezepte.fileManagment.dropbox.DownloadTask
+import com.example.rezepte.fileManagment.dropbox.DropboxClient
+import com.example.rezepte.recipeCreation.CreateActivity
+import com.example.rezepte.recipeCreation.CreateAutomations
+import com.example.rezepte.recipeMaking.MakeActivity
+import com.example.rezepte.recipeMaking.getColor
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -891,8 +900,8 @@ fun getFilters (recipeNames: List<String>, authors: MutableCollection<BasicData>
     }
 
     for (word in usedWordsCount){
-        if (word.key == "and") continue //this is not a useful filter
-        if(word.value >=3){//todo settings for this value and filters atall
+        if (word.key == "and" && word.key == "with") continue //this is not a useful filter
+        if(word.value >=3){//todo settings for this value and filters at all
             popularWords[word.key] = mutableStateOf(false)
         }
     }

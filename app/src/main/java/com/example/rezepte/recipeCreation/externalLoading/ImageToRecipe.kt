@@ -1,9 +1,17 @@
-package com.example.rezepte
+package com.example.rezepte.recipeCreation.externalLoading
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import com.example.rezepte.CookingSteps
+import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.Ingredient
+import com.example.rezepte.Ingredients
+import com.example.rezepte.Instruction
+import com.example.rezepte.Instructions
+import com.example.rezepte.Recipe
+import com.example.rezepte.recipeCreation.CreateAutomations
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.Text.TextBlock

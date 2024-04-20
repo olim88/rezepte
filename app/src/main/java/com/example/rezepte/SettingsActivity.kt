@@ -51,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
 import com.example.rezepte.ui.theme.RezepteTheme
 
 class SettingsActivity : ComponentActivity() {
@@ -181,8 +182,8 @@ fun  createSettingsMenu() : List<SettingOptionInterface> { //create the layout a
                 SettingsOptionDropDown("Split instructions","when loading a website automatically split instructions into smaller parts", mutableIntStateOf(0),listOf("off","intelligent","sentences"))
             )),
             SettingsSubMenu("Image Loading","",listOf(
-                SettingsOptionToggle("Generate cooking steps","when loading a website automatically find cooking steps from the instructions", mutableStateOf(false)),
-                SettingsOptionDropDown("Split instructions","when loading a website automatically split instructions into smaller parts", mutableIntStateOf(0),listOf("off","intelligent","sentences"))
+                SettingsOptionToggle("Generate cooking steps","when loading a image automatically find cooking steps from the instructions", mutableStateOf(false)),
+                SettingsOptionDropDown("Split instructions","when loading a image automatically split instructions into smaller parts", mutableIntStateOf(0),listOf("off","intelligent","sentences"))
             )),
             SettingsOptionToggle("Separate Ingredients","show each line as a different colour when editing a recipe", mutableStateOf(true)),
             SettingsOptionToggle("Separate Instructions","show each line as a different colour when editing a recipe", mutableStateOf(true)),
@@ -344,7 +345,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
             //save settings
             SettingsActivity.saveSettings(mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE),SettingsActivity.convertToDictionary(settingsMenuStack.last().second,""))
             //go to main menu
-            val intent = Intent(mContext,MainActivity::class.java)
+            val intent = Intent(mContext, MainActivity::class.java)
             intent.flags =
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             mContext.startActivity(intent)
@@ -369,7 +370,7 @@ private fun MainScreen(loadedSettings : Map<String,String>){
                 //save settings
                 SettingsActivity.saveSettings(mContext.getSharedPreferences("com.example.rezepte.settings",ComponentActivity.MODE_PRIVATE),SettingsActivity.convertToDictionary(settingsMenuStack.last().second,""))
                 //go to main menu
-                val intent = Intent(mContext,MainActivity::class.java)
+                val intent = Intent(mContext, MainActivity::class.java)
                 intent.flags =
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 mContext.startActivity(intent)

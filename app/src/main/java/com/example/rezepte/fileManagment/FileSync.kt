@@ -1,7 +1,11 @@
-package com.example.rezepte
+package com.example.rezepte.fileManagment
 
 import android.content.SharedPreferences
 import android.graphics.Bitmap
+import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
+import com.example.rezepte.fileManagment.dropbox.DownloadTask
+import com.example.rezepte.fileManagment.dropbox.DropboxClient
+import com.example.rezepte.fileManagment.dropbox.UploadTask
 import java.io.File
 import java.util.Date
 
@@ -19,10 +23,10 @@ class FileSync {
         fun uploadString (data : Data, file: FileInfo, stringData : String, success : ()-> Unit){
             //if selected in file priority upload to device
             if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newist || data.priority == FilePriority.None){
-                LocalFilesTask.saveString(stringData,file.localPath,file.fileName)
+                LocalFilesTask.saveString(stringData, file.localPath, file.fileName)
             }
             //if selected in file priority upload to dropbox
-            if (data.priority == FilePriority.OnlineFirst || data.priority == FilePriority.OnlineOnly || data.priority == FilePriority.Newist|| data.priority == FilePriority.None){
+            if (data.priority == FilePriority.OnlineFirst || data.priority == FilePriority.OnlineOnly || data.priority == FilePriority.Newist || data.priority == FilePriority.None){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
                 if (dropbox.second) {
                     val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
@@ -34,7 +38,7 @@ class FileSync {
         fun downloadString (data : Data, file: FileInfo, returnString: (String) -> Unit  ): Boolean{
             //sort local data
             val localData = if (data.priority != FilePriority.OnlineOnly){
-                LocalFilesTask.loadString(file.localPath,file.fileName)
+                LocalFilesTask.loadString(file.localPath, file.fileName)
             }else {null}
             //if there is a local file return this but still check the online save
             if (localData != null){
@@ -71,7 +75,7 @@ class FileSync {
                 return true
             }
             when (data.priority){
-                FilePriority.OnlineFirst->{
+                FilePriority.OnlineFirst ->{
                     returnString(onlineData.first)
                 }
                 FilePriority.Newist -> {
@@ -87,11 +91,11 @@ class FileSync {
         }
         fun uploadImage(data : Data, file: FileInfo, imageData : Bitmap, success : ()-> Unit){
             //if selected in file priority upload to device
-            if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newist|| data.priority == FilePriority.None){
-                LocalFilesTask.saveBitmap(imageData,file.localPath,file.fileName)
+            if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newist || data.priority == FilePriority.None){
+                LocalFilesTask.saveBitmap(imageData, file.localPath, file.fileName)
             }
             //if selected in file priority upload to dropbox
-            if (data.priority == FilePriority.OnlineFirst || data.priority == FilePriority.OnlineOnly || data.priority == FilePriority.Newist|| data.priority == FilePriority.None){
+            if (data.priority == FilePriority.OnlineFirst || data.priority == FilePriority.OnlineOnly || data.priority == FilePriority.Newist || data.priority == FilePriority.None){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
                 if (dropbox.second) {
                     val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
@@ -103,7 +107,7 @@ class FileSync {
         fun downloadImage (data : Data, file: FileInfo, returnImage: (Bitmap) -> Unit  ){
             //sort local data
             val localData = if (data.priority != FilePriority.OnlineOnly){
-                LocalFilesTask.loadBitmap(file.localPath,file.fileName)
+                LocalFilesTask.loadBitmap(file.localPath, file.fileName)
             }else {null}
             //if there is a local file return this but still check the online save
             if (localData != null){
@@ -137,7 +141,7 @@ class FileSync {
                 return
             }
             when (data.priority){
-                FilePriority.OnlineFirst->{
+                FilePriority.OnlineFirst ->{
                     returnImage(onlineData.first)
                 }
                 FilePriority.Newist -> {
@@ -157,7 +161,7 @@ class FileSync {
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
                 for (thumbnailName in file.fileNames){
-                    val localFile = LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg")
+                    val localFile = LocalFilesTask.loadBitmap(file.localPath, "$thumbnailName.jpg")
                     localThumbnails[thumbnailName]= (localFile?.first)
                     localDates[thumbnailName]= (localFile?.second)
                     if (localThumbnails[thumbnailName] != null){
@@ -198,7 +202,7 @@ class FileSync {
                 return
             }
             when (data.priority){
-                FilePriority.OnlineFirst->{
+                FilePriority.OnlineFirst ->{
                     if (onlineData != null) {
                         returnThumbnails(onlineData)
                     }
@@ -237,11 +241,11 @@ class FileSync {
         }
         fun uploadFile(data : Data, file: FileInfo, fileData : File, success : ()-> Unit){
             //if selected in file priority upload to device
-            if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newist|| data.priority == FilePriority.None){
-                LocalFilesTask.saveFile(fileData,file.localPath,file.fileName)
+            if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newist || data.priority == FilePriority.None){
+                LocalFilesTask.saveFile(fileData, file.localPath, file.fileName)
             }
             //if selected in file priority upload to dropbox
-            if (data.priority == FilePriority.OnlineFirst || data.priority == FilePriority.OnlineOnly || data.priority == FilePriority.Newist|| data.priority == FilePriority.None){
+            if (data.priority == FilePriority.OnlineFirst || data.priority == FilePriority.OnlineOnly || data.priority == FilePriority.Newist || data.priority == FilePriority.None){
                 val dropbox = getTokenAndOnline(data.dropboxPrefrence)
                 if (dropbox.second) {
                     val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
@@ -286,17 +290,17 @@ class FileSync {
             if (!dropbox.second) return // not connected to dropbox so can not sync to it
 
             when (data.priority){
-                FilePriority.OnlineFirst->{
+                FilePriority.OnlineFirst ->{
                     //get the online file and upload that to the local location
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
                     val onlineFile = downloader.getFile(file.dropboxPath , file.fileName)
                     if (onlineFile != null){
-                        LocalFilesTask.saveFile(onlineFile.first,file.localPath,file.fileName)
+                        LocalFilesTask.saveFile(onlineFile.first, file.localPath, file.fileName)
                     }
                 }
                 FilePriority.LocalFirst -> {
                     //get the local file and upload that to the online location
-                    val localFile = LocalFilesTask.loadFile(file.localPath,file.fileName)
+                    val localFile = LocalFilesTask.loadFile(file.localPath, file.fileName)
                     if (localFile != null){
                         val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
                         uploadClient.uploadFile(localFile.first, file.dropboxPath + file.fileName)
@@ -307,7 +311,7 @@ class FileSync {
                     //compare data's on files and upload newest
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
                     val onlineDate = downloader.getFileDate(file.dropboxPath,file.fileName)
-                    val localFile = LocalFilesTask.loadFile(file.localPath,file.fileName)
+                    val localFile = LocalFilesTask.loadFile(file.localPath, file.fileName)
 
 
 
@@ -318,11 +322,11 @@ class FileSync {
                     }
                     else if (localFile == null ){
                         val onlineFile = downloader.getFile(file.dropboxPath , file.fileName)
-                        LocalFilesTask.saveFile(onlineFile!!.first,file.localPath,file.fileName)
+                        LocalFilesTask.saveFile(onlineFile!!.first, file.localPath, file.fileName)
                     }
                     else if (onlineDate!!.toInstant().toEpochMilli() - localFile.second.toInstant().toEpochMilli() > 5000){//local old upload to local
                         val onlineFile = downloader.getFile(file.dropboxPath , file.fileName)
-                        LocalFilesTask.saveFile(onlineFile!!.first,file.localPath,file.fileName)
+                        LocalFilesTask.saveFile(onlineFile!!.first, file.localPath, file.fileName)
                     }else {//online old upload online
                         val uploadClient = UploadTask(DropboxClient.getClient(dropbox.first))
                         uploadClient.uploadFile(localFile.first, file.dropboxPath + file.fileName)
@@ -338,7 +342,10 @@ class FileSync {
             //sort local data
             if (data.priority != FilePriority.OnlineOnly){
                 for (thumbnailName in file.fileNames){
-                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(file.localPath,"$thumbnailName.jpg"))
+                    localThumbnails[thumbnailName]= (LocalFilesTask.loadBitmap(
+                        file.localPath,
+                        "$thumbnailName.jpg"
+                    ))
                 }
 
             }
@@ -363,7 +370,7 @@ class FileSync {
             //depending on the priority / dates see if the online file should be returned
             if (onlineData == null && onlineDates == null) return //if no online data do not need to check
             when (data.priority){
-                FilePriority.OnlineFirst->{
+                FilePriority.OnlineFirst ->{
                     if (onlineData == null) return //complains without this
                     for (thumbnailKey in file.fileNames) {
                         if (onlineData[thumbnailKey] != null) {
@@ -385,7 +392,7 @@ class FileSync {
                     }
                     success()
                 }
-                FilePriority.OnlineOnly->{
+                FilePriority.OnlineOnly ->{
                     if (onlineData == null) return //complains without this
                     for (thumbnailKey in file.fileNames) {
                         if (onlineData[thumbnailKey] != null) {
@@ -463,7 +470,7 @@ class FileSync {
     data class FileInfo (val dropboxPath: String, val localPath : String, val fileName : String)
 
     data class FileBatchInfo (val dropboxPath: String, val localPath : String, val fileNames : List<String>)
-    data class Data (val priority: FilePriority,val dropboxPrefrence: SharedPreferences)
+    data class Data (val priority: FilePriority, val dropboxPrefrence: SharedPreferences)
     enum class FilePriority{
         LocalOnly,
         OnlineOnly,

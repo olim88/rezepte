@@ -52,6 +52,10 @@ import com.dropbox.core.DbxPKCEWebAuth
 import com.dropbox.core.DbxRequestConfig
 import com.dropbox.core.DbxWebAuth
 import com.dropbox.core.TokenAccessType
+import com.example.rezepte.fileManagment.LocalFilesTask
+import com.example.rezepte.fileManagment.dropbox.DownloadTask
+import com.example.rezepte.fileManagment.dropbox.DropboxClient
+import com.example.rezepte.fileManagment.dropbox.UploadTask
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -138,7 +142,7 @@ fun mainLoginUi(finished: ()-> Unit){
                     val recipes = LocalFilesTask.listFolder("${mContext.filesDir}/xml/")
                     val images = LocalFilesTask.listFolder("${mContext.filesDir}/image/")
                     val token = auth?.accessToken
-                    val dbClient =DropboxClient.getClient(token)
+                    val dbClient = DropboxClient.getClient(token)
                     val downloader = DownloadTask(dbClient)
                     val uploader = UploadTask(dbClient)
                     //loop though recipes and upload if there is not a newer version on dropbox

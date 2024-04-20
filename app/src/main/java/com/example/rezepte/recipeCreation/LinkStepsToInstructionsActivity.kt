@@ -1,4 +1,4 @@
-package com.example.rezepte
+package com.example.rezepte.recipeCreation
 
 import android.content.Intent
 import android.content.res.Configuration
@@ -32,6 +32,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.MainActivity
+import com.example.rezepte.Recipe
+import com.example.rezepte.SettingsActivity
+import com.example.rezepte.XmlExtraction
+import com.example.rezepte.fileManagment.FileSync
+import com.example.rezepte.recipeMaking.CookingStepDisplay
+import com.example.rezepte.recipeMaking.getColor
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +53,7 @@ class LinkStepsToInstructionsActivity: AppCompatActivity()
         //if there is no data for some reason just go home
         if (data == null){
             Toast.makeText(this, "no data found", Toast.LENGTH_SHORT).show()
-            val intent = Intent(this,MainActivity::class.java)
+            val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
         //convert the data back to object
@@ -71,10 +79,12 @@ class LinkStepsToInstructionsActivity: AppCompatActivity()
         val data: String= parseData(recipe)
         val name = recipe.data.name
 
-        val settings = SettingsActivity.loadSettings(getSharedPreferences(
-            "com.example.rezepte.settings",
-            MODE_PRIVATE
-        ))
+        val settings = SettingsActivity.loadSettings(
+            getSharedPreferences(
+                "com.example.rezepte.settings",
+                MODE_PRIVATE
+            )
+        )
         //get token
         val dropboxPreference =
             getSharedPreferences(
@@ -95,7 +105,7 @@ class LinkStepsToInstructionsActivity: AppCompatActivity()
         }
 
         //move to home
-        val intent = Intent(this,MainActivity::class.java)
+        val intent = Intent(this, MainActivity::class.java)
         startActivity(intent);
     }
 }
@@ -104,7 +114,7 @@ class LinkStepsToInstructionsActivity: AppCompatActivity()
 private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
     //get local context and settings
     val mContext = LocalContext.current
-    val settings =SettingsActivity.loadSettings(
+    val settings = SettingsActivity.loadSettings(
         mContext.getSharedPreferences(
             "com.example.rezepte.settings",
             ComponentActivity.MODE_PRIVATE
@@ -139,7 +149,8 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
                 //make sure this is updated
                 if (updateInstruction) updateInstruction = false
                 if (instruction.linkedCookingStepIndex == null || instruction.linkedCookingStepIndex == stepIndex){ //if the step has not already bean assigned
-                    linkInstruction(instruction.text,getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface) ) {
+                    linkInstruction(instruction.text,
+                        getColor(instruction.linkedCookingStepIndex,MaterialTheme.colorScheme.surface) ) {
                         if (instruction.linkedCookingStepIndex == null) {
                             instruction.linkedCookingStepIndex = stepIndex
                         } else {

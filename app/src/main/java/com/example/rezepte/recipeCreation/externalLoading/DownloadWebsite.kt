@@ -1,8 +1,16 @@
-package com.example.rezepte
+package com.example.rezepte.recipeCreation.externalLoading
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import com.example.rezepte.CookingSteps
+import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.Ingredient
+import com.example.rezepte.Ingredients
+import com.example.rezepte.Instruction
+import com.example.rezepte.Instructions
+import com.example.rezepte.Recipe
+import com.example.rezepte.recipeCreation.CreateAutomations
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
