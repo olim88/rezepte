@@ -937,7 +937,6 @@ fun getFilters(
         }
     }
     for (author in authors) {
-
         if (author.author == "") continue // do do this for empty authors
         if (usedWordsCount[author.author] == null) {
             usedWordsCount[author.author] = 1
@@ -947,7 +946,7 @@ fun getFilters(
     }
 
     for (word in usedWordsCount) {
-        if (word.key == "and" && word.key == "with") continue //this is not a useful filter
+        if (word.key == "and" || word.key == "with") continue //this is not a useful filter
         if (word.value >= 3) {//todo settings for this value and filters at all
             popularWords[word.key] = mutableStateOf(false)
         }
