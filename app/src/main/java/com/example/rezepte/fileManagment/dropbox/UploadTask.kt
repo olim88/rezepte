@@ -3,6 +3,7 @@ package com.example.rezepte.fileManagment.dropbox
 import android.graphics.Bitmap
 import android.util.Log
 import com.dropbox.core.DbxException
+import com.dropbox.core.NetworkIOException
 import com.dropbox.core.v2.DbxClientV2
 import com.dropbox.core.v2.files.WriteMode
 import java.io.ByteArrayInputStream
@@ -47,6 +48,8 @@ class UploadTask(private val client: DbxClientV2) {
         } catch (e: DbxException) {
             e.printStackTrace()
         } catch (e: IOException) {
+            e.printStackTrace()
+        } catch (e: NetworkIOException) {
             e.printStackTrace()
         }
     }

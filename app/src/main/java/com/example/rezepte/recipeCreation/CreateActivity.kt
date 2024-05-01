@@ -384,9 +384,9 @@ class CreateActivity : ComponentActivity() {
             )
         CoroutineScope(Dispatchers.IO).launch {
             //upload the file data
-            val priorityXml = if (settings["Local Saves.Cache recipe names"] == "true" ) FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
-            val priorityImage = if (settings["Local Saves.Cache recipe image"]== "full sized") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
-            val saveThumbnail =  settings["Local Saves.Cache recipe image"]== "full sized" || settings["Local Saves.Cache recipe image"]== "thumbnail";
+            val priorityXml = if (settings["Local Saves.Cache recipe names"] == "true") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val priorityImage = if (settings["Local Saves.Cache recipe image"] == "full sized") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val saveThumbnail =  settings["Local Saves.Cache recipe image"] == "full sized" || settings["Local Saves.Cache recipe image"] == "thumbnail";
             val dataXml = FileSync.Data(priorityXml, dropboxPreference)
             val dataImage = FileSync.Data(priorityImage, dropboxPreference)
             val dataThumbnail = FileSync.Data(FileSync.FilePriority.LocalOnly, dropboxPreference)

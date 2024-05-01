@@ -83,18 +83,21 @@ class DownloadTask(client: DbxClientV2) {
     }
 
     fun getFile(dir: String, name: String): Pair<File, Date>? {
-        val results = dbxClient.files().download("$dir$name") ?: return null
-        val time = results.result.serverModified //last modified time
-        val file: File = createTempFile()
+        try {
+            val results = dbxClient.files().download("$dir$name") ?: return null
+            val time = results.result.serverModified //last modified time
+            val file: File = createTempFile()
 
-
-        results.inputStream.use { input ->
-            file.outputStream().use { output ->
-                input.copyTo(output)
+            results.inputStream.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
             }
-        }
 
-        return Pair(file, time)
+            return Pair(file, time)
+        } catch (e : Exception) {
+            return null
+        }
     }
 
     fun getThumbnails(dir: String, fileNames: List<String>): Map<out String, Bitmap?>? {

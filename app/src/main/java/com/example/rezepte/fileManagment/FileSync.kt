@@ -55,7 +55,7 @@ class FileSync {
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
 
                     //if comparing the date (newest) do this now as the file may not need to be downloaded
-                    if (data.priority != FilePriority.Newest) {
+                    if (data.priority == FilePriority.Newest) {
                         val onlineDate = downloader.getFileDate(file.dropboxPath, file.fileName)
                         //if online is newer or no local use that file
                         if (onlineDate != null && localData != null) {
@@ -139,7 +139,7 @@ class FileSync {
                     val downloader = DownloadTask(DropboxClient.getClient(dropbox.first))
 
                     //if comparing the date (newest) do this now as the file may not need to be downloaded
-                    if (data.priority != FilePriority.Newest) {
+                    if (data.priority == FilePriority.Newest) {
                         val onlineDate = downloader.getFileDate(file.dropboxPath, file.fileName)
                         //if online is newer or no local use that file
                         if (onlineDate != null && localData != null) {
