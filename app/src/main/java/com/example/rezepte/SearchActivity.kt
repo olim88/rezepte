@@ -554,7 +554,7 @@ fun RecipeList(
             //add the filterer at the top
             if (settings["Search menu.Suggestion Filters"] == "true") {
                 item {
-                    SearchFilters(filters, firstItemTranslationY, visibility) {
+                    SearchFilters(filters, firstItemTranslationY, visibility, settings) {
                         currentFilters = it as SnapshotStateList<String>
                     }
 
@@ -562,7 +562,13 @@ fun RecipeList(
             }
 
             filteredNames =
-                filterItems(names.value, extraData, currentFilters, searchFieldState.value.text)
+                filterItems(
+                    names.value,
+                    extraData,
+                    currentFilters,
+                    searchFieldState.value.text,
+                    settings
+                )
 
             items(filteredNames) { name ->
 
@@ -604,14 +610,20 @@ fun RecipeList(
             //add spacer for filters at the top if its enabled
             if (settings["Search menu.Suggestion Filters"] == "true") {
                 item(span = StaggeredGridItemSpan.FullLine) {
-                    SearchFilters(filters, firstItemTranslationY, visibility) {
+                    SearchFilters(filters, firstItemTranslationY, visibility, settings) {
                         currentFilters.clear()
                         currentFilters.addAll(it)
                     }
                 }
             }
             filteredNames =
-                filterItems(names.value, extraData, currentFilters, searchFieldState.value.text)
+                filterItems(
+                    names.value,
+                    extraData,
+                    currentFilters,
+                    searchFieldState.value.text,
+                    settings
+                )
             items(filteredNames) { name ->
 
                 RecipeTile(
@@ -635,7 +647,8 @@ fun RecipeList(
 
 fun filterItems(
     names: List<String>, authors: Map<String, BasicData>,
-    filters: SnapshotStateList<String>, searchFilter: String
+    filters: SnapshotStateList<String>, searchFilter: String,
+    settings: Map<String, String>
 ): List<String> {
     val resultList = mutableListOf<String>()
     //check all of the recipe names to see which one fits the filters
@@ -645,11 +658,24 @@ fun filterItems(
         //if the name (or author) contains what is in the search box
         if (searchedValue.contains(searchFilter, ignoreCase = true)) {
             //see if it also fits the enabled search filter buttons
-            var matches = true
+            var matches = filters.isEmpty() || settings["Search menu.Filters behavior"] != "OR"
             for (filter in filters) {
-                //if there is a filter enabled see if the filter word is in the name (or author) and if it is not remove matches
-                if (!searchedValue.contains(filter, ignoreCase = true)) {
+                //if there is a filter enabled see if the filter word is in the name (or author)
+                // if settings is "AND" / "SINGLE" remove item if dose not match
+                // if setting is "OR" only remove it it there are no matches
+                if (!searchedValue.contains(
+                        filter,
+                        ignoreCase = true
+                    ) && (settings["Search menu.Filters behavior"] == "AND" || settings["Search menu.Filters behavior"] == "SINGLE")
+                ) {
                     matches = false
+                    break
+                } else if (searchedValue.contains(
+                        filter,
+                        ignoreCase = true
+                    ) && settings["Search menu.Filters behavior"] == "OR"
+                ) {
+                    matches = true
                     break
                 }
             }
@@ -877,6 +903,7 @@ fun SearchFilters(
     filters: () -> Map<String, MutableState<Boolean>>,
     firstItemTranslationY: Float,
     visibility: Float,
+    settings: Map<String, String>,
     updateSelectedFilters: (List<String>) -> Unit,
 ) {
     val currentFilters by remember { mutableStateOf(filters()) }
@@ -890,6 +917,10 @@ fun SearchFilters(
         for (filter in currentFilters) {
             FilterChip(
                 onClick = {
+                    //if single setting enabled disable all active filers
+                    if (settings["Search menu.Filters behavior"] == "SINGLE") {
+                        currentFilters.forEach { state -> state.value.value = false }
+                    }
                     filter.value.value = !filter.value.value
                     //get current filters that are set and update that value
                     val checked = mutableListOf<String>()
@@ -1030,7 +1061,7 @@ fun NoReciepsFoundOuput() {
                 Text(
                     text = "Create",
                     textAlign = TextAlign.Center,
-                    )
+                )
             }
 
             if (!isOnline) {//only suggest login if the user is not logged in

@@ -334,6 +334,12 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     "show list of suggestion word to filter by",
                     mutableStateOf(true)
                 ),
+                SettingsOptionDropDown(
+                    "Filters behavior",
+                    "how the filters behave, \"AND\" = every filter is met, \"OR\" = any filter met, \"SINGLE\" = only one filter can be active at one time",
+                    mutableIntStateOf(2),
+                    listOf("AND", "OR", "SINGLE")
+                )
             )
         ),
 
