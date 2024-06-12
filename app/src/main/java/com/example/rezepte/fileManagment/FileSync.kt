@@ -12,7 +12,7 @@ import java.util.Date
 class FileSync {
 
     companion object {
-        private fun getTokenAndOnline(dropboxToken: SharedPreferences): Pair<String?, Boolean> {
+        private suspend fun getTokenAndOnline(dropboxToken: SharedPreferences): Pair<String?, Boolean> {
             //get dropbox token and upload image and xml to dropbox
             val tokenHandling = DbTokenHandling( //get token
                 dropboxToken
@@ -20,7 +20,7 @@ class FileSync {
             return Pair(tokenHandling.retrieveAccessToken(), tokenHandling.isLoggedIn())
         }
 
-        fun uploadString(data: Data, file: FileInfo, stringData: String, success: () -> Unit) {
+        suspend fun  uploadString(data: Data, file: FileInfo, stringData: String, success: () -> Unit) {
             //if selected in file priority upload to device
             if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newest || data.priority == FilePriority.None) {
                 LocalFilesTask.saveString(stringData, file.localPath, file.fileName)
@@ -36,7 +36,7 @@ class FileSync {
             success()
         }
 
-        fun downloadString(data: Data, file: FileInfo, returnString: (String) -> Unit): Boolean {
+        suspend fun downloadString(data: Data, file: FileInfo, returnString: (String) -> Unit): Boolean {
             //sort local data
             val localData = if (data.priority != FilePriority.OnlineOnly) {
                 LocalFilesTask.loadString(file.localPath, file.fileName)
@@ -104,7 +104,7 @@ class FileSync {
             return true
         }
 
-        fun uploadImage(data: Data, file: FileInfo, imageData: Bitmap, success: () -> Unit) {
+        suspend fun uploadImage(data: Data, file: FileInfo, imageData: Bitmap, success: () -> Unit) {
             //if selected in file priority upload to device
             if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newest || data.priority == FilePriority.None) {
                 LocalFilesTask.saveBitmap(imageData, file.localPath, file.fileName)
@@ -120,7 +120,7 @@ class FileSync {
             success()
         }
 
-        fun downloadImage(data: Data, file: FileInfo, returnImage: (Bitmap) -> Unit) {
+        suspend fun downloadImage(data: Data, file: FileInfo, returnImage: (Bitmap) -> Unit) {
             //sort local data
             val localData = if (data.priority != FilePriority.OnlineOnly) {
                 LocalFilesTask.loadBitmap(file.localPath, file.fileName)
@@ -183,7 +183,7 @@ class FileSync {
             return
         }
 
-        fun downloadThumbnail(
+        suspend fun downloadThumbnail(
             data: Data,
             file: FileBatchInfo,
             returnThumbnails: (Map<out String, Bitmap?>) -> Unit
@@ -288,7 +288,7 @@ class FileSync {
             return
         }
 
-        fun uploadFile(data: Data, file: FileInfo, fileData: File, success: () -> Unit) {
+        suspend fun uploadFile(data: Data, file: FileInfo, fileData: File, success: () -> Unit) {
             //if selected in file priority upload to device
             if (data.priority == FilePriority.LocalFirst || data.priority == FilePriority.LocalOnly || data.priority == FilePriority.Newest || data.priority == FilePriority.None) {
                 LocalFilesTask.saveFile(fileData, file.localPath, file.fileName)
@@ -304,7 +304,7 @@ class FileSync {
             success()
         }
 
-        fun deleteFile(data: Data, file: FileInfo, success: () -> Unit) {
+        suspend fun deleteFile(data: Data, file: FileInfo, success: () -> Unit) {
             //delete file form the device
             if (data.priority != FilePriority.OnlineOnly) {
                 LocalFilesTask.removeFile(file.localPath, file.fileName)
@@ -335,7 +335,7 @@ class FileSync {
          * @param file The name and location of the files used.
          * @param success called when the function is finished.
          */
-        fun syncFile(data: Data, file: FileInfo, success: () -> Unit) {
+        suspend fun syncFile(data: Data, file: FileInfo, success: () -> Unit) {
             val dropbox = getTokenAndOnline(data.dropboxPreference)
             if (!dropbox.second) return // not connected to dropbox so can not sync to it
 
@@ -391,7 +391,7 @@ class FileSync {
             success()
         }
 
-        fun syncThumbnail(data: Data, file: FileBatchInfo, success: () -> Unit) {
+        suspend fun syncThumbnail(data: Data, file: FileBatchInfo, success: () -> Unit) {
             val localThumbnails = hashMapOf<String, Pair<Bitmap, Date>?>()
             //sort local data
             if (data.priority != FilePriority.OnlineOnly) {

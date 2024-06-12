@@ -112,7 +112,6 @@ import java.util.Random
 
 
 class SearchActivity : ComponentActivity() {
-    private var ACCESS_TOKEN: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -137,7 +136,6 @@ class SearchActivity : ComponentActivity() {
             )
         )
         val isOnline = tokenHandler.isLoggedIn()
-        ACCESS_TOKEN = tokenHandler.retrieveAccessToken()
 
         val recipeNameData: MutableState<MutableList<String>> = mutableStateOf(mutableListOf())
         val extraData = mutableStateMapOf<String, BasicData>()
@@ -222,8 +220,8 @@ class SearchActivity : ComponentActivity() {
 
         //if online supplement the recipe names list with a list of the online file names
         if (isOnline) {
-            val downloader = DownloadTask(DropboxClient.getClient(ACCESS_TOKEN))
             CoroutineScope(Dispatchers.IO).launch {
+                val downloader = DownloadTask(DropboxClient.getClient(tokenHandler.retrieveAccessToken()))
                 //get data
                 val list = downloader.listDir("/xml/") ?: listOf()
                 if (list.isNotEmpty()) {//if can get to dropbox

@@ -1,13 +1,15 @@
 package com.example.rezepte.fileManagment.dropbox
 
-import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.dropbox.core.DbxException
 import com.dropbox.core.oauth.DbxCredential
+import com.example.rezepte.MainActivity
 import com.example.rezepte.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -15,18 +17,22 @@ import kotlinx.coroutines.withContext
 class DbTokenHandling(sharedPreferences: SharedPreferences) {
 
     private var prefs: SharedPreferences = sharedPreferences
-    fun retrieveAccessToken(): String? {
-        //check if ACCESS_TOKEN is stored on previous app launches
+    suspend fun retrieveAccessToken() : String? {
 
+
+        checkExpiredThen()
+
+        //check if ACCESS_TOKEN is stored on previous app launches
         val accessToken = prefs.getString("access-token", null)
-        return if (accessToken == null) {
+        if (accessToken == null) {
             Log.d("AccessToken Status", "No token found")
-            null
+            return(null)
         } else {
             //accessToken already exists
             Log.d("AccessToken Status", "Token exists")
-            accessToken
+            return(accessToken)
         }
+
     }
 
     fun isLoggedIn(): Boolean { //return if the user is logged in or not
@@ -47,7 +53,21 @@ class DbTokenHandling(sharedPreferences: SharedPreferences) {
         }
     }
 
-    fun refreshIfExpired(context: Context, onRefreshed: () -> Unit): Boolean {
+    private suspend  fun checkExpiredThen() {
+        //check if the token has expired
+        val expireTime = prefs.getString("expired-at", null)
+        val currentTime = System.currentTimeMillis();
+        if (expireTime == null || expireTime.toLong() < currentTime) {
+            Log.d("AccessToken Status", "Expired token getting refreshed")
+            //refresh the token
+            val updateToken = GlobalScope.async {
+                refreshIfExpired {  }
+            }
+            updateToken.await()
+        }
+    }
+
+    fun refreshIfExpired(onRefreshed: () -> Unit): Boolean {
         val accessToken = retrieveSavedData("access-token") ?: return true
 
         val refreshToken = retrieveSavedData("refresh-token")
@@ -56,11 +76,11 @@ class DbTokenHandling(sharedPreferences: SharedPreferences) {
 
         if (refreshToken != null && expiresAt != null) {
             val cred = DbxCredential(
-                accessToken, expiresAt.toLong(), refreshToken, context.resources.getString(
+                accessToken, expiresAt.toLong(), refreshToken, MainActivity.resources?.getString(
                     R.string.dropbox_api_key
                 )
             )
-            CoroutineScope(Dispatchers.IO).launch {
+            val test = CoroutineScope(Dispatchers.IO).launch {
                 val client = DropboxClient.getClient(cred)
                 val tokens = try {
                     client.refreshAccessToken()
@@ -68,6 +88,7 @@ class DbTokenHandling(sharedPreferences: SharedPreferences) {
                     null
                 }
                 withContext(Dispatchers.Main) {
+                    Log.d("Token Status", "saved new token")
                     //re-save new data
                     if (tokens != null) {//if its not null
                         prefs.edit().putString("expired-at", tokens.expiresAt.toString()).apply()

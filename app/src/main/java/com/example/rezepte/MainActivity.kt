@@ -3,6 +3,7 @@ package com.example.rezepte
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -76,8 +77,14 @@ import java.io.File
 
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        var resources: Resources? = null
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //save resources for public use
+        Companion.resources = resources;
 
         //if the user has not completed the walk though take them there
         val prefs =
@@ -101,16 +108,17 @@ class MainActivity : ComponentActivity() {
             )
         )
         if (login.isLoggedIn()) { //only check the login if the user is logged in
-            login.refreshIfExpired(this) {
-                //get token
-                val token = DbTokenHandling(
-                    getSharedPreferences(
-                        "com.example.rezepte.dropboxintegration",
-                        MODE_PRIVATE
-                    )
-                ).retrieveAccessToken()
+            login.refreshIfExpired() {
+
                 //get account data
                 CoroutineScope(Dispatchers.IO).launch {
+                    //get token
+                    val token = DbTokenHandling(
+                        getSharedPreferences(
+                            "com.example.rezepte.dropboxintegration",
+                            MODE_PRIVATE
+                        )
+                    ).retrieveAccessToken()
                     accountData.value =
                         Pair(DownloadTask(DropboxClient.getClient(token)).getUserAccount(), true)
                     withContext(Dispatchers.Main) {
