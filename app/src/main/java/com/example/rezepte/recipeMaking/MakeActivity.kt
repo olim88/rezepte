@@ -339,12 +339,14 @@ fun IngredientConversions(
 fun IngredientsOutput(
     userSettings: Map<String, String>,
     recipeData: MutableState<Recipe>,
-    multiplier: MutableState<Float>
+    multiplier: MutableState<Float>,
+    sideBySide: Boolean
 ) {
     var strikeIndex by remember { mutableStateOf(0) }
     Card(
         modifier = Modifier
-            .fillMaxWidth()
+            //shrinks the width to just the side when needing to go side by side with instructions
+            .fillMaxWidth(if (sideBySide) 0.4f else 1f)
             .padding(5.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -794,10 +796,20 @@ private fun MainScreen(
         StepsOutput(userSettings, recipeData.value)
         //Notes
         NotesOutput(recipeData.value)
-        //ingredients
-        IngredientsOutput(userSettings, recipeData, multiplier)
-        //instructions
-        InstructionsOutput(userSettings, recipeData, multiplier)
+        //put ingredients and instructions side by side when enabled
+        if (mContext.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && userSettings["Making.Horizontal layout"] == "true") {
+            Row {
+                //ingredients
+                IngredientsOutput(userSettings, recipeData, multiplier, true)
+                //instructions
+                InstructionsOutput(userSettings, recipeData, multiplier)
+            }
+        } else {
+            //ingredients
+            IngredientsOutput(userSettings, recipeData, multiplier, false)
+            //instructions
+            InstructionsOutput(userSettings, recipeData, multiplier)
+        }
         //linked recipes
         LinkedRecipesOutput(recipeData.value)
         //edit and finish button

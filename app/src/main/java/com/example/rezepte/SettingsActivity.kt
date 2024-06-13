@@ -271,6 +271,11 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     "Tap though the instructions to highlight the next one when making a recipe",
                     mutableStateOf(true)
                 ),
+                SettingsOptionToggle(
+                    "Horizontal layout",
+                    "show ingredients and instructions next to each other in landscape mode",
+                    mutableStateOf(true)
+                ),
             )
         ),
         SettingsSubMenu(
@@ -318,6 +323,11 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                 SettingsOptionToggle(
                     "Show split Instruction Buttons",
                     "show buttons to split instructions",
+                    mutableStateOf(true)
+                ),
+                SettingsOptionToggle(
+                    "Horizontal layout",
+                    "show ingredients and instructions next to each other in landscape mode",
                     mutableStateOf(true)
                 ),
             )
