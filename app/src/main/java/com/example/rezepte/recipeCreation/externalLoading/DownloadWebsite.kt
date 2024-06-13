@@ -257,10 +257,16 @@ class DownloadWebsite {
          */
         private fun convertHtmlInstructions(instructions: String) : List<String> {
             var output : MutableList<String> = mutableListOf();
-            val html = Jsoup.parse(instructions)
-            for (element in html.getElementsByTag("li")) {
-                output.add(element.text())
+            //if the instructions have no html tags in it assume it is just plain text and add it all as one instruction
+            if (instructions.contains("<")) {
+                val html = Jsoup.parse(instructions)
+                for (element in html.getElementsByTag("li")) {
+                    output.add(element.text())
+                }
+            } else {
+                output.add(instructions)
             }
+
             return  output
         }
 
