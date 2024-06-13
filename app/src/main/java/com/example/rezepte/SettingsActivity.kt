@@ -346,9 +346,9 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                 ),
                 SettingsOptionDropDown(
                     "Filters behavior",
-                    "how the filters behave, \"AND\" = every filter is met, \"OR\" = any filter met, \"SINGLE\" = only one filter can be active at one time",
-                    mutableIntStateOf(2),
-                    listOf("AND", "OR", "SINGLE")
+                    "how the filters behave, \"and\" = every filter is met, \"or\" = any filter met, \"single\" = only one filter can be active at one time",
+                    mutableIntStateOf(1),
+                    listOf("and", "or", "single")
                 )
             )
         ),

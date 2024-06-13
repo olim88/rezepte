@@ -656,22 +656,22 @@ fun filterItems(
         //if the name (or author) contains what is in the search box
         if (searchedValue.contains(searchFilter, ignoreCase = true)) {
             //see if it also fits the enabled search filter buttons
-            var matches = filters.isEmpty() || settings["Search menu.Filters behavior"] != "OR"
+            var matches = filters.isEmpty() || settings["Search menu.Filters behavior"] != "or"
             for (filter in filters) {
                 //if there is a filter enabled see if the filter word is in the name (or author)
-                // if settings is "AND" / "SINGLE" remove item if dose not match
-                // if setting is "OR" only remove it it there are no matches
+                // if settings is "and" / "single" remove item if dose not match
+                // if setting is "or" only remove it it there are no matches
                 if (!searchedValue.contains(
                         filter,
                         ignoreCase = true
-                    ) && (settings["Search menu.Filters behavior"] == "AND" || settings["Search menu.Filters behavior"] == "SINGLE")
+                    ) && (settings["Search menu.Filters behavior"] == "and" || settings["Search menu.Filters behavior"] == "single")
                 ) {
                     matches = false
                     break
                 } else if (searchedValue.contains(
                         filter,
                         ignoreCase = true
-                    ) && settings["Search menu.Filters behavior"] == "OR"
+                    ) && settings["Search menu.Filters behavior"] == "or"
                 ) {
                     matches = true
                     break
@@ -916,10 +916,15 @@ fun SearchFilters(
             FilterChip(
                 onClick = {
                     //if single setting enabled disable all active filers
-                    if (settings["Search menu.Filters behavior"] == "SINGLE") {
+                    if (settings["Search menu.Filters behavior"] == "single") {
+                        val state = filter.value.value
                         currentFilters.forEach { state -> state.value.value = false }
+                        filter.value.value = !state
+                    } else {
+                        filter.value.value = !filter.value.value
                     }
-                    filter.value.value = !filter.value.value
+
+
                     //get current filters that are set and update that value
                     val checked = mutableListOf<String>()
                     val active = currentFilters.filter { state -> state.value.value }
