@@ -122,11 +122,13 @@ class DownloadWebsite {
                         }
                         recipe.instructions = Instructions((instructions))
                         //get the image from the data
-                        imageLink = try {
-                            extractedData.image.jsonArray[0].toString().removeSuffix("\"")
-                                .removePrefix("\"")
-                        } catch (e: Exception) {
-                            json.decodeFromJsonElement<Image>(extractedData.image).url
+                        if (extractedData.image != null){
+                            imageLink = try {
+                                extractedData.image.jsonArray[0].toString().removeSuffix("\"")
+                                    .removePrefix("\"")
+                            } catch (e: Exception) {
+                                json.decodeFromJsonElement<Image>(extractedData.image).url
+                            }
                         }
 
                         break
@@ -287,7 +289,7 @@ class DownloadWebsite {
 
 @Serializable
 private data class ExtractedData(
-    val image: JsonElement,
+    val image: JsonElement? = null,
     val name: String,
     val author: JsonElement,
     val recipeIngredient: List<String>,
