@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import com.example.rezepte.CookingSteps
-import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.Ingredient
 import com.example.rezepte.Ingredients
 import com.example.rezepte.Instruction
@@ -62,7 +62,7 @@ class ImageToRecipe {
             callback: (Recipe) -> Unit
         ) {
 
-            val recipe = GetEmptyRecipe()
+            val recipe = getEmptyRecipe()
             recognizer.process(inputImage)
                 .addOnSuccessListener { visionText ->
                     // Task completed successfully

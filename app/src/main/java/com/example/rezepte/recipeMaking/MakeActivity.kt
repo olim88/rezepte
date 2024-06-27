@@ -67,7 +67,7 @@ import com.example.rezepte.CookingStage
 import com.example.rezepte.CookingStep
 import com.example.rezepte.CookingStepContainer
 import com.example.rezepte.CookingStepTemperature
-import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.HobOption
 import com.example.rezepte.MainActivity
 import com.example.rezepte.Recipe
@@ -106,7 +106,7 @@ class MakeActivity : AppCompatActivity() {
         //create image value
         val image: MutableState<Bitmap?> = mutableStateOf(null)
         //create variable for recipe data
-        val extractedData: MutableState<Recipe> = mutableStateOf(GetEmptyRecipe())
+        val extractedData: MutableState<Recipe> = mutableStateOf(getEmptyRecipe())
 
         //set the content
         setContent {
@@ -146,7 +146,7 @@ class MakeActivity : AppCompatActivity() {
             FileSync.syncFile(imageData, imageFile) {}
 
             withContext(Dispatchers.Main) {
-                if (extractedData.value == GetEmptyRecipe()) { //if no data has been loaded show error and close window
+                if (extractedData.value == getEmptyRecipe()) { //if no data has been loaded show error and close window
                     Toast.makeText(this@MakeActivity, "Recipe doesn't exist", Toast.LENGTH_SHORT)
                         .show()
                     this@MakeActivity.finish()
@@ -842,7 +842,7 @@ private fun MainScreen(
 @Composable
 private fun MainScreenPreview() {
     RezepteTheme {
-        MainScreen(mapOf(), mutableStateOf(GetEmptyRecipe()), mutableStateOf(null))
+        MainScreen(mapOf(), mutableStateOf(getEmptyRecipe()), mutableStateOf(null))
     }
 }
 

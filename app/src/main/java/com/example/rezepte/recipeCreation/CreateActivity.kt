@@ -95,7 +95,7 @@ import com.example.rezepte.CookingStep
 import com.example.rezepte.CookingStepContainer
 import com.example.rezepte.CookingStepTemperature
 import com.example.rezepte.CookingSteps
-import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.HobOption
 import com.example.rezepte.Ingredient
 import com.example.rezepte.Ingredients
@@ -179,7 +179,7 @@ class CreateActivity : ComponentActivity() {
                 )
 
             //create variable for recipe data
-            val extractedData: MutableState<Recipe> = mutableStateOf(GetEmptyRecipe())
+            val extractedData: MutableState<Recipe> = mutableStateOf(getEmptyRecipe())
 
             //set the context to show window
             setContent {
@@ -236,7 +236,7 @@ class CreateActivity : ComponentActivity() {
                 FileSync.syncFile(imageData, imageFile) {}
 
                 withContext(Dispatchers.Main) {
-                    if (extractedData.value == GetEmptyRecipe()) { //if no data has been loaded show error and close window
+                    if (extractedData.value == getEmptyRecipe()) { //if no data has been loaded show error and close window
                         Toast.makeText(
                             this@CreateActivity,
                             "Recipe doesn't exist",
@@ -253,7 +253,7 @@ class CreateActivity : ComponentActivity() {
                 RezepteTheme {
                     MainScreen(
                         settings,
-                        recipeDataInput = mutableStateOf(GetEmptyRecipe()),
+                        recipeDataInput = mutableStateOf(getEmptyRecipe()),
                         image,
                         { deleteRecipe() },
                         { recipe, uri, bitmap, linking ->
@@ -1824,7 +1824,7 @@ private fun MainScreen(
     val updatedSteps = remember { mutableStateOf(false) }
     val mContext = LocalContext.current
 
-    if (recipeDataInput.value != GetEmptyRecipe()) {
+    if (recipeDataInput.value != getEmptyRecipe()) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
@@ -1904,7 +1904,7 @@ private fun MainScreenPreview() {
     RezepteTheme {
         MainScreen(
             mapOf(),
-            mutableStateOf(GetEmptyRecipe()),
+            mutableStateOf(getEmptyRecipe()),
             mutableStateOf(null),
             {},
             { recipe, uri, bitmap, linking -> })

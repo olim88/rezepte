@@ -397,7 +397,7 @@ fun CreateButtonOptions() {
                     })
                 {
                     //if the recipe is still empty don't start create just give error
-                    if (it == GetEmptyRecipe()) {
+                    if (it == getEmptyRecipe()) {
                         Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
                         return@convert
                     }

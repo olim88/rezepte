@@ -238,7 +238,7 @@ enum class HobOption(val text: String) {
     max("max"),
 }
 
-fun GetEmptyRecipe(): Recipe {
+fun getEmptyRecipe(): Recipe {
     return Recipe(
         Data(
             "", "", "", CookingSteps(mutableListOf()), null, null, null

@@ -32,7 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.rezepte.GetEmptyRecipe
+import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.MainActivity
 import com.example.rezepte.Recipe
 import com.example.rezepte.SettingsActivity
@@ -231,6 +231,6 @@ fun linkInstruction(value: String, color: Color, onclick: () -> Unit) {
 @Composable
 fun LinkStepsMainPreview() {
     RezepteTheme {
-        MainScreen(GetEmptyRecipe()) {}
+        MainScreen(getEmptyRecipe()) {}
     }
 }
