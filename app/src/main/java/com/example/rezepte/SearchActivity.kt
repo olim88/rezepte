@@ -515,12 +515,8 @@ fun RecipeList(
     settings: Map<String, String>
 ) {
     var filteredNames: List<String>
-    val filters = {
-        getFilters(names.value, extraData.values)
-    }
-    var currentFilters = remember { mutableStateListOf<String>() }
-
-
+    val filters = getFilters(names.value, extraData.values)
+    val currentFilters = remember { mutableStateListOf<String>() }
 
     if (settings["Search menu.Search Menu List"] == "true") {
         //animated the suggesting in and out when they are in sue
@@ -553,7 +549,8 @@ fun RecipeList(
             if (settings["Search menu.Suggestion Filters"] == "true") {
                 item {
                     SearchFilters(filters, firstItemTranslationY, visibility, settings) {
-                        currentFilters = it as SnapshotStateList<String>
+                        currentFilters.clear()
+                        currentFilters.addAll(it)
                     }
 
                 }
@@ -898,13 +895,13 @@ fun SearchView(state: MutableState<TextFieldValue>) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchFilters(
-    filters: () -> Map<String, MutableState<Boolean>>,
+    filters: Map<String, MutableState<Boolean>>,
     firstItemTranslationY: Float,
     visibility: Float,
     settings: Map<String, String>,
     updateSelectedFilters: (List<String>) -> Unit,
 ) {
-    val currentFilters by remember { mutableStateOf(filters()) }
+    val currentFilters by remember { mutableStateOf(filters ) }
 
     Row(modifier = Modifier
         .horizontalScroll(rememberScrollState())
@@ -918,7 +915,7 @@ fun SearchFilters(
                     //if single setting enabled disable all active filers
                     if (settings["Search menu.Filters behavior"] == "single") {
                         val state = filter.value.value
-                        currentFilters.forEach { state -> state.value.value = false }
+                        currentFilters.forEach { newState -> newState.value.value = false }
                         filter.value.value = !state
                     } else {
                         filter.value.value = !filter.value.value
@@ -926,7 +923,6 @@ fun SearchFilters(
 
 
                     //get current filters that are set and update that value
-                    val checked = mutableListOf<String>()
                     val active = currentFilters.filter { state -> state.value.value }
                     updateSelectedFilters(active.keys.toList())
                 },
