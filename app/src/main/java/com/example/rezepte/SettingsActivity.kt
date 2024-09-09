@@ -150,7 +150,7 @@ class SettingsActivity : ComponentActivity() {
                             loadToOptions(settings, option.subSettings, start + option.name + ".")
                     }
                     if (option is SettingsConditionalSubMenu) {//just set to default settings values
-                        option.subSettings = option.subSettings
+                        option.subSettings = loadToOptions(settings, option.subSettings, start + option.name + ".")
                     }
                 }
             } catch (e: Exception) {
