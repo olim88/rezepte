@@ -209,7 +209,15 @@ class DownloadWebsite {
             //handle ingredients
             val ingredients: MutableList<Ingredient> = mutableListOf()
             for ((index, ingredient) in extractedData.recipeIngredient.withIndex()) {
-                ingredients.add(Ingredient(index, ingredient))
+                if (ingredient is JsonPrimitive) {
+                    ingredients.add(Ingredient(index, ingredient.jsonPrimitive.content))
+                } else if (ingredient is JsonArray) {
+                    //the is multiple lists of ingredients add whole list
+                    for ((subIndex, subIngredient) in ingredient.jsonArray.withIndex()) {
+                        ingredients.add(Ingredient((index + 1) * subIndex, subIngredient.jsonPrimitive.content))
+                    }
+                }
+
             }
             recipe.ingredients = Ingredients((ingredients))
 
@@ -245,6 +253,8 @@ class DownloadWebsite {
             if (extractedData.image != null) {
                 imageLink = if (extractedData.image is JsonArray) {
                     extractedData.image.jsonArray[0].jsonPrimitive.content
+                } else if (extractedData.image is JsonPrimitive) {
+                    extractedData.image.jsonPrimitive.content
                 } else {
                     json.decodeFromJsonElement<Image>(extractedData.image).url
                 }
@@ -293,7 +303,7 @@ private data class ExtractedData(
     val image: JsonElement? = null,
     val name: String,
     val author: JsonElement,
-    val recipeIngredient: List<String>,
+    val recipeIngredient: List<JsonElement>,
     val recipeInstructions: JsonElement,
     val recipeYield: JsonElement?
 )
