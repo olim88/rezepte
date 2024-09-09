@@ -95,7 +95,6 @@ import com.example.rezepte.CookingStep
 import com.example.rezepte.CookingStepContainer
 import com.example.rezepte.CookingStepTemperature
 import com.example.rezepte.CookingSteps
-import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.HobOption
 import com.example.rezepte.Ingredient
 import com.example.rezepte.Ingredients
@@ -112,6 +111,7 @@ import com.example.rezepte.TinOrPanSizeOptions
 import com.example.rezepte.XmlExtraction
 import com.example.rezepte.fileManagment.FileSync
 import com.example.rezepte.fileManagment.dropbox.DbTokenHandling
+import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.getEmptySearchData
 import com.example.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import com.example.rezepte.ui.theme.RezepteTheme
@@ -1835,7 +1835,7 @@ private fun MainScreen(
             ImageInput(imageUri, image)
             DataInput(userSettings, recipeDataInput, updatedSteps)
             Notes(recipeDataInput)
-            if (mContext.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && userSettings["Creation.Horizontal layout"] == "true") {
+            if (mContext.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && userSettings["Creation.Horizontal Layout"] == "true") {
                 Row {
                     IngredientsInput(userSettings, recipeDataInput, true)
                     InstructionsInput(userSettings, recipeDataInput)
@@ -1869,7 +1869,7 @@ private fun MainScreen(
             DataInput(userSettings, recipeDataInput, updatedSteps)
             Notes(recipeDataInput)
             //put ingredients and instructions side by side when enabled
-            if (mContext.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && userSettings["Creation.Horizontal layout"] == "true") {
+            if (mContext.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && userSettings["Creation.Horizontal Layout"] == "true") {
                 Row {
                     IngredientsInput(userSettings, recipeDataInput, true)
                     InstructionsInput(userSettings, recipeDataInput)

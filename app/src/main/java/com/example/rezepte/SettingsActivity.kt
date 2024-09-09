@@ -214,8 +214,7 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                             mutableIntStateOf(0),
                             listOf("imperial(568.3ml)", "us(473.2ml)")
                         ),
-
-                        )
+                    )
                 ),
                 SettingsOptionToggle(
                     "Temperature",
@@ -272,9 +271,14 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     mutableStateOf(true)
                 ),
                 SettingsOptionToggle(
-                    "Horizontal layout",
+                    "Horizontal Layout",
                     "show ingredients and instructions next to each other in landscape mode",
                     mutableStateOf(true)
+                ),
+                SettingsOptionToggle(
+                    "Keep Screen On",
+                    "keep the screen on when making a recipe",
+                    mutableStateOf(false)
                 ),
             )
         ),
@@ -326,7 +330,7 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     mutableStateOf(true)
                 ),
                 SettingsOptionToggle(
-                    "Horizontal layout",
+                    "Horizontal Layout",
                     "show ingredients and instructions next to each other in landscape mode",
                     mutableStateOf(true)
                 ),

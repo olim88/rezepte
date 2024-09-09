@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -67,7 +68,6 @@ import com.example.rezepte.CookingStage
 import com.example.rezepte.CookingStep
 import com.example.rezepte.CookingStepContainer
 import com.example.rezepte.CookingStepTemperature
-import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.HobOption
 import com.example.rezepte.MainActivity
 import com.example.rezepte.Recipe
@@ -75,6 +75,7 @@ import com.example.rezepte.SettingsActivity
 import com.example.rezepte.TinOrPanOptions
 import com.example.rezepte.XmlExtraction
 import com.example.rezepte.fileManagment.FileSync
+import com.example.rezepte.getEmptyRecipe
 import com.example.rezepte.recipeCreation.CreateActivity
 import com.example.rezepte.ui.theme.RezepteTheme
 import kotlinx.coroutines.CoroutineScope
@@ -152,6 +153,11 @@ class MakeActivity : AppCompatActivity() {
                     this@MakeActivity.finish()
                 }
             }
+        }
+
+        //if setting enabled add keep screen on flag
+        if (settings["Making.Keep Screen On"] == "true"){
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 }
@@ -797,7 +803,7 @@ private fun MainScreen(
         //Notes
         NotesOutput(recipeData.value)
         //put ingredients and instructions side by side when enabled
-        if (mContext.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && userSettings["Making.Horizontal layout"] == "true") {
+        if (mContext.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE && userSettings["Making.Horizontal Layout"] == "true") {
             Row {
                 //ingredients
                 IngredientsOutput(userSettings, recipeData, multiplier, true)
