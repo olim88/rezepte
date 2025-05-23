@@ -30,6 +30,7 @@ class UserAccountTask internal constructor(
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun doInBackground(vararg p0: Void?): FullAccount? {
         error = try {
             //get the users FullAccount

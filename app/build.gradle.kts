@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     kotlin("plugin.serialization") version "1.8.10"
 }
 
@@ -87,6 +88,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation ("com.google.mlkit:text-recognition:16.0.0")
+    implementation ("com.google.android.gms:play-services-ads:24.3.0") // Use the latest version
+
 
 
 

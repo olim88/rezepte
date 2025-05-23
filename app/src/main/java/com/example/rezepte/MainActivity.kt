@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.StrictMode
 import android.os.StrictMode.VmPolicy
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import com.dropbox.core.v2.users.FullAccount
@@ -69,12 +71,17 @@ import com.example.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import com.example.rezepte.recipeCreation.externalLoading.ImageToRecipe
 import com.example.rezepte.recipeCreation.parseData
 import com.example.rezepte.ui.theme.RezepteTheme
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -82,6 +89,8 @@ class MainActivity : ComponentActivity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //initilise adds
+        MobileAds.initialize(this) {}
 
         //save resources for public use
         Companion.resources = resources;
@@ -195,7 +204,30 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                 .weight(0.9f)
         )
         DropboxInfo(accountData)
+
+        // Banner Ad at the bottom
+        AndroidView(
+            modifier = Modifier.fillMaxWidth(),
+            factory = { context ->
+                AdView(context).apply {
+                    setAdSize(AdSize.BANNER)
+                    adUnitId = "ca-app-pub-3940256099942544/6300978111" // TEST ID
+                    adListener = object : AdListener() {
+                        override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                            Log.e("AdViewCompose", "Ad failed to load: ${loadAdError.message}")
+                            // Check error codes and messages here
+                        }
+
+                        override fun onAdLoaded() {
+                            Log.d("AdViewCompose", "Ad loaded successfully!")
+                        }
+                    }
+                    loadAd(AdRequest.Builder().build())
+                }
+            }
+        )
     }
+
     //settings button
     Row {
         Spacer(modifier = Modifier.weight(1f))
