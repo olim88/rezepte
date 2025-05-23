@@ -16,7 +16,7 @@
         android:theme="@style/Theme.Rezepte"
         tools:targetApi="31" >
         <activity
-            android:name=".MainActivity"
+            android:name="olim.rezepte.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" >
@@ -27,32 +27,32 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".recipeCreation.CreateActivity"
+        <activity android:name="olim.rezepte.recipeCreation.CreateActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name=".LoginActivity"
+        <activity android:name="olim.rezepte.LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name=".recipeMaking.MakeActivity"
+        <activity android:name="olim.rezepte.recipeMaking.MakeActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name=".SearchActivity"
+        <activity android:name="olim.rezepte.SearchActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name=".recipeCreation.LinkStepsToInstructionsActivity"
+        <activity android:name="olim.rezepte.recipeCreation.LinkStepsToInstructionsActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name=".SettingsActivity"
+        <activity android:name="olim.rezepte.SettingsActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name=".WalkThoughActivity"
+        <activity android:name="olim.rezepte.WalkThoughActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
@@ -77,7 +77,7 @@
         <!-- Enable camara use -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="package.fileprovider"
+            android:authorities="rezepte.fileprovider"
             android:grantUriPermissions="true"
             android:exported="false">
             <meta-data
@@ -87,7 +87,7 @@
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-8164942495340930~3438037732"/>
+            android:value="ca-app-pub-8599917973703300~6180344046"/>
 
     </application>
 

@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.rezepte"
+    namespace = "olim.rezepte"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.rezepte"
+        applicationId = "olim.rezepte"
         minSdk = 27
         targetSdk = 34
         versionCode = 1
