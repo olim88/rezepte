@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -64,12 +65,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import olim.rezepte.CookingStage
 import olim.rezepte.CookingStep
 import olim.rezepte.CookingStepContainer
 import olim.rezepte.CookingStepTemperature
 import olim.rezepte.HobOption
 import olim.rezepte.MainActivity
+import olim.rezepte.R
 import olim.rezepte.Recipe
 import olim.rezepte.SettingsActivity
 import olim.rezepte.TinOrPanOptions
@@ -78,10 +84,6 @@ import olim.rezepte.fileManagment.FileSync
 import olim.rezepte.getEmptyRecipe
 import olim.rezepte.recipeCreation.CreateActivity
 import olim.rezepte.ui.theme.RezepteTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MakeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -148,7 +150,8 @@ class MakeActivity : AppCompatActivity() {
 
             withContext(Dispatchers.Main) {
                 if (extractedData.value == getEmptyRecipe()) { //if no data has been loaded show error and close window
-                    Toast.makeText(this@MakeActivity, "Recipe doesn't exist", Toast.LENGTH_SHORT)
+                    Toast.makeText(this@MakeActivity,
+                        R.string.make_recipe_not_exist_toast, Toast.LENGTH_SHORT)
                         .show()
                     this@MakeActivity.finish()
                 }
@@ -191,7 +194,7 @@ fun DataOutput(
                 value = recipeData.data.author,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Author") },
+                label = { Text(stringResource(R.string.make_label_author)) },
                 modifier = Modifier
                     .fillMaxWidth(),
             )
@@ -204,7 +207,7 @@ fun DataOutput(
                 ),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Servings") },
+                label = { Text(stringResource(R.string.make_label_servings)) },
                 modifier = Modifier
                     .fillMaxWidth(),
             )
@@ -216,7 +219,7 @@ fun DataOutput(
                     val temp = value.toFloatOrNull()
                     if (temp != null) multiplier.value = temp else multiplier.value = 1f
                 },
-                label = { Text("Multiplier") },
+                label = { Text(stringResource(R.string.make_label_multiplier)) },
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -244,7 +247,7 @@ fun StepsOutput(userSettings: Map<String, String>, recipeData: Recipe) {
                         .weight(1f)
                 )
                 Text(
-                    text = "Steps",
+                    text = stringResource(R.string.make_title_steps),
                     style = MaterialTheme.typography.titleLarge,
                     textDecoration = TextDecoration.Underline
                 )
@@ -283,7 +286,7 @@ fun NotesOutput(recipeData: Recipe) {
                         .weight(1f)
                 )
                 Text(
-                    text = "Notes",
+                    text = stringResource(R.string.make_title_notes),
                     style = MaterialTheme.typography.titleLarge,
                     textDecoration = TextDecoration.Underline
                 )
@@ -374,7 +377,7 @@ fun IngredientsOutput(
                         .weight(1f)
                 )
                 Text(
-                    text = "Ingredients",
+                    text = stringResource(R.string.make_title_ingredients),
                     style = MaterialTheme.typography.titleLarge,
                     textDecoration = TextDecoration.Underline
                 )
@@ -429,7 +432,7 @@ fun Ingredient(
         -1 //when it is showing conversions and then the settings is struck stop showing the conversions
     if (userSettings["Units.Show Conversions"] == "false" || measurementsInside.isEmpty()) {//if can not find measurements just show the ingredient or the setting is disabled
         Text(
-            text = "${intToRoman(index + 1)}: $convertedText",
+            text = stringResource(id = R.string.make_ingredient_item_format, intToRoman(index + 1), convertedText),
             modifier = Modifier
                 .padding(5.dp)
                 .fillMaxWidth(),
@@ -444,7 +447,7 @@ fun Ingredient(
             ) {
                 //ingredient number
                 Text(
-                    text = "${intToRoman(index + 1)}: ",
+                    text = stringResource(id = R.string.make_ingredient_item_format, intToRoman(index + 1), ""),
                     textAlign = TextAlign.Center,
                     style = style
                 )
@@ -569,7 +572,7 @@ fun InstructionsOutput(
                         .weight(1f)
                 )
                 Text(
-                    text = "Instructions",
+                    text = stringResource(R.string.make_title_instructions),
                     style = MaterialTheme.typography.titleLarge,
                     textDecoration = TextDecoration.Underline
                 )
@@ -706,7 +709,7 @@ fun LinkedRecipesOutput(recipeData: Recipe) {
                             .weight(1f)
                     )
                     Text(
-                        text = "Relevant Recipes",
+                        text = stringResource(R.string.make_title_relevant_recipes),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         textDecoration = TextDecoration.Underline
@@ -733,7 +736,7 @@ fun LinkedRecipesOutput(recipeData: Recipe) {
                             Modifier
                                 .weight(1f)
                         )
-                        Icon(Icons.Default.ArrowForward, "go to arrow")
+                        Icon(Icons.Default.ArrowForward, stringResource(R.string.make_icon_go_to_arrow_description))
 
                     }
                 }
@@ -789,7 +792,7 @@ private fun MainScreen(
             model = (ImageRequest.Builder(LocalContext.current)
                 .data(image.value)
                 .build()),
-            contentDescription = "",
+            contentDescription = stringResource(R.string.make_image_recipe_thumbnail_description),
             modifier = Modifier
                 .clip(RoundedCornerShape(5.dp))
                 .fillMaxWidth()
@@ -826,14 +829,14 @@ private fun MainScreen(
                 intent.putExtra("recipe name", recipeData.value.data.name)
                 mContext.startActivity(intent)
             }, modifier = Modifier.padding(5.dp)) {
-                Text(text = "Edit")
+                Text(text = stringResource(R.string.make_button_edit))
             }
             Spacer(Modifier.weight(1f))
             Button(onClick = {
                 val intent = Intent(mContext, MainActivity::class.java)
                 mContext.startActivity(intent)
             }, modifier = Modifier.padding(5.dp)) {
-                Text(text = "Finish")
+                Text(text = stringResource(R.string.finish))
             }
         }
     }

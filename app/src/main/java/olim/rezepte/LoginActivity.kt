@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,16 +53,15 @@ import com.dropbox.core.DbxPKCEWebAuth
 import com.dropbox.core.DbxRequestConfig
 import com.dropbox.core.DbxWebAuth
 import com.dropbox.core.TokenAccessType
-import olim.rezepte.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import olim.rezepte.fileManagment.LocalFilesTask
 import olim.rezepte.fileManagment.dropbox.DownloadTask
 import olim.rezepte.fileManagment.dropbox.DropboxClient
 import olim.rezepte.fileManagment.dropbox.UploadTask
 import olim.rezepte.ui.theme.RezepteTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 
 class LoginActivity : AppCompatActivity() {
@@ -76,7 +76,7 @@ class LoginActivity : AppCompatActivity() {
 }
 
 @Composable
-fun mainLoginUi(finished: () -> Unit) {
+fun MainLoginUi(finished: () -> Unit) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     val webAuth = DbxPKCEWebAuth(
@@ -89,7 +89,7 @@ fun mainLoginUi(finished: () -> Unit) {
         Spacer(modifier = Modifier.weight(0.1f))
         Button(
             onClick = {
-                Toast.makeText(mContext, "Link Dropbox", Toast.LENGTH_SHORT).show()
+                Toast.makeText(mContext, R.string.login_link_dropbox_toast, Toast.LENGTH_SHORT).show()
                 //start login
                 //Auth.startOAuth2Authentication(applicationContext, "ktd7xc7sg55pb8d")
                 val webAuthRequest = DbxWebAuth.newRequestBuilder()
@@ -103,7 +103,7 @@ fun mainLoginUi(finished: () -> Unit) {
                 .padding(5.dp)
                 .fillMaxWidth()
         ) {
-            Text(text = "Login To Dropbox", modifier = Modifier.padding(15.dp))
+            Text(text = stringResource(id = R.string.login_button_login_to_dropbox), modifier = Modifier.padding(15.dp))
         }
 
         //input for login
@@ -208,7 +208,7 @@ fun mainLoginUi(finished: () -> Unit) {
             textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
             singleLine = true,
             shape = RoundedCornerShape(5.dp), // The TextFiled has rounded corners top left and right by default
-            label = { Text("code") }
+            label = { Text(stringResource(R.string.login_textfield_label_code)) }
         )
     }
 }
@@ -231,14 +231,14 @@ private fun MainScreen() {
             mContext.startActivity(intent)
         }, modifier = Modifier.align(Alignment.End)) {
             Icon(
-                Icons.Filled.Home, "home",
+                Icons.Filled.Home, stringResource(R.string.login_icon_content_description_home),
                 Modifier
                     .size(24.dp),
             )
         }
         //title
         Text(
-            text = "Login to Dropbox to sync between devices",
+            text = stringResource(R.string.login_title_sync_description),
             modifier = Modifier
                 .padding(15.dp)
                 .align(Alignment.CenterHorizontally),
@@ -249,14 +249,14 @@ private fun MainScreen() {
         //logo
         Image(
             painter = painterResource(id = R.drawable.book),
-            contentDescription = "logo image",
+            contentDescription = stringResource(R.string.logo_description),
             contentScale = ContentScale.FillHeight,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .fillMaxHeight()
                 .weight(0.5f)
         )
-        mainLoginUi() {
+        MainLoginUi() {
             //Proceed to MainActivity
             val intent = Intent(mContext, MainActivity::class.java)
             mContext.startActivity(intent)
@@ -271,7 +271,7 @@ private fun MainScreen() {
                 .animateContentSize()
         ) {
             Text(
-                text = "To link dropbox to app click the button and then once you get the code input that into the box above",
+                text = stringResource(R.string.login_card_description_how_to_link),
                 modifier = Modifier.padding(15.dp)
             )
         }

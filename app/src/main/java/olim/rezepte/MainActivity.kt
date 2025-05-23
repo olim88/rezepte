@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -135,7 +136,7 @@ class MainActivity : ComponentActivity() {
                         if (accountData.value.first == null) {
                             Toast.makeText(
                                 this@MainActivity,
-                                "can't reach dropbox",
+                                R.string.cant_reach_dropbox,
                                 Toast.LENGTH_LONG
                             )
                                 .show()
@@ -171,7 +172,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
         //logo
         Image(
             painter = painterResource(id = R.drawable.icon),
-            contentDescription = "logo image",
+            contentDescription = stringResource(R.string.logo_description),
             contentScale = ContentScale.Inside,
             modifier = Modifier
                 .fillMaxHeight(0.6f)
@@ -196,7 +197,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                     .padding(5.dp, 0.dp, 5.dp, 5.dp)
                     .fillMaxWidth()
             ) {
-                Text(text = "My Recipes")
+                Text(text = stringResource(id = R.string.my_recipes_button_text))
             }
         }
         //dropbox text and button
@@ -212,7 +213,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
             factory = { context ->
                 AdView(context).apply {
                     setAdSize(AdSize.BANNER)
-                    adUnitId = "ca-app-pub-3940256099942544/6300978111" // TEST ID
+                    adUnitId = "ca-app-pub-8599917973703300/4312969855" // TEST ID
                     adListener = object : AdListener() {
                         override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                             Log.e("AdViewCompose", "Ad failed to load: ${loadAdError.message}")
@@ -237,7 +238,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
             mContext.startActivity(intent)
         }) {
             Icon(
-                Icons.Filled.Settings, "settings",
+                Icons.Filled.Settings, stringResource(R.string.settings_button_text),
                 Modifier
                     .padding(10.dp)
                     .size(24.dp),
@@ -265,7 +266,7 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                         value = accountData.value.first!!.email,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Dropbox Account") },
+                        label = { Text(stringResource(id = R.string.dropbox_account)) },
                         modifier = Modifier
                             .padding(5.dp),
                         maxLines = 1
@@ -278,7 +279,7 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                 )
                 Button(
                     onClick = {
-                        Toast.makeText(mContext, "Logging out...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(mContext, R.string.dropbox_login_out_toast, Toast.LENGTH_SHORT).show()
 
                         val prefs = mContext.getSharedPreferences(
                             "olim.rezepte.dropboxintegration",
@@ -293,13 +294,13 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                         .padding(5.dp)
                         .align(Alignment.CenterVertically)
                 ) {
-                    Text(text = "Logout", textAlign = TextAlign.Center)
+                    Text(text = stringResource(R.string.dropbox_logout_button), textAlign = TextAlign.Center)
                 }
             }
         } else { //the user is not logged in (show the option to log in
             Row {
                 Text(
-                    text = "Login to dropbox to be able to  sync between devices",
+                    text = stringResource(id = R.string.dropbox_login_description),
                     style = MaterialTheme.typography.labelLarge,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
@@ -320,7 +321,7 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                         .padding(5.dp)
                         .align(Alignment.CenterVertically)
                 ) {
-                    Text(text = "Login", textAlign = TextAlign.Center)
+                    Text(text = stringResource(id = R.string.dropbox_login_button), textAlign = TextAlign.Center)
                 }
             }
         }
@@ -342,7 +343,7 @@ fun CreateButtonOptions() {
 
         Button(
             onClick = {
-                Toast.makeText(mContext, "Create Recipe", Toast.LENGTH_SHORT).show()
+                Toast.makeText(mContext, R.string.create_recipe_toast, Toast.LENGTH_SHORT).show()
                 //move to create activity
                 val intent = Intent(mContext, CreateActivity::class.java)
                 mContext.startActivity(intent)
@@ -350,14 +351,14 @@ fun CreateButtonOptions() {
                 .padding(0.dp, 0.dp)
                 .fillMaxWidth()
         ) {
-            Text(text = "Create")
+            Text(text = stringResource(id = R.string.create_button_text))
         }
         Row {
             Button(
                 onClick = { urlInput = !urlInput },
-                modifier = Modifier.padding(0.dp, 5.dp)
+                modifier = Modifier.padding(vertical = 5.dp) // Simplified padding
             ) {
-                Text(text = "Load Website", textAlign = TextAlign.Center)
+                Text(text = stringResource(id = R.string.load_website_button_text), textAlign = TextAlign.Center)
             }
             Spacer(
                 Modifier
@@ -365,16 +366,16 @@ fun CreateButtonOptions() {
             )
             Button(onClick = {
                 imageInput = !imageInput
-            }, modifier = Modifier.padding(0.dp, 5.dp)) {
-                Text(text = "Load Image", textAlign = TextAlign.Center)
-
+            }, modifier = Modifier.padding(vertical = 5.dp)) { // Simplified padding
+                Text(text = stringResource(id = R.string.load_image_button_text), textAlign = TextAlign.Center)
             }
         }
 
+
         if (urlInput) {
             GetStringDialog(
-                label = "Website",
-                descriptionText = "Input the url of the website you would like to load",
+                label = stringResource(id = R.string.website_dialog_label),
+                descriptionText = stringResource(id = R.string.website_dialog_description),
                 onDismiss = { urlInput = false }
             ) {
                 CoroutineScope(Dispatchers.IO).launch {
@@ -399,7 +400,7 @@ fun CreateButtonOptions() {
                         Handler(Looper.getMainLooper()).post {
                             Toast.makeText(
                                 mContext,
-                                "Invalid website",
+                                R.string.invalid_website_toast,
                                 Toast.LENGTH_SHORT
                             )
                                 .show()
@@ -413,7 +414,7 @@ fun CreateButtonOptions() {
 
         if (imageInput) {
             AddImageDialog(
-                "the image needs to be upright and only the text of one recipe visible and clearly readable",
+                stringResource(id = R.string.image_dialog_description),
                 onDismiss = { imageInput = false })
             { imageUri: Uri ->
                 ImageToRecipe.convert(
@@ -426,12 +427,12 @@ fun CreateButtonOptions() {
                         )
                     ),
                     error = {
-                        Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT).show()
                     })
                 {
                     //if the recipe is still empty don't start create just give error
                     if (it == getEmptyRecipe()) {
-                        Toast.makeText(mContext, "No Recipe Found", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT).show()
                         return@convert
                     }
                     //when loaded send the recipe to the create menu
@@ -498,7 +499,7 @@ fun GetStringDialog(
                         .padding(5.dp)
                         .fillMaxWidth()
                 ) {
-                    Text(text = "Finish", textAlign = TextAlign.Center)
+                    Text(text = stringResource(R.string.get_string_dialog_enter_string), textAlign = TextAlign.Center)
 
                 }
                 Card(
@@ -555,7 +556,7 @@ fun AddImageDialog(descriptionText: String, onDismiss: () -> Unit, onReturnUri: 
         ) {
             Column(modifier = Modifier.padding(10.dp)) {
                 Text(
-                    text = "Select method to load Image",
+                    text = stringResource(id = R.string.add_image_select_method),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -570,7 +571,7 @@ fun AddImageDialog(descriptionText: String, onDismiss: () -> Unit, onReturnUri: 
                             .padding(0.dp, 5.dp)
                             .weight(1f)
                     ) {
-                        Text(text = "Camara", textAlign = TextAlign.Center)
+                        Text(text = stringResource(id = R.string.add_image_camera), textAlign = TextAlign.Center)
 
                     }
                     Spacer(modifier = Modifier.weight(0.2f))
@@ -582,7 +583,7 @@ fun AddImageDialog(descriptionText: String, onDismiss: () -> Unit, onReturnUri: 
                             .padding(0.dp, 5.dp)
                             .weight(1f)
                     ) {
-                        Text(text = "File", textAlign = TextAlign.Center)
+                        Text(text = stringResource(id = R.string.add_image_File), textAlign = TextAlign.Center)
 
                     }
                 }

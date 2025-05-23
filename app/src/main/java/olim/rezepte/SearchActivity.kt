@@ -95,6 +95,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import olim.rezepte.fileManagment.FileSync
 import olim.rezepte.fileManagment.LocalFilesTask
 import olim.rezepte.fileManagment.dropbox.DbTokenHandling
@@ -105,9 +108,6 @@ import olim.rezepte.recipeCreation.CreateAutomations
 import olim.rezepte.recipeMaking.MakeActivity
 import olim.rezepte.recipeMaking.getColor
 import olim.rezepte.ui.theme.RezepteTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.util.Random
 
 
@@ -175,7 +175,7 @@ class SearchActivity : ComponentActivity() {
             }
 
             if (localList != null) {
-                recipeNameData.value = localList!!.replace(".xml", "").split("\n").toMutableList()
+                recipeNameData.value = localList.replace(".xml", "").split("\n").toMutableList()
 
 
             }
@@ -192,7 +192,7 @@ class SearchActivity : ComponentActivity() {
             if (recipeNameData.value.isNotEmpty()) {
                 if (settings["Local Saves.Cache recipe image"] == "thumbnail" || settings["Local Saves.Cache recipe image"] == "full sized" || !isOnline) {
                     val thumbnailFiles = FileSync.FileBatchInfo(
-                        "",
+                        R.string.recipe_thumbnail_content_description.toString(),
                         "${this@SearchActivity.filesDir}/thumbnail/",
                         recipeNameData.value
                     )
@@ -232,7 +232,7 @@ class SearchActivity : ComponentActivity() {
                         val oldValue = iterate.next()
                         iterate.set(oldValue.removeSuffix(".xml"))
                     }
-                    if (localList == null || onlineList != localList!!.replace(".xml", "")
+                    if (localList == null || onlineList != localList.replace(".xml", "")
                             .split("\n")
                     ) { //if the lists are different use the online version and save to to local if enabled
                         recipeNameData.value = onlineList
@@ -418,13 +418,13 @@ fun RecipeCard(name: String, extraData: BasicData?, thumbNail: Bitmap?, getName:
                 )
                 if (extraData != null) {
                     Text(
-                        "Author: ${extraData.author}",
+                        stringResource(id = R.string.recipe_author_label, extraData.author),
                         modifier = Modifier.padding(start = 4.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         softWrap = true,
                     )
                     Text(
-                        "Servings: ${extraData.servings}",
+                        stringResource(id = R.string.recipe_servings_label, extraData.servings),
                         modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         softWrap = true,
@@ -490,7 +490,7 @@ fun RecipeCard(name: String, extraData: BasicData?, thumbNail: Bitmap?, getName:
 
                 ) {
                     Text(
-                        if (getName) "Link" else "Make",
+                        if (getName) stringResource(id = R.string.recipe_action_link) else stringResource(id = R.string.recipe_action_make),
                         modifier = Modifier.padding(all = 2.dp),
                         style = MaterialTheme.typography.titleLarge
                     )
@@ -862,7 +862,7 @@ fun SearchView(state: MutableState<TextFieldValue>) {
         leadingIcon = {
             Icon(
                 Icons.Default.Search,
-                contentDescription = "",
+                contentDescription = stringResource(id = R.string.search_icon_content_description),
                 modifier = Modifier
                     .padding(15.dp)
                     .size(24.dp)
@@ -878,7 +878,7 @@ fun SearchView(state: MutableState<TextFieldValue>) {
                 ) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "",
+                        contentDescription = stringResource(id = R.string.clear_search_icon_content_description),
                         modifier = Modifier
                             .padding(15.dp)
                             .size(24.dp)
@@ -934,7 +934,7 @@ fun SearchFilters(
                     {
                         Icon(
                             imageVector = Icons.Filled.Done,
-                            contentDescription = "Done icon",
+                            contentDescription = stringResource(id = R.string.filter_selected_icon_description),
                             modifier = Modifier.size(FilterChipDefaults.IconSize)
                         )
                     }
@@ -1034,7 +1034,7 @@ fun NoReciepsFoundOuput() {
                 .background(MaterialTheme.colorScheme.background)
         ) {
             Text(
-                text = "Can't find any recipes :(",
+                text = stringResource(id = R.string.no_recipes_found_title),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1043,7 +1043,7 @@ fun NoReciepsFoundOuput() {
             Spacer(modifier = Modifier.width(40.dp))
 
             Text(
-                text = "Create your first recipes ",
+                text =stringResource(id = R.string.no_recipes_prompt_create),
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1058,14 +1058,14 @@ fun NoReciepsFoundOuput() {
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Create",
+                    text = stringResource(id = R.string.create_button_text),
                     textAlign = TextAlign.Center,
                 )
             }
 
             if (!isOnline) {//only suggest login if the user is not logged in
                 Text(
-                    text = "or login to sync your recipes ",
+                    text = stringResource(id = R.string.no_recipes_prompt_login),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1079,7 +1079,7 @@ fun NoReciepsFoundOuput() {
                         .fillMaxWidth()
                 ) {
                     Text(
-                        text = "Login",
+                        text = stringResource(id = R.string.dropbox_login_button),
                         textAlign = TextAlign.Center,
                     )
                 }

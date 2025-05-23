@@ -72,6 +72,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -107,6 +108,7 @@ import olim.rezepte.Instruction
 import olim.rezepte.Instructions
 import olim.rezepte.LinkedRecipes
 import olim.rezepte.MainActivity
+import olim.rezepte.R
 import olim.rezepte.Recipe
 import olim.rezepte.SearchActivity
 import olim.rezepte.SearchData
@@ -239,7 +241,7 @@ class CreateActivity : ComponentActivity() {
                     if (extractedData.value == getEmptyRecipe()) { //if no data has been loaded show error and close window
                         Toast.makeText(
                             this@CreateActivity,
-                            "Recipe doesn't exist",
+                            R.string.toast_recipe_does_not_exist,
                             Toast.LENGTH_SHORT
                         )
                             .show()
@@ -275,14 +277,14 @@ class CreateActivity : ComponentActivity() {
         if (loadedRecipeName != null && !intent.extras!!.getBoolean("creating")) //only need to delete files if it was save before
         {
             AlertDialog.Builder(this)
-                .setTitle("Delete Recipe")
-                .setMessage("Do you really want to delete this recipe?")
+                .setTitle(R.string.dialog_title_delete_recipe)
+                .setMessage(R.string.dialog_message_delete_recipe)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setPositiveButton(android.R.string.yes,
                     DialogInterface.OnClickListener { dialog, whichButton ->
                         Toast.makeText(
                             this@CreateActivity,
-                            "deleted recipe",
+                            R.string.dialog_title_delete_recipe,
                             Toast.LENGTH_SHORT
                         ).show()
                         //delete the recipe
@@ -394,7 +396,7 @@ class CreateActivity : ComponentActivity() {
             Handler(Looper.getMainLooper()).post { //show why can not be saved
                 Toast.makeText(
                     this,
-                    "Invalid Name",
+                    R.string.toast_invalid_name,
                     Toast.LENGTH_SHORT
                 )
                     .show()
@@ -514,7 +516,7 @@ class CreateActivity : ComponentActivity() {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(
                 this@CreateActivity,
-                "Saved Recipe",
+                R.string.toast_saved_recipe,
                 Toast.LENGTH_SHORT
             )
                 .show()
@@ -704,7 +706,7 @@ fun TitleInput(data: MutableState<Recipe>) {
         textStyle = TextStyle(fontSize = 18.sp),
         singleLine = true,
         shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-        label = { Text("Name") }
+        label = { Text(stringResource(R.string.label_name)) }
     )
 }
 
@@ -746,7 +748,7 @@ fun ImageInput(image: MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>) {
         Row {
             if (image.value == null && savedBitmap.value == null) {
                 Text(
-                    text = "Image",
+                    text = stringResource(R.string.label_image),
                     modifier = Modifier.align(Alignment.CenterVertically),
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -762,7 +764,7 @@ fun ImageInput(image: MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>) {
             ) {
                 Icon(
                     if (image.value == null && savedBitmap.value == null) Icons.Filled.Add else Icons.Filled.Edit,
-                    "contentDescription"
+                    stringResource(R.string.label_image)
                 )
             }
 
@@ -770,7 +772,7 @@ fun ImageInput(image: MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>) {
     }
     if (showImageSelectionMenu) {
         AddImageDialog(
-            descriptionText = "Take a picture or find save image for the recipe",
+            descriptionText = stringResource(R.string.dialog_add_image_description),
             onDismiss = {
                 showImageSelectionMenu = false; image.value = null; savedBitmap.value = null
             }) { uri: Uri? ->
@@ -810,7 +812,7 @@ fun DataInput(
                 textStyle = TextStyle(fontSize = 18.sp),
                 singleLine = true,
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                label = { Text("Author") }
+                label = { Text(stringResource(R.string.label_author)) }
             )
             TextField(
                 value = data.value.data.serves,
@@ -823,7 +825,7 @@ fun DataInput(
                 textStyle = TextStyle(fontSize = 18.sp),
                 singleLine = true,
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                label = { Text("Servings") }
+                label = { Text(stringResource(R.string.label_servings)) }
             )
             CookingStepsInput(settings, data, updatedSteps)
             LinkedRecipesInput(data)
@@ -842,7 +844,7 @@ fun DataInput(
                 textStyle = TextStyle(fontSize = 18.sp),
                 singleLine = true,
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                label = { Text("Website") }
+                label = { Text(stringResource(R.string.label_website)) }
             )
         }
     }
@@ -900,14 +902,14 @@ fun LinkedRecipesInput(data: MutableState<Recipe>) {
         Column {
             Row {
                 Text(
-                    text = "Linked Recipes",
+                    text = stringResource(R.string.label_linked_recipes),
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(
                     Modifier
                         .weight(1f)
                 )
-                Icon(icon, "contentDescription",
+                Icon(icon, stringResource(R.string.label_linked_recipes),
                     Modifier
                         .clickable { isExpanded = !isExpanded }
                         .padding(10.dp)
@@ -1027,14 +1029,14 @@ fun CookingStepsInput(
         Column {
             Row {
                 Text(
-                    text = "Cooking Steps",
+                    text = stringResource(R.string.label_cooking_steps),
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(
                     Modifier
                         .weight(1f)
                 )
-                Icon(icon, "contentDescription",
+                Icon(icon, stringResource(R.string.label_cooking_steps),
                     Modifier
                         .clickable { isExpanded = !isExpanded }
                         .padding(10.dp)
@@ -1097,7 +1099,7 @@ fun CookingStepsInput(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(text = "Auto Generate")
+                            Text(text = stringResource(R.string.button_text_auto_generate))
                         }
                     }
                 }
@@ -1214,6 +1216,11 @@ fun CookingStep(
                 //if it is oven or pan enable cooking temp options
                 if (data.type == CookingStage.oven) {
                     Row {
+
+                        val tempUnitLabel = if (settings["Units.Temperature"] == "true")
+                            stringResource(R.string.label_oven_temperature_c)
+                        else
+                            stringResource(R.string.label_oven_temperature_f)
                         TextField(
                             value = cookingTemp,
                             onValueChange = { value ->
@@ -1236,7 +1243,7 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text("Oven Temperature (${if (settings["Units.Temperature"] == "true") "°C" else "°F"})") } //depending on settings show C or F
+                            label = { Text(tempUnitLabel) } //depending on settings show C or F
                         )
                         FilterChip(
                             onClick = {
@@ -1244,7 +1251,7 @@ fun CookingStep(
                                 data.cookingTemperature?.isFan = isFan
                             },
                             label = {
-                                Text("Fan Oven")
+                                Text(stringResource(R.string.label_fan_oven))
                             },
                             modifier = Modifier.align(Alignment.CenterVertically),
                             selected = isFan,
@@ -1252,7 +1259,7 @@ fun CookingStep(
                                 {
                                     Icon(
                                         imageVector = Icons.Default.Check,
-                                        contentDescription = "Done icon",
+                                        contentDescription = stringResource(R.string.cd_done_icon),
                                         modifier = Modifier.size(FilterChipDefaults.IconSize)
                                     )
                                 }
@@ -1264,7 +1271,7 @@ fun CookingStep(
                 }
                 if (data.type == CookingStage.hob) {
                     MenuItemWithDropDown(
-                        "Hob Temperature",
+                        stringResource(R.string.label_hob_temperature),
                         data.cookingTemperature?.hobTemperature.toString(),
                         HobOption.values()
                     ) { value ->
@@ -1283,10 +1290,10 @@ fun CookingStep(
                     textStyle = TextStyle(fontSize = 18.sp),
                     singleLine = true,
                     shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                    label = { Text("Time") }
+                    label = { Text(stringResource(R.string.label_time)) }
                 )
                 MenuItemWithDropDown(
-                    "Container",
+                    stringResource(R.string.label_container),
                     if (data.container == null) "none" else data.container?.type.toString(),
                     TinOrPanOptions.values()
                 ) { value ->
@@ -1321,7 +1328,7 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text("Size (${if (settings["Units.metric Lengths"] == "true") "cm" else "in"})") } //size plus the units the user has selected
+                            label = { Text(stringResource(R.string.label_size,if (settings["Units.metric Lengths"] == "true") "cm" else "in")) } //size plus the units the user has selected
                         )
                     }
 
@@ -1343,7 +1350,7 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text("Length (${if (settings["Units.metric Lengths"] == "true") "cm" else "in"})") } //size plus the units the user has selected
+                            label = { Text(stringResource(R.string.label_length,if (settings["Units.metric Lengths"] == "true") "cm" else "in")) } //size plus the units the user has selected
                         )
                         TextField(
                             value = dimensionTwoValue,
@@ -1362,7 +1369,7 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text("Width (${if (settings["Units.metric Lengths"] == "true") "cm" else "in"})") } //size plus the units the user has selected
+                            label = { Text(stringResource(R.string.label_width,if (settings["Units.metric Lengths"] == "true") "cm" else "in")) } //size plus the units the user has selected
                         )
                     }
 
@@ -1384,7 +1391,7 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text("Volume (${if (settings["Units.metric Volume"] == "true") "l" else "pt"})") } //size plus the units the user has selected
+                            label = { Text(stringResource(R.string.label_volume,if (settings["Units.metric Volume"] == "true") "l" else "pt")) } //size plus the units the user has selected
                         )
                     }
 
@@ -1483,7 +1490,7 @@ fun Notes(data: MutableState<Recipe>) {
             modifier = Modifier
                 .fillMaxWidth(),
             textStyle = TextStyle(fontSize = 18.sp),
-            label = { Text(text = "Notes") }
+            label = { Text(text = stringResource(R.string.label_notes)) }
         )
     }
 }
@@ -1541,7 +1548,7 @@ fun IngredientsInput(
                 //if side by side enabled take up a 1/3 of width else take up full width
                 modifier = Modifier.fillMaxWidth(if (sideBySide) 0.4f else 1f),
                 textStyle = TextStyle(fontSize = 18.sp),
-                label = { Text(text = "Ingredients") }
+                label = { Text(text = stringResource(R.string.label_ingredients)) }
             )
         } else {
             TextField(
@@ -1563,7 +1570,7 @@ fun IngredientsInput(
                 //if side by side enabled take up a 1/3 of width else take up full width
                 modifier = Modifier.fillMaxWidth(if (sideBySide) 0.33f else 1f),
                 textStyle = TextStyle(fontSize = 18.sp),
-                label = { Text(text = "Ingredients") }
+                label = { Text(text = stringResource(R.string.label_ingredients)) }
             )
         }
     }
@@ -1620,7 +1627,7 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                     },
                     modifier = Modifier.fillMaxWidth(1f),
                     textStyle = TextStyle(fontSize = 18.sp),
-                    label = { Text(text = "instructions") }
+                    label = { Text(text = stringResource(R.string.label_instructions)) }
                 )
             } else {
                 TextField(
@@ -1641,7 +1648,7 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                     },
                     modifier = Modifier.fillMaxWidth(1f),
                     textStyle = TextStyle(fontSize = 18.sp),
-                    label = { Text(text = "instructions") }
+                    label = { Text(text = stringResource(R.string.label_instructions)) }
                 )
             }
             if (userSettings["Creation.Show split Instruction Buttons"] == "true") {//show buttons to separate instructions if enabled
@@ -1660,7 +1667,7 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(text = "Smart Split", textAlign = TextAlign.Center)
+                        Text(text = stringResource(R.string.button_text_smart_split), textAlign = TextAlign.Center)
                     }
                     Spacer(modifier = Modifier.weight(0.5f))
                     Button(
@@ -1673,7 +1680,7 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(text = "Sentence Split", textAlign = TextAlign.Center)
+                        Text(text = stringResource(R.string.button_text_sentence_split), textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -1711,7 +1718,7 @@ fun DeleteAndFinishButtons(
             modifier = Modifier.padding(all = 5.dp)
         ) {
             Text(
-                "Delete",
+                stringResource(R.string.button_text_delete),
                 modifier = Modifier.padding(all = 2.dp),
                 style = MaterialTheme.typography.titleLarge
             )
@@ -1764,7 +1771,7 @@ fun FinishButton(
                     Modifier
                         .weight(1f)
                 )
-                Text(text = "Finish ", style = MaterialTheme.typography.titleLarge,
+                Text(text = stringResource(R.string.finish)+ " ", style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .clickable {
                             onFinish(data.value, image.value, imageBitmap.value, false)
@@ -1784,7 +1791,7 @@ fun FinishButton(
                     Modifier
                         .weight(1f)
                 )
-                Text(text = " Link",
+                Text(text = " " + stringResource(R.string.recipe_action_link),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .clickable { onFinish(data.value, image.value, imageBitmap.value, true) }
@@ -1799,7 +1806,7 @@ fun FinishButton(
                         .weight(1f)
                 )
                 Text(
-                    text = "Finish", style = MaterialTheme.typography.titleLarge,
+                    text = stringResource(R.string.finish), style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .padding(2.dp)
                 )

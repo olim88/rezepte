@@ -30,20 +30,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import olim.rezepte.getEmptyRecipe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import olim.rezepte.MainActivity
+import olim.rezepte.R
 import olim.rezepte.Recipe
 import olim.rezepte.SettingsActivity
 import olim.rezepte.XmlExtraction
 import olim.rezepte.fileManagment.FileSync
+import olim.rezepte.getEmptyRecipe
 import olim.rezepte.recipeMaking.CookingStepDisplay
 import olim.rezepte.recipeMaking.getColor
 import olim.rezepte.ui.theme.RezepteTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class LinkStepsToInstructionsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,7 +53,7 @@ class LinkStepsToInstructionsActivity : AppCompatActivity() {
         val data = intent.extras?.getString("data")
         //if there is no data for some reason just go home
         if (data == null) {
-            Toast.makeText(this, "no data found", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.no_data_found_toast, Toast.LENGTH_SHORT).show()
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
@@ -70,7 +72,7 @@ class LinkStepsToInstructionsActivity : AppCompatActivity() {
     }
 
     private fun finishRecipe(recipe: Recipe) {
-        Toast.makeText(this, "Linked Steps", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.linked_steps_title, Toast.LENGTH_SHORT).show()
 
         //export saved recipe
         val data: String = parseData(recipe)
@@ -135,13 +137,13 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
         ) {
             //label menu
             Text(
-                text = "Link steps",
+                text = stringResource(R.string.linked_steps_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(5.dp)
             )
             //describe menu
             Text(
-                text = "link the instructions to the steps:",
+                text = stringResource(R.string.linked_steps_message),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(5.dp)
             )
@@ -188,7 +190,7 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
                 }
                 updateInstruction = true
             }) {
-                Text(text = "Reset")
+                Text(text = stringResource(R.string.button_reset))
             }
             Spacer(
                 Modifier
@@ -202,7 +204,7 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
                     stepIndex += 1
                 }
             }) {
-                Text(text = if (stepIndex == recipeData.data.cookingSteps.list.count() - 1) "Finish" else "Next")
+                Text(text = if (stepIndex == recipeData.data.cookingSteps.list.count() - 1) stringResource(R.string.finish) else stringResource(R.string.button_next))
             }
         }
     }

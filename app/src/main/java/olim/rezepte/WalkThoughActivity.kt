@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -46,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -86,7 +88,7 @@ fun StartUpExplanationPage(title: String, explanation: String) {
         //logo
         Image(
             painter = painterResource(id = R.drawable.icon),
-            contentDescription = "logo image",
+            contentDescription = stringResource(id = R.string.logo_description),
             contentScale = ContentScale.Inside,
             modifier = Modifier
         )
@@ -141,7 +143,7 @@ fun StartUpDropboxPage(title: String, description: String) {
             },
         ) {
             if (!it) {
-                mainLoginUi {
+                MainLoginUi {
                     isLoggedIn = true
                 }
             } else {
@@ -152,7 +154,7 @@ fun StartUpDropboxPage(title: String, description: String) {
 
                 ) {
                     Text(
-                        text = "You are logged into dropbox and you files are being synced. \n Nothing more to do here",
+                        text = stringResource(id = R.string.dropbox_logged_in_message),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -240,7 +242,7 @@ fun StartUpSettingsPage(
         Spacer(modifier = Modifier.weight(5f))
 
         Text(
-            text = "all of this can be changed later in the settings page",
+            text = stringResource(id = R.string.settings_changeable_later_note),
             style = MaterialTheme.typography.labelSmall
         )
 
@@ -264,7 +266,7 @@ fun FinishedConfirmation(completed: List<Int>, onDismiss: () -> Unit) {
             ) {
                 Column(modifier = Modifier.padding(10.dp)) {
                     Text(
-                        text = "You aren't finished are you sure you want to",
+                        text = stringResource(id = R.string.finish_confirmation_dialog_title),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -279,7 +281,7 @@ fun FinishedConfirmation(completed: List<Int>, onDismiss: () -> Unit) {
                                 .padding(0.dp, 5.dp)
                                 .weight(1f)
                         ) {
-                            Text(text = "Back", textAlign = TextAlign.Center)
+                            Text(text = stringResource(R.string.common_back), textAlign = TextAlign.Center)
 
                         }
                         Spacer(modifier = Modifier.weight(0.2f))
@@ -291,7 +293,7 @@ fun FinishedConfirmation(completed: List<Int>, onDismiss: () -> Unit) {
                                 .padding(0.dp, 5.dp)
                                 .weight(1f)
                         ) {
-                            Text(text = "Comfirm", textAlign = TextAlign.Center)
+                            Text(text = stringResource(R.string.common_confirm), textAlign = TextAlign.Center)
 
                         }
                     }
@@ -302,7 +304,7 @@ fun FinishedConfirmation(completed: List<Int>, onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Text(
-                            text = "(you can restart this from the settings page)",
+                            text = stringResource(id = R.string.finish_confirmation_restart_note),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -342,7 +344,7 @@ fun StartUpHomePage(
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         //title
         Text(
-            text = "Welcome to Rezepite",
+            text = stringResource(id = R.string.startup_welcome_title),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(5.dp)
         )
@@ -350,14 +352,14 @@ fun StartUpHomePage(
         //logo
         Image(
             painter = painterResource(id = R.drawable.icon),
-            contentDescription = "logo image",
+            contentDescription = stringResource(id = R.string.logo_description),
             contentScale = ContentScale.Inside,
             modifier = Modifier
         )
         Spacer(modifier = Modifier.height(10.dp))
         //description
         Text(
-            text = "This is an application that is designed to help you to organise your recipes across your mobile devices by letting you import your recipes from websites and book and then customise them they way you want. \n Lets begin configuring it to your liking.",
+            text = stringResource(id = R.string.startup_welcome_explanation),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(5.dp)
@@ -385,7 +387,7 @@ fun StartUpHomePage(
                         colors = ButtonDefaults.buttonColors(containerColor = colour)
                     ) {
                         Text(
-                            text = page.text,
+                            text = page.text(),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.titleMedium
                         )
@@ -408,7 +410,7 @@ fun StartUpHomePage(
             colors = ButtonDefaults.buttonColors(containerColor = colour)
         ) {
             Text(
-                text = CurrentScreen.FinishPage.text,
+                text = CurrentScreen.FinishPage.text(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = if (isFinished) Modifier.padding(vertical = 10.dp) else Modifier
@@ -565,8 +567,8 @@ private fun MainScreen() {
                     CurrentScreen.UnitsPage -> {
                         StartUpSettingsPage(
                             allSettingsMenuData,
-                            title = "Units",
-                            description = "Rezepte allows you to have the units in your recipe converted while you making it to suit your preferences. Pick the format that you would like the units displayed in when making recipes.",
+                            title = stringResource(R.string.startup_units_title),
+                            description = stringResource(R.string.startup_units_description),
                             options = listOf(
                                 "Units.Temperature",
                                 "Units.metric Volume",
@@ -579,8 +581,8 @@ private fun MainScreen() {
                     CurrentScreen.UnitValuesPage -> {
                         StartUpSettingsPage(
                             allSettingsMenuData,
-                            title = "Conversions",
-                            description = "Rezepte can convert between units for you when you are cooking you recipes so it will need what values to use for these units. Pick the values that you would like to be used to convert between units.",
+                            title = stringResource(R.string.startup_conversions_title),
+                            description = stringResource(R.string.startup_conversions_description),
                             options = listOf(
                                 "Units.Conversions.Teaspoon volume",
                                 "Units.Conversions.Tablespoon volume",
@@ -593,23 +595,23 @@ private fun MainScreen() {
 
                     CurrentScreen.FinishPage -> {
                         StartUpExplanationPage(
-                            title = "Finished",
-                            explanation = "You have finished setting up the application now you can start your recipe making journey."
+                            title = stringResource(R.string.startup_finished_title),
+                            explanation = stringResource(R.string.startup_finished_explanation)
                         )
                     }
 
                     CurrentScreen.DropboxPage -> {
                         StartUpDropboxPage(
-                            title = "Syncing to the cloud",
-                            description = "To be able to sync your recipes between devices and back up online you need to login to a dropbox account for the files to be stored in or you can skip this for now and login later from the home screen. To login click the button then copy the code you get into the input box. "
+                            title = stringResource(R.string.startup_dropbox_title),
+                            description = stringResource(R.string.startup_dropbox_description) + "\n" + stringResource(R.string.startup_dropbox_login_detail_instructions)
                         )
                     }
 
                     CurrentScreen.ReadabilityPage -> {
                         StartUpSettingsPage(
                             allSettingsMenuData,
-                            title = "Formatting",
-                            description = "Rezepte offers different options for how editing and view recipes look so you can configure it to your liking. ",
+                            title = stringResource(R.string.startup_formatting_title),
+                            description = stringResource(R.string.startup_formatting_description),
                             options = listOf(
                                 "Creation.Separate Ingredients",
                                 "Creation.Separate Instructions",
@@ -621,17 +623,16 @@ private fun MainScreen() {
 
                     CurrentScreen.ExplainingStepsPage -> {
                         StartUpStepExample(
-                            title = "Steps In Recipes",
-                            description = "Rezepte has a unique feature where you can create simplified steps that combine multiple instructions in a recipe. E.g. you could have a step that is a combination of the preheat oven and put in oven step. so when you are on one of those steps you can see the important information gained in the other. You can edit these steps your self in the creation mode and then link them to the instruction when you finish creating/editing a recipe or use the auto generate feature that automatically generates and links the step for you. here is an example step bellow:",
-
+                            title = stringResource(R.string.startup_steps_title),
+                            description = stringResource(R.string.startup_steps_description)
                             )
                     }
 
                     CurrentScreen.AdvancedPage -> {
                         StartUpSettingsPage(
                             allSettingsMenuData,
-                            title = "Advanced options",
-                            description = "Here are some of the more advanced options available in the app if you do not know what you are doing skip this step.",
+                            title = stringResource(R.string.startup_advanced_title),
+                            description = stringResource(R.string.startup_advanced_description),
                             options = listOf(
                                 "Search menu.Search Menu List",
                                 "Units.Fractional Numbers",
@@ -640,9 +641,6 @@ private fun MainScreen() {
                             ),
                         )
                     }
-
-
-                    else -> {}
                 }
             }
 
@@ -676,7 +674,7 @@ private fun MainScreen() {
                             .weight(1f)
 
                     ) {
-                        Text(text = "back", textAlign = TextAlign.Center)
+                        Text(text = stringResource(R.string.common_back), textAlign = TextAlign.Center)
                         if (!donePages.contains(currentScreen.ordinal)) {
                             donePages.add(currentScreen.ordinal)
                         }
@@ -718,7 +716,7 @@ private fun MainScreen() {
                             .weight(1f)
 
                     ) {
-                        Text(text = "Done", textAlign = TextAlign.Center)
+                        Text(text = stringResource(R.string.common_done), textAlign = TextAlign.Center)
                     }
 
                 }
@@ -734,16 +732,18 @@ private fun MainScreen() {
     }
 }
 
-enum class CurrentScreen(val text: String) { //this is in the order they get listed to the user
-    HomePage("Home Page"),
+enum class CurrentScreen(@StringRes val textResId: Int) { //this is in the order they get listed to the user
+    HomePage(R.string.screen_home_page),
+    DropboxPage(R.string.screen_online_syncing),
+    UnitsPage(R.string.screen_unit_setup),
+    UnitValuesPage(R.string.screen_conversions_setup),
+    ExplainingStepsPage(R.string.screen_enhanced_steps),
+    ReadabilityPage(R.string.screen_interface_options),
+    AdvancedPage(R.string.screen_advanced_options),
+    FinishPage(R.string.finish); // Assuming R.string.screen_finish is defined
 
-    DropboxPage("Online Syncing"),
-    UnitsPage("Unit Setup"),
-    UnitValuesPage("Conversions Setup"),
-    ExplainingStepsPage("Enhanced Steps"),
-    ReadabilityPage("Interface Options"),
-    AdvancedPage("Advanced Options"),
-    FinishPage("Finish");
+    @Composable
+    fun text(): String = stringResource(id = textResId)
 
     companion object {
         infix fun from(value: Int): CurrentScreen? = values().firstOrNull { it.ordinal == value }
