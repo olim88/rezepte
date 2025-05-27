@@ -1,5 +1,6 @@
 package olim.tests.recipeCreation.externalLoading
 
+import olim.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -26,7 +27,7 @@ class DownloadWebsiteTest {
         assertEquals(data.first.instructions.list.count(), 5)
         assertEquals(
             data.second,
-            "https://food-images.files.bbci.co.uk/food/recipes/chicken_caesar_pasta_47125_16x9.jpg"
+            "https://ichef.bbci.co.uk/food/ic/food_16x9_1600/recipes/chicken_caesar_pasta_47125_16x9.jpg"
         )
     }
 

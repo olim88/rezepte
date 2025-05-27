@@ -24,7 +24,7 @@
     <string name="dropbox_account">Dropbox Account</string>
     <string name="dropbox_login_out_toast">Logging out…</string>
     <string name="dropbox_logout_button">Logout</string>
-    <string name="dropbox_login_description">Login to dropbox to be able to  sync between devices</string>
+    <string name="dropbox_login_description">Unlock cloud sync and backup by connecting to Dropbox</string>
     <string name="dropbox_login_button">Login</string>
 
         <!-- CreateButtonOptions Strings -->
@@ -100,7 +100,7 @@
         <string name="startup_finished_explanation">You have finished setting up the application now you can start your recipe making journey.</string>
 
         <string name="startup_dropbox_title">Syncing to the cloud</string>
-        <string name="startup_dropbox_description">Connect to Dropbox to sync recipes between your devices and keep them backed up online. You can also do this later from Settings.</string>
+        <string name="startup_dropbox_description">Connect to Dropbox to sync recipes between your devices and keep them backed up online. You can also do this later from the home screen.</string>
         <string name="startup_dropbox_login_detail_instructions">Tap "Connect to Dropbox", authorize, then copy the code provided and paste it into the input box below.</string>
 
         <string name="startup_formatting_title">Formatting</string>

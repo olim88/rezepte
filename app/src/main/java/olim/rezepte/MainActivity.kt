@@ -213,7 +213,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
             factory = { context ->
                 AdView(context).apply {
                     setAdSize(AdSize.BANNER)
-                    adUnitId = "ca-app-pub-8599917973703300/4312969855" // TEST ID
+                    adUnitId = "ca-app-pub-8599917973703300/4312969855"
                     adListener = object : AdListener() {
                         override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                             Log.e("AdViewCompose", "Ad failed to load: ${loadAdError.message}")
