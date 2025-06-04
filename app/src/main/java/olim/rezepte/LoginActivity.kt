@@ -248,7 +248,7 @@ private fun MainScreen() {
         )
         //logo
         Image(
-            painter = painterResource(id = R.drawable.book),
+            painter = painterResource(id = R.drawable.icon),
             contentDescription = stringResource(R.string.logo_description),
             contentScale = ContentScale.FillHeight,
             modifier = Modifier
