@@ -113,7 +113,7 @@ fun StartUpDropboxPage(title: String, description: String) {
     val login = DbTokenHandling(
         mContext.getSharedPreferences(
             "olim.android.rezepte.dropboxintegration",
-            ComponentActivity.MODE_PRIVATE
+            Context.MODE_PRIVATE
         )
     )
     var isLoggedIn by remember { mutableStateOf(login.isLoggedIn()) }
@@ -511,7 +511,7 @@ private fun MainScreen() {
         SettingsActivity.saveSettings(
             mContext.getSharedPreferences(
                 "olim.android.rezepte.settings",
-                ComponentActivity.MODE_PRIVATE
+                Context.MODE_PRIVATE
             ), SettingsActivity.convertToDictionary(allSettingsMenuData, "")
         )
         //set animation direction
@@ -660,7 +660,7 @@ private fun MainScreen() {
                             SettingsActivity.saveSettings(
                                 mContext.getSharedPreferences(
                                     "olim.android.rezepte.settings",
-                                    ComponentActivity.MODE_PRIVATE
+                                    Context.MODE_PRIVATE
                                 ), SettingsActivity.convertToDictionary(allSettingsMenuData, "")
                             )
                             //set animation direction
@@ -689,7 +689,7 @@ private fun MainScreen() {
                             SettingsActivity.saveSettings(
                                 mContext.getSharedPreferences(
                                     "olim.android.rezepte.settings",
-                                    ComponentActivity.MODE_PRIVATE
+                                    Context.MODE_PRIVATE
                                 ), SettingsActivity.convertToDictionary(allSettingsMenuData, "")
                             )
                             //set animation direction

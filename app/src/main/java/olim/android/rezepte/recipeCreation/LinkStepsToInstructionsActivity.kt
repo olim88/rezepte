@@ -46,7 +46,7 @@ import olim.android.rezepte.getEmptyRecipe
 import olim.android.rezepte.recipeMaking.CookingStepDisplay
 import olim.android.rezepte.recipeMaking.getColor
 import olim.android.rezepte.ui.theme.RezepteTheme
-
+import android.content.Context
 class LinkStepsToInstructionsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,7 +117,7 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
     val settings = SettingsActivity.Companion.loadSettings(
         mContext.getSharedPreferences(
             "olim.android.rezepte.settings",
-            ComponentActivity.MODE_PRIVATE
+            Context.MODE_PRIVATE
         )
     )
 

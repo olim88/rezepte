@@ -383,7 +383,7 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
             val login = DbTokenHandling(
                 it.getSharedPreferences(
                     "olim.android.rezepte.dropboxintegration",
-                    ComponentActivity.MODE_PRIVATE
+                    Context.MODE_PRIVATE
                 )
             )
             login.isLoggedIn()
@@ -591,7 +591,7 @@ private fun MainScreen(loadedSettings: Map<String, String>) {
             SettingsActivity.saveSettings(
                 mContext.getSharedPreferences(
                     "olim.android.rezepte.settings",
-                    ComponentActivity.MODE_PRIVATE
+                    Context.MODE_PRIVATE
                 ), SettingsActivity.convertToDictionary(settingsMenuStack.last().second, "")
             )
             //go to main menu
@@ -622,7 +622,7 @@ private fun MainScreen(loadedSettings: Map<String, String>) {
                 SettingsActivity.saveSettings(
                     mContext.getSharedPreferences(
                         "olim.android.rezepte.settings",
-                        ComponentActivity.MODE_PRIVATE
+                        Context.MODE_PRIVATE
                     ), SettingsActivity.convertToDictionary(settingsMenuStack.last().second, "")
                 )
                 //go to main menu

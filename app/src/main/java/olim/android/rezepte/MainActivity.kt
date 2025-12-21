@@ -284,7 +284,7 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
 
                         val prefs = mContext.getSharedPreferences(
                             "olim.android.rezepte.dropboxintegration",
-                            ComponentActivity.MODE_PRIVATE
+                            Context.MODE_PRIVATE
                         )
                         prefs.edit().clear().apply()
                         //Back to LoginActivity
@@ -384,7 +384,7 @@ fun CreateButtonOptions() {
                         SettingsActivity.loadSettings( //todo already have this loaded
                             mContext.getSharedPreferences(
                                 "olim.android.rezepte.settings",
-                                ComponentActivity.MODE_PRIVATE
+                                Context.MODE_PRIVATE
                             )
                         )
                     try {
@@ -424,7 +424,7 @@ fun CreateButtonOptions() {
                     settings = SettingsActivity.loadSettings(
                         mContext.getSharedPreferences(
                             "olim.android.rezepte.settings",
-                            ComponentActivity.MODE_PRIVATE
+                            Context.MODE_PRIVATE
                         )
                     ),
                     error = {
