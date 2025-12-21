@@ -6,14 +6,14 @@ plugins {
 }
 
 android {
-    namespace = "olim.rezepte"
-    compileSdk = 34
+    namespace = "olim.android.rezepte"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "olim.rezepte"
+        applicationId = "olim.android.rezepte"
         minSdk = 27
-        targetSdk = 34
-        versionCode = 2
+        targetSdk = 36
+        versionCode = 3
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

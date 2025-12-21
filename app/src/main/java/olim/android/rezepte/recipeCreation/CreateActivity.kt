@@ -1,4 +1,4 @@
-package olim.rezepte.recipeCreation
+package olim.android.rezepte.recipeCreation
 
 
 import android.annotation.SuppressLint
@@ -94,34 +94,35 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import olim.rezepte.AddImageDialog
-import olim.rezepte.BasicData
-import olim.rezepte.CookingStage
-import olim.rezepte.CookingStep
-import olim.rezepte.CookingStepContainer
-import olim.rezepte.CookingStepTemperature
-import olim.rezepte.CookingSteps
-import olim.rezepte.HobOption
-import olim.rezepte.Ingredient
-import olim.rezepte.Ingredients
-import olim.rezepte.Instruction
-import olim.rezepte.Instructions
-import olim.rezepte.LinkedRecipes
-import olim.rezepte.MainActivity
-import olim.rezepte.R
-import olim.rezepte.Recipe
-import olim.rezepte.SearchActivity
-import olim.rezepte.SearchData
-import olim.rezepte.SettingsActivity
-import olim.rezepte.TinOrPanOptions
-import olim.rezepte.TinOrPanSizeOptions
-import olim.rezepte.XmlExtraction
-import olim.rezepte.fileManagment.FileSync
-import olim.rezepte.fileManagment.dropbox.DbTokenHandling
-import olim.rezepte.getEmptyRecipe
-import olim.rezepte.getEmptySearchData
-import olim.rezepte.recipeCreation.externalLoading.DownloadWebsite
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.AddImageDialog
+import olim.android.rezepte.BasicData
+import olim.android.rezepte.CookingStage
+import olim.android.rezepte.CookingStep
+import olim.android.rezepte.CookingStepContainer
+import olim.android.rezepte.CookingStepTemperature
+import olim.android.rezepte.CookingSteps
+import olim.android.rezepte.HobOption
+import olim.android.rezepte.Ingredient
+import olim.android.rezepte.Ingredients
+import olim.android.rezepte.Instruction
+import olim.android.rezepte.Instructions
+import olim.android.rezepte.LinkedRecipe
+import olim.android.rezepte.LinkedRecipes
+import olim.android.rezepte.MainActivity
+import olim.android.rezepte.Recipe
+import olim.android.rezepte.SearchActivity
+import olim.android.rezepte.SearchData
+import olim.android.rezepte.SettingsActivity
+import olim.android.rezepte.TinOrPanOptions
+import olim.android.rezepte.TinOrPanSizeOptions
+import olim.android.rezepte.XmlExtraction
+import olim.android.rezepte.R
+import olim.android.rezepte.fileManagment.FileSync
+import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
+import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.getEmptySearchData
+import olim.android.rezepte.recipeCreation.externalLoading.DownloadWebsite
+import olim.android.rezepte.ui.theme.RezepteTheme
 import org.redundent.kotlin.xml.xml
 
 
@@ -139,16 +140,16 @@ class CreateActivity : ComponentActivity() {
         val image: MutableState<Bitmap?> = mutableStateOf(null)
 
         //get the users settings
-        val settings = SettingsActivity.loadSettings(
+        val settings = SettingsActivity.Companion.loadSettings(
             getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 MODE_PRIVATE
             )
         )
 
         //check if there is preloaded recipe then name then just load empty recipe if neither is true
         if (recipe != null) {
-            val extractedData = XmlExtraction.getData(recipe)
+            val extractedData = XmlExtraction.Companion.getData(recipe)
             setContent {
                 RezepteTheme {
                     MainScreen(
@@ -169,14 +170,14 @@ class CreateActivity : ComponentActivity() {
             //if there is a link to an image download it to bitmap to add to the recipe
             if (recipeLinkedImage != null) {
                 CoroutineScope(Dispatchers.IO).launch {
-                    image.value = DownloadWebsite.downloadImageToBitmap(recipeLinkedImage)
+                    image.value = DownloadWebsite.Companion.downloadImageToBitmap(recipeLinkedImage)
                 }
             }
         } else if (loadedRecipeName != null) {
             //get token
             val dropboxPreference =
                 getSharedPreferences(
-                    "olim.rezepte.dropboxintegration",
+                    "olim.android.rezepte.dropboxintegration",
                     MODE_PRIVATE
                 )
 
@@ -217,7 +218,7 @@ class CreateActivity : ComponentActivity() {
                     )
                 CoroutineScope(Dispatchers.IO).launch {
                     FileSync.downloadString(data, file) {
-                        extractedData.value = XmlExtraction.getData(it)
+                        extractedData.value = XmlExtraction.Companion.getData(it)
 
                     }
                 }
@@ -307,16 +308,16 @@ class CreateActivity : ComponentActivity() {
     }
 
     private fun deleteRecipeData() {
-        val settings = SettingsActivity.loadSettings(
+        val settings = SettingsActivity.Companion.loadSettings(
             getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 MODE_PRIVATE
             )
         )
         //get token
         val dropboxPreference =
             getSharedPreferences(
-                "olim.rezepte.dropboxintegration",
+                "olim.android.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         CoroutineScope(Dispatchers.IO).launch {
@@ -358,7 +359,7 @@ class CreateActivity : ComponentActivity() {
             var searchData: SearchData? = null
             val searchDataExists =
                 FileSync.downloadString(searchDataData, searchDataFile) {
-                    searchData = XmlExtraction.getSearchData(it)
+                    searchData = XmlExtraction.Companion.getSearchData(it)
                 }
             if (!searchDataExists || searchData == null) {
                 searchData = getEmptySearchData()
@@ -385,9 +386,9 @@ class CreateActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.P)
     private fun finishRecipe(recipe: Recipe, image: Uri?, bitmapImage: Bitmap?, linking: Boolean) {
-        val settings = SettingsActivity.loadSettings(
+        val settings = SettingsActivity.Companion.loadSettings(
             getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 MODE_PRIVATE
             )
         )
@@ -419,7 +420,7 @@ class CreateActivity : ComponentActivity() {
         //get token
         val dropboxPreference =
             getSharedPreferences(
-                "olim.rezepte.dropboxintegration",
+                "olim.android.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         CoroutineScope(Dispatchers.IO).launch {
@@ -482,7 +483,7 @@ class CreateActivity : ComponentActivity() {
             var searchData: SearchData? = null
             val searchDataExists =
                 FileSync.downloadString(searchDataData, searchDataFile) {
-                    searchData = XmlExtraction.getSearchData(it)
+                    searchData = XmlExtraction.Companion.getSearchData(it)
                 }
             if (!searchDataExists || searchData == null) {
                 searchData = getEmptySearchData()
@@ -878,11 +879,11 @@ fun LinkedRecipesInput(data: MutableState<Recipe>) {
             }
             if (creating && name != "") { //if right name and its not blank add it to the list of linked recipes
                 if (linkedRecipes == null) {
-                    linkedRecipes = mutableListOf(olim.rezepte.LinkedRecipe(name))
+                    linkedRecipes = mutableListOf(LinkedRecipe(name))
                     data.value.data.linked = LinkedRecipes(linkedRecipes!!)
                     update = true
-                } else if (!linkedRecipes!!.contains(olim.rezepte.LinkedRecipe(name))) {
-                    linkedRecipes?.add(olim.rezepte.LinkedRecipe(name))
+                } else if (!linkedRecipes!!.contains(LinkedRecipe(name))) {
+                    linkedRecipes?.add(LinkedRecipe(name))
                     data.value.data.linked?.list = linkedRecipes!!
                     update = true
                 }

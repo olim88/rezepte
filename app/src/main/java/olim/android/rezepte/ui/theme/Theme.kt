@@ -1,4 +1,4 @@
-package olim.rezepte.ui.theme
+package olim.android.rezepte.ui.theme
 
 import android.app.Activity
 import android.os.Build

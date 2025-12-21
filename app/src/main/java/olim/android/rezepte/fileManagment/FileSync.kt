@@ -1,13 +1,14 @@
-package olim.rezepte.fileManagment
+package olim.android.rezepte.fileManagment
 
 import android.content.SharedPreferences
 import android.graphics.Bitmap
-import olim.rezepte.fileManagment.dropbox.DbTokenHandling
-import olim.rezepte.fileManagment.dropbox.DownloadTask
-import olim.rezepte.fileManagment.dropbox.DropboxClient
-import olim.rezepte.fileManagment.dropbox.UploadTask
+import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
+import olim.android.rezepte.fileManagment.dropbox.DownloadTask
+import olim.android.rezepte.fileManagment.dropbox.DropboxClient
+import olim.android.rezepte.fileManagment.dropbox.UploadTask
 import java.io.File
 import java.util.Date
+import kotlin.collections.get
 
 class FileSync {
 

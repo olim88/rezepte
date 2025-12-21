@@ -1,26 +1,26 @@
-package olim.rezepte.recipeCreation.externalLoading
+package olim.android.rezepte.recipeCreation.externalLoading
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
-import olim.rezepte.CookingSteps
-import olim.rezepte.getEmptyRecipe
-import olim.rezepte.Ingredient
-import olim.rezepte.Ingredients
-import olim.rezepte.Instruction
-import olim.rezepte.Instructions
-import olim.rezepte.Recipe
-import olim.rezepte.recipeCreation.CreateAutomations
+import olim.android.rezepte.CookingSteps
+import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.Ingredient
+import olim.android.rezepte.Ingredients
+import olim.android.rezepte.Instruction
+import olim.android.rezepte.Instructions
+import olim.android.rezepte.Recipe
+import olim.android.rezepte.recipeCreation.CreateAutomations
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.Text.TextBlock
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlin.collections.iterator
 import kotlin.math.abs
 import kotlin.math.min
 
-private val Text.TextBlock.lineHeight: Int?
+private val TextBlock.lineHeight: Int?
     get() {
         //get the height of the block
         if (this.cornerPoints == null) return null
@@ -382,13 +382,13 @@ class ImageToRecipe {
                     //check settings to see if extra needs to be done
                     when (settings["Creation.Image Loading.Split instructions"]) {
                         "intelligent" -> recipe.instructions =
-                            CreateAutomations.autoSplitInstructions(
+                            CreateAutomations.Companion.autoSplitInstructions(
                                 recipe.instructions,
                                 CreateAutomations.Companion.InstructionSplitStrength.Intelligent
                             )
 
                         "sentences" -> recipe.instructions =
-                            CreateAutomations.autoSplitInstructions(
+                            CreateAutomations.Companion.autoSplitInstructions(
                                 recipe.instructions,
                                 CreateAutomations.Companion.InstructionSplitStrength.Sentences
                             )
@@ -398,7 +398,7 @@ class ImageToRecipe {
 
                     if (settings["Creation.Image Loading.Generate cooking steps"] == "true") {
                         val stepsAndLinks =
-                            CreateAutomations.autoGenerateStepsFromInstructions(recipe.instructions)
+                            CreateAutomations.Companion.autoGenerateStepsFromInstructions(recipe.instructions)
                         recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
                         recipe.instructions = stepsAndLinks.second
                     }

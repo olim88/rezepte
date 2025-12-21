@@ -1,4 +1,4 @@
-package olim.rezepte
+package olim.android.rezepte
 
 
 import android.annotation.SuppressLint
@@ -98,17 +98,20 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import olim.rezepte.fileManagment.FileSync
-import olim.rezepte.fileManagment.LocalFilesTask
-import olim.rezepte.fileManagment.dropbox.DbTokenHandling
-import olim.rezepte.fileManagment.dropbox.DownloadTask
-import olim.rezepte.fileManagment.dropbox.DropboxClient
-import olim.rezepte.recipeCreation.CreateActivity
-import olim.rezepte.recipeCreation.CreateAutomations
-import olim.rezepte.recipeMaking.MakeActivity
-import olim.rezepte.recipeMaking.getColor
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.fileManagment.FileSync
+import olim.android.rezepte.fileManagment.LocalFilesTask
+import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
+import olim.android.rezepte.fileManagment.dropbox.DownloadTask
+import olim.android.rezepte.fileManagment.dropbox.DropboxClient
+import olim.android.rezepte.recipeCreation.CreateActivity
+import olim.android.rezepte.recipeCreation.CreateAutomations
+import olim.android.rezepte.recipeMaking.MakeActivity
+import olim.android.rezepte.recipeMaking.getColor
+import olim.android.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.R
 import java.util.Random
+import kotlin.collections.get
+import kotlin.collections.iterator
 
 
 class SearchActivity : ComponentActivity() {
@@ -123,7 +126,7 @@ class SearchActivity : ComponentActivity() {
         //get settings
         val settings = SettingsActivity.loadSettings(
             getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 MODE_PRIVATE
             )
         )
@@ -131,7 +134,7 @@ class SearchActivity : ComponentActivity() {
         //set access token
         val tokenHandler = DbTokenHandling(
             getSharedPreferences(
-                "olim.rezepte.dropboxintegration",
+                "olim.android.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         )
@@ -159,7 +162,7 @@ class SearchActivity : ComponentActivity() {
         //get token
         val dropboxPreference =
             getSharedPreferences(
-                "olim.rezepte.dropboxintegration",
+                "olim.android.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         var localList: String? = null
@@ -180,7 +183,7 @@ class SearchActivity : ComponentActivity() {
 
             }
             //add local only files to that list
-            val localFiles = LocalFilesTask.listFolder("${this@SearchActivity.filesDir}/xml/")
+            val localFiles = LocalFilesTask.Companion.listFolder("${this@SearchActivity.filesDir}/xml/")
             if (settings["Local Saves.Cache recipes"] == "true" && !localFiles.isNullOrEmpty()) {
                 for (fileName in localFiles) {
                     if (!recipeNameData.value.contains(fileName.removeSuffix(".xml"))) {//if the list dose not contain the file name add it to the list
@@ -221,7 +224,8 @@ class SearchActivity : ComponentActivity() {
         //if online supplement the recipe names list with a list of the online file names
         if (isOnline) {
             CoroutineScope(Dispatchers.IO).launch {
-                val downloader = DownloadTask(DropboxClient.getClient(tokenHandler.retrieveAccessToken()))
+                val downloader =
+                    DownloadTask(DropboxClient.getClient(tokenHandler.retrieveAccessToken()))
                 //get data
                 val list = downloader.listDir("/xml/") ?: listOf()
                 if (list.isNotEmpty()) {//if can get to dropbox
@@ -958,7 +962,7 @@ fun getFilters(
     val popularWords = mutableMapOf<String, MutableState<Boolean>>()
     val usedWordsCount = mutableMapOf<String, Int>()
     for (name in recipeNames) {
-        for (word in CreateAutomations.getWords(name)) {
+        for (word in CreateAutomations.Companion.getWords(name)) {
             if (usedWordsCount[word] == null) {
                 usedWordsCount[word] = 1
             } else {
@@ -1018,7 +1022,7 @@ fun NoReciepsFoundOuput() {
     val mContext = LocalContext.current
     val tokenHandler = DbTokenHandling(
         mContext.getSharedPreferences(
-            "olim.rezepte.dropboxintegration",
+            "olim.android.rezepte.dropboxintegration",
             AppCompatActivity.MODE_PRIVATE
         )
     )

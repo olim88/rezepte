@@ -1,16 +1,16 @@
-package olim.rezepte.recipeCreation.externalLoading
+package olim.android.rezepte.recipeCreation.externalLoading
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import olim.rezepte.CookingSteps
-import olim.rezepte.Ingredient
-import olim.rezepte.Ingredients
-import olim.rezepte.Instruction
-import olim.rezepte.Instructions
-import olim.rezepte.Recipe
-import olim.rezepte.getEmptyRecipe
-import olim.rezepte.recipeCreation.CreateAutomations
+import olim.android.rezepte.CookingSteps
+import olim.android.rezepte.Ingredient
+import olim.android.rezepte.Ingredients
+import olim.android.rezepte.Instruction
+import olim.android.rezepte.Instructions
+import olim.android.rezepte.Recipe
+import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.recipeCreation.CreateAutomations
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -113,12 +113,12 @@ class DownloadWebsite {
 
             //check settings to see if extra needs to be done
             when (settings["Creation.Website Loading.Split instructions"]) {
-                "intelligent" -> recipe.instructions = CreateAutomations.autoSplitInstructions(
+                "intelligent" -> recipe.instructions = CreateAutomations.Companion.autoSplitInstructions(
                     recipe.instructions,
                     CreateAutomations.Companion.InstructionSplitStrength.Intelligent
                 )
 
-                "sentences" -> recipe.instructions = CreateAutomations.autoSplitInstructions(
+                "sentences" -> recipe.instructions = CreateAutomations.Companion.autoSplitInstructions(
                     recipe.instructions,
                     CreateAutomations.Companion.InstructionSplitStrength.Sentences
                 )
@@ -128,7 +128,7 @@ class DownloadWebsite {
 
             if (settings["Creation.Website Loading.Generate cooking steps"] == "true") {
                 val stepsAndLinks =
-                    CreateAutomations.autoGenerateStepsFromInstructions(recipe.instructions)
+                    CreateAutomations.Companion.autoGenerateStepsFromInstructions(recipe.instructions)
                 recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
                 recipe.instructions = stepsAndLinks.second
             }
@@ -214,7 +214,12 @@ class DownloadWebsite {
                 } else if (ingredient is JsonArray) {
                     //the is multiple lists of ingredients add whole list
                     for ((subIndex, subIngredient) in ingredient.jsonArray.withIndex()) {
-                        ingredients.add(Ingredient((index + 1) * subIndex, subIngredient.jsonPrimitive.content))
+                        ingredients.add(
+                            Ingredient(
+                                (index + 1) * subIndex,
+                                subIngredient.jsonPrimitive.content
+                            )
+                        )
                     }
                 }
 
@@ -229,7 +234,13 @@ class DownloadWebsite {
                     if (instruction is JsonPrimitive) {
                         instructions.add(Instruction(index, instruction.content, null))
                     }else {
-                        instructions.add(Instruction(index, json.decodeFromJsonElement<InstructionJson>(instruction).text, null))
+                        instructions.add(
+                            Instruction(
+                                index,
+                                json.decodeFromJsonElement<InstructionJson>(instruction).text,
+                                null
+                            )
+                        )
                     }
                 }
             } else {

@@ -1,4 +1,4 @@
-package olim.rezepte.recipeCreation
+package olim.android.rezepte.recipeCreation
 
 import android.content.Intent
 import android.content.res.Configuration
@@ -36,16 +36,16 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import olim.rezepte.MainActivity
-import olim.rezepte.R
-import olim.rezepte.Recipe
-import olim.rezepte.SettingsActivity
-import olim.rezepte.XmlExtraction
-import olim.rezepte.fileManagment.FileSync
-import olim.rezepte.getEmptyRecipe
-import olim.rezepte.recipeMaking.CookingStepDisplay
-import olim.rezepte.recipeMaking.getColor
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.MainActivity
+import olim.android.rezepte.Recipe
+import olim.android.rezepte.SettingsActivity
+import olim.android.rezepte.XmlExtraction
+import olim.android.rezepte.R
+import olim.android.rezepte.fileManagment.FileSync
+import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.recipeMaking.CookingStepDisplay
+import olim.android.rezepte.recipeMaking.getColor
+import olim.android.rezepte.ui.theme.RezepteTheme
 
 class LinkStepsToInstructionsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,7 +58,7 @@ class LinkStepsToInstructionsActivity : AppCompatActivity() {
             startActivity(intent)
         }
         //convert the data back to object
-        val extractedData = XmlExtraction.getData(data!!)
+        val extractedData = XmlExtraction.Companion.getData(data!!)
         //if there are no steps save and leave
         if (extractedData.data.cookingSteps.list.isEmpty()) {
             finishRecipe(extractedData)
@@ -78,16 +78,16 @@ class LinkStepsToInstructionsActivity : AppCompatActivity() {
         val data: String = parseData(recipe)
         val name = recipe.data.name
 
-        val settings = SettingsActivity.loadSettings(
+        val settings = SettingsActivity.Companion.loadSettings(
             getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 MODE_PRIVATE
             )
         )
         //get token
         val dropboxPreference =
             getSharedPreferences(
-                "olim.rezepte.dropboxintegration",
+                "olim.android.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         CoroutineScope(Dispatchers.IO).launch {
@@ -114,9 +114,9 @@ class LinkStepsToInstructionsActivity : AppCompatActivity() {
 private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
     //get local context and settings
     val mContext = LocalContext.current
-    val settings = SettingsActivity.loadSettings(
+    val settings = SettingsActivity.Companion.loadSettings(
         mContext.getSharedPreferences(
-            "olim.rezepte.settings",
+            "olim.android.rezepte.settings",
             ComponentActivity.MODE_PRIVATE
         )
     )

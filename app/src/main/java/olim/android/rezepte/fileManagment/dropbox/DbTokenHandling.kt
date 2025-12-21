@@ -1,4 +1,4 @@
-package olim.rezepte.fileManagment.dropbox
+package olim.android.rezepte.fileManagment.dropbox
 
 import android.content.SharedPreferences
 import android.util.Log
@@ -10,8 +10,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import olim.rezepte.MainActivity
-import olim.rezepte.R
+import olim.android.rezepte.MainActivity
+import olim.android.rezepte.R
 
 
 class DbTokenHandling(sharedPreferences: SharedPreferences) {
@@ -76,7 +76,7 @@ class DbTokenHandling(sharedPreferences: SharedPreferences) {
 
         if (refreshToken != null && expiresAt != null) {
             val cred = DbxCredential(
-                accessToken, expiresAt.toLong(), refreshToken, MainActivity.resources?.getString(
+                accessToken, expiresAt.toLong(), refreshToken, MainActivity.Companion.resources?.getString(
                     R.string.dropbox_api_key
                 )
             )

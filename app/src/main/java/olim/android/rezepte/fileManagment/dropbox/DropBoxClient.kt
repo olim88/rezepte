@@ -1,4 +1,4 @@
-package olim.rezepte.fileManagment.dropbox
+package olim.android.rezepte.fileManagment.dropbox
 
 import com.dropbox.core.DbxRequestConfig
 import com.dropbox.core.oauth.DbxCredential

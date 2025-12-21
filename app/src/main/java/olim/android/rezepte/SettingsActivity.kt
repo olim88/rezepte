@@ -1,4 +1,4 @@
-package olim.rezepte
+package olim.android.rezepte
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -51,8 +51,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import olim.rezepte.fileManagment.dropbox.DbTokenHandling
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
+import olim.android.rezepte.ui.theme.RezepteTheme
+import kotlin.collections.iterator
 
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +61,7 @@ class SettingsActivity : ComponentActivity() {
 
         val settings = loadSettings(
             getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 MODE_PRIVATE
             )
         )
@@ -381,7 +382,7 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
         ) {
             val login = DbTokenHandling(
                 it.getSharedPreferences(
-                    "olim.rezepte.dropboxintegration",
+                    "olim.android.rezepte.dropboxintegration",
                     ComponentActivity.MODE_PRIVATE
                 )
             )
@@ -589,7 +590,7 @@ private fun MainScreen(loadedSettings: Map<String, String>) {
             //save settings
             SettingsActivity.saveSettings(
                 mContext.getSharedPreferences(
-                    "olim.rezepte.settings",
+                    "olim.android.rezepte.settings",
                     ComponentActivity.MODE_PRIVATE
                 ), SettingsActivity.convertToDictionary(settingsMenuStack.last().second, "")
             )
@@ -620,7 +621,7 @@ private fun MainScreen(loadedSettings: Map<String, String>) {
                 //save settings
                 SettingsActivity.saveSettings(
                     mContext.getSharedPreferences(
-                        "olim.rezepte.settings",
+                        "olim.android.rezepte.settings",
                         ComponentActivity.MODE_PRIVATE
                     ), SettingsActivity.convertToDictionary(settingsMenuStack.last().second, "")
                 )

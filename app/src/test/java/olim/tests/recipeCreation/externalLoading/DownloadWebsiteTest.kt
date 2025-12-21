@@ -1,6 +1,6 @@
 package olim.tests.recipeCreation.externalLoading
 
-import olim.rezepte.recipeCreation.externalLoading.DownloadWebsite
+import olim.android.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

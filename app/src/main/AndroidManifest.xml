@@ -16,7 +16,7 @@
         android:theme="@style/Theme.Rezepte"
         tools:targetApi="31" >
         <activity
-            android:name="olim.rezepte.MainActivity"
+            android:name="olim.android.rezepte.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" >
@@ -27,32 +27,32 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="olim.rezepte.recipeCreation.CreateActivity"
+        <activity android:name="olim.android.rezepte.recipeCreation.CreateActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name="olim.rezepte.LoginActivity"
+        <activity android:name="olim.android.rezepte.LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name="olim.rezepte.recipeMaking.MakeActivity"
+        <activity android:name="olim.android.rezepte.recipeMaking.MakeActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name="olim.rezepte.SearchActivity"
+        <activity android:name="olim.android.rezepte.SearchActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name="olim.rezepte.recipeCreation.LinkStepsToInstructionsActivity"
+        <activity android:name="olim.android.rezepte.recipeCreation.LinkStepsToInstructionsActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name="olim.rezepte.SettingsActivity"
+        <activity android:name="olim.android.rezepte.SettingsActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
-        <activity android:name="olim.rezepte.WalkThoughActivity"
+        <activity android:name="olim.android.rezepte.WalkThoughActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />

@@ -1,14 +1,14 @@
-package olim.rezepte.recipeCreation
+package olim.android.rezepte.recipeCreation
 
-import olim.rezepte.CookingStage
-import olim.rezepte.CookingStep
-import olim.rezepte.CookingStepContainer
-import olim.rezepte.CookingStepTemperature
-import olim.rezepte.HobOption
-import olim.rezepte.Instruction
-import olim.rezepte.Instructions
-import olim.rezepte.TinOrPanOptions
-import olim.rezepte.TinOrPanSizeOptions
+import olim.android.rezepte.CookingStage
+import olim.android.rezepte.CookingStep
+import olim.android.rezepte.CookingStepContainer
+import olim.android.rezepte.CookingStepTemperature
+import olim.android.rezepte.HobOption
+import olim.android.rezepte.Instruction
+import olim.android.rezepte.Instructions
+import olim.android.rezepte.TinOrPanOptions
+import olim.android.rezepte.TinOrPanSizeOptions
 
 class CreateAutomations {
     companion object {

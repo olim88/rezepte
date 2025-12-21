@@ -1,4 +1,4 @@
-package olim.rezepte
+package olim.android.rezepte
 
 import android.app.Activity
 import android.content.Context
@@ -52,10 +52,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import olim.rezepte.fileManagment.dropbox.DbTokenHandling
-import olim.rezepte.recipeMaking.CookingStepDisplay
-import olim.rezepte.recipeMaking.getColor
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
+import olim.android.rezepte.recipeMaking.CookingStepDisplay
+import olim.android.rezepte.recipeMaking.getColor
+import olim.android.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.R
 
 class WalkThoughActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,7 +112,7 @@ fun StartUpDropboxPage(title: String, description: String) {
     //get current login status
     val login = DbTokenHandling(
         mContext.getSharedPreferences(
-            "olim.rezepte.dropboxintegration",
+            "olim.android.rezepte.dropboxintegration",
             ComponentActivity.MODE_PRIVATE
         )
     )
@@ -327,7 +328,7 @@ private fun Finish() {
     //finished the setup save this value so not shown again and take the user to the home screen
     val prefs =
         mContext.getSharedPreferences(
-            "olim.rezepte.walkThrough",
+            "olim.android.rezepte.walkThrough",
             Context.MODE_PRIVATE
         )
     prefs.edit().putBoolean("completed", true).apply()
@@ -428,7 +429,7 @@ fun StartUpStepExample(title: String, description: String) {
     //get settings
     val settings = SettingsActivity.loadSettings(
         mContext.getSharedPreferences(
-            "olim.rezepte.settings",
+            "olim.android.rezepte.settings",
             AppCompatActivity.MODE_PRIVATE
         )
     )
@@ -490,7 +491,7 @@ private fun MainScreen() {
     //get settings
     val settings = SettingsActivity.loadSettings(
         mContext.getSharedPreferences(
-            "olim.rezepte.settings",
+            "olim.android.rezepte.settings",
             AppCompatActivity.MODE_PRIVATE
         )
     )
@@ -509,7 +510,7 @@ private fun MainScreen() {
         //save the settings
         SettingsActivity.saveSettings(
             mContext.getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 ComponentActivity.MODE_PRIVATE
             ), SettingsActivity.convertToDictionary(allSettingsMenuData, "")
         )
@@ -603,7 +604,8 @@ private fun MainScreen() {
                     CurrentScreen.DropboxPage -> {
                         StartUpDropboxPage(
                             title = stringResource(R.string.startup_dropbox_title),
-                            description = stringResource(R.string.startup_dropbox_description) + "\n" + stringResource(R.string.startup_dropbox_login_detail_instructions)
+                            description = stringResource(R.string.startup_dropbox_description) + "\n" + stringResource(
+                                R.string.startup_dropbox_login_detail_instructions)
                         )
                     }
 
@@ -657,7 +659,7 @@ private fun MainScreen() {
                             //save the settings
                             SettingsActivity.saveSettings(
                                 mContext.getSharedPreferences(
-                                    "olim.rezepte.settings",
+                                    "olim.android.rezepte.settings",
                                     ComponentActivity.MODE_PRIVATE
                                 ), SettingsActivity.convertToDictionary(allSettingsMenuData, "")
                             )
@@ -686,7 +688,7 @@ private fun MainScreen() {
                             //save the settings
                             SettingsActivity.saveSettings(
                                 mContext.getSharedPreferences(
-                                    "olim.rezepte.settings",
+                                    "olim.android.rezepte.settings",
                                     ComponentActivity.MODE_PRIVATE
                                 ), SettingsActivity.convertToDictionary(allSettingsMenuData, "")
                             )

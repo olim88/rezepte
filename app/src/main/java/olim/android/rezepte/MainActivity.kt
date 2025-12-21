@@ -1,4 +1,4 @@
-package olim.rezepte
+package olim.android.rezepte
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -74,14 +74,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import olim.rezepte.fileManagment.dropbox.DbTokenHandling
-import olim.rezepte.fileManagment.dropbox.DownloadTask
-import olim.rezepte.fileManagment.dropbox.DropboxClient
-import olim.rezepte.recipeCreation.CreateActivity
-import olim.rezepte.recipeCreation.externalLoading.DownloadWebsite
-import olim.rezepte.recipeCreation.externalLoading.ImageToRecipe
-import olim.rezepte.recipeCreation.parseData
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
+import olim.android.rezepte.fileManagment.dropbox.DownloadTask
+import olim.android.rezepte.fileManagment.dropbox.DropboxClient
+import olim.android.rezepte.recipeCreation.CreateActivity
+import olim.android.rezepte.recipeCreation.externalLoading.DownloadWebsite
+import olim.android.rezepte.recipeCreation.externalLoading.ImageToRecipe
+import olim.android.rezepte.recipeCreation.parseData
+import olim.android.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.R
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -100,8 +101,8 @@ class MainActivity : ComponentActivity() {
         //if the user has not completed the walk though take them there
         val prefs =
             this.getSharedPreferences(
-                "olim.rezepte.walkThrough",
-                Context.MODE_PRIVATE
+                "olim.android.rezepte.walkThrough",
+                MODE_PRIVATE
             )
         if (!prefs.getBoolean("completed", false)) {
             val intent = Intent(this, WalkThoughActivity::class.java)
@@ -114,7 +115,7 @@ class MainActivity : ComponentActivity() {
         //dropbox account handling
         val login = DbTokenHandling(
             getSharedPreferences(
-                "olim.rezepte.dropboxintegration",
+                "olim.android.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
         )
@@ -126,7 +127,7 @@ class MainActivity : ComponentActivity() {
                     //get token
                     val token = DbTokenHandling(
                         getSharedPreferences(
-                            "olim.rezepte.dropboxintegration",
+                            "olim.android.rezepte.dropboxintegration",
                             MODE_PRIVATE
                         )
                     ).retrieveAccessToken()
@@ -282,7 +283,7 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                         Toast.makeText(mContext, R.string.dropbox_login_out_toast, Toast.LENGTH_SHORT).show()
 
                         val prefs = mContext.getSharedPreferences(
-                            "olim.rezepte.dropboxintegration",
+                            "olim.android.rezepte.dropboxintegration",
                             ComponentActivity.MODE_PRIVATE
                         )
                         prefs.edit().clear().apply()
@@ -382,12 +383,12 @@ fun CreateButtonOptions() {
                     val settings =
                         SettingsActivity.loadSettings( //todo already have this loaded
                             mContext.getSharedPreferences(
-                                "olim.rezepte.settings",
+                                "olim.android.rezepte.settings",
                                 ComponentActivity.MODE_PRIVATE
                             )
                         )
                     try {
-                        val recipe = DownloadWebsite.main(it, settings)
+                        val recipe = DownloadWebsite.Companion.main(it, settings)
                         withContext(Dispatchers.Main) {
                             //move to create activity
                             val intent = Intent(mContext, CreateActivity::class.java)
@@ -417,12 +418,12 @@ fun CreateButtonOptions() {
                 stringResource(id = R.string.image_dialog_description),
                 onDismiss = { imageInput = false })
             { imageUri: Uri ->
-                ImageToRecipe.convert(
+                ImageToRecipe.Companion.convert(
                     imageUri,
                     mContext,
                     settings = SettingsActivity.loadSettings(
                         mContext.getSharedPreferences(
-                            "olim.rezepte.settings",
+                            "olim.android.rezepte.settings",
                             ComponentActivity.MODE_PRIVATE
                         )
                     ),

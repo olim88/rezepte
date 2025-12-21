@@ -1,4 +1,4 @@
-package olim.rezepte.fileManagment.dropbox
+package olim.android.rezepte.fileManagment.dropbox
 
 import android.graphics.Bitmap
 import android.util.Log

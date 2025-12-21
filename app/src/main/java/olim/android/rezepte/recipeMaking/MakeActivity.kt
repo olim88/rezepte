@@ -1,4 +1,4 @@
-package olim.rezepte.recipeMaking
+package olim.android.rezepte.recipeMaking
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -53,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -69,21 +70,21 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import olim.rezepte.CookingStage
-import olim.rezepte.CookingStep
-import olim.rezepte.CookingStepContainer
-import olim.rezepte.CookingStepTemperature
-import olim.rezepte.HobOption
-import olim.rezepte.MainActivity
-import olim.rezepte.R
-import olim.rezepte.Recipe
-import olim.rezepte.SettingsActivity
-import olim.rezepte.TinOrPanOptions
-import olim.rezepte.XmlExtraction
-import olim.rezepte.fileManagment.FileSync
-import olim.rezepte.getEmptyRecipe
-import olim.rezepte.recipeCreation.CreateActivity
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.CookingStage
+import olim.android.rezepte.CookingStep
+import olim.android.rezepte.CookingStepContainer
+import olim.android.rezepte.CookingStepTemperature
+import olim.android.rezepte.HobOption
+import olim.android.rezepte.MainActivity
+import olim.android.rezepte.Recipe
+import olim.android.rezepte.SettingsActivity
+import olim.android.rezepte.TinOrPanOptions
+import olim.android.rezepte.XmlExtraction
+import olim.android.rezepte.R
+import olim.android.rezepte.fileManagment.FileSync
+import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.recipeCreation.CreateActivity
+import olim.android.rezepte.ui.theme.RezepteTheme
 
 class MakeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,16 +94,16 @@ class MakeActivity : AppCompatActivity() {
         val recipeName = intent.extras?.getString("recipe name")
 
         //get the users settings
-        val settings = SettingsActivity.loadSettings(
+        val settings = SettingsActivity.Companion.loadSettings(
             getSharedPreferences(
-                "olim.rezepte.settings",
+                "olim.android.rezepte.settings",
                 MODE_PRIVATE
             )
         )
         //get token
         val dropboxPreference =
             getSharedPreferences(
-                "olim.rezepte.dropboxintegration",
+                "olim.android.rezepte.dropboxintegration",
                 MODE_PRIVATE
             )
 
@@ -129,7 +130,7 @@ class MakeActivity : AppCompatActivity() {
                 FileSync.FileInfo("/xml/", "${this@MakeActivity.filesDir}/xml/", "$recipeName.xml")
             CoroutineScope(Dispatchers.IO).launch {
                 FileSync.downloadString(data, file) {
-                    extractedData.value = XmlExtraction.getData(it)
+                    extractedData.value = XmlExtraction.Companion.getData(it)
                 }
             }
 
@@ -528,8 +529,8 @@ fun Ingredient(
 @Composable
 fun getColor(
     index: Int?,
-    default: androidx.compose.ui.graphics.Color
-): androidx.compose.ui.graphics.Color {
+    default: Color
+): Color {
     if (index == null) return default
     return when (index % 3) {
         0 -> MaterialTheme.colorScheme.primary
@@ -622,7 +623,7 @@ fun InstructionsOutput(
 @Composable
 fun CookingStepDisplay(
     step: CookingStep,
-    color: androidx.compose.ui.graphics.Color,
+    color: Color,
     settings: Map<String, String>
 ) {
     Card(
@@ -667,7 +668,7 @@ fun instruction(
     index: Int,
     isBig: Boolean,
     isStrike: Boolean,
-    linkedColor: androidx.compose.ui.graphics.Color
+    linkedColor: Color
 ) {
     var style = if (userSettings["Making.Walk Though Instructions"] == "false") {
         MaterialTheme.typography.bodyMedium

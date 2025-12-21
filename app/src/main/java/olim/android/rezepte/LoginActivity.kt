@@ -1,4 +1,4 @@
-package olim.rezepte
+package olim.android.rezepte
 
 import android.content.Context
 import android.content.Intent
@@ -57,11 +57,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import olim.rezepte.fileManagment.LocalFilesTask
-import olim.rezepte.fileManagment.dropbox.DownloadTask
-import olim.rezepte.fileManagment.dropbox.DropboxClient
-import olim.rezepte.fileManagment.dropbox.UploadTask
-import olim.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.fileManagment.LocalFilesTask
+import olim.android.rezepte.fileManagment.dropbox.DownloadTask
+import olim.android.rezepte.fileManagment.dropbox.DropboxClient
+import olim.android.rezepte.fileManagment.dropbox.UploadTask
+import olim.android.rezepte.ui.theme.RezepteTheme
+import olim.android.rezepte.R
 
 
 class LoginActivity : AppCompatActivity() {
@@ -124,7 +125,7 @@ fun MainLoginUi(finished: () -> Unit) {
                                 //Store accessToken in SharedPreferences
                                 val prefs =
                                     mContext.getSharedPreferences(
-                                        "olim.rezepte.dropboxintegration",
+                                        "olim.android.rezepte.dropboxintegration",
                                         Context.MODE_PRIVATE
                                     )
                                 prefs.edit().putString("access-token", auth.accessToken).apply()
@@ -141,8 +142,8 @@ fun MainLoginUi(finished: () -> Unit) {
                     }
                     //upload the users files to dropbox
                     //get the files needed to upload
-                    val recipes = LocalFilesTask.listFolder("${mContext.filesDir}/xml/")
-                    val images = LocalFilesTask.listFolder("${mContext.filesDir}/image/")
+                    val recipes = LocalFilesTask.Companion.listFolder("${mContext.filesDir}/xml/")
+                    val images = LocalFilesTask.Companion.listFolder("${mContext.filesDir}/image/")
                     val token = auth?.accessToken
                     val dbClient = DropboxClient.getClient(token)
                     val downloader = DownloadTask(dbClient)
@@ -151,7 +152,7 @@ fun MainLoginUi(finished: () -> Unit) {
                     if (recipes != null) {
                         for (file in recipes) {
                             val fileData =
-                                LocalFilesTask.loadString("${mContext.filesDir}/xml/", file)
+                                LocalFilesTask.Companion.loadString("${mContext.filesDir}/xml/", file)
                             if (fileData != null) {//there should not be possible to have a null file but just incase do not do anything if there is
                                 val dbFile = try {
                                     downloader.getXml("/xml/${file}")
@@ -177,7 +178,7 @@ fun MainLoginUi(finished: () -> Unit) {
                     if (images != null) {
                         for (image in images) {
                             val fileData =
-                                LocalFilesTask.loadString("${mContext.filesDir}/image/", image)
+                                LocalFilesTask.Companion.loadString("${mContext.filesDir}/image/", image)
                             if (fileData != null) {//there should not be possible to have a null image but just incase do not do anything if there is
                                 val dbFile = try {
                                     downloader.getXml("/image/${image}")

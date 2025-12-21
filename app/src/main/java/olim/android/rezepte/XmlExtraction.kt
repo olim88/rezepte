@@ -1,4 +1,4 @@
-package olim.rezepte
+package olim.android.rezepte
 
 import com.gitlab.mvysny.konsumexml.Konsumer
 import com.gitlab.mvysny.konsumexml.konsumeXml
