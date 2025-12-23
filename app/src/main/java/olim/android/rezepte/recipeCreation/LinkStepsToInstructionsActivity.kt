@@ -1,10 +1,10 @@
 package olim.android.rezepte.recipeCreation
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -37,16 +38,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import olim.android.rezepte.MainActivity
+import olim.android.rezepte.R
 import olim.android.rezepte.Recipe
 import olim.android.rezepte.SettingsActivity
 import olim.android.rezepte.XmlExtraction
-import olim.android.rezepte.R
 import olim.android.rezepte.fileManagment.FileSync
 import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.getStatusBarHeight
 import olim.android.rezepte.recipeMaking.CookingStepDisplay
 import olim.android.rezepte.recipeMaking.getColor
 import olim.android.rezepte.ui.theme.RezepteTheme
-import android.content.Context
+
 class LinkStepsToInstructionsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,6 +132,8 @@ private fun MainScreen(data: Recipe, onFinish: (Recipe) -> Unit) {
         var stepIndex by remember { mutableStateOf(0) }
         var recipeData by remember { mutableStateOf(data) }
         var updateInstruction by remember { mutableStateOf(false) }
+        //allow for status bar height
+        Spacer(Modifier.height(height = getStatusBarHeight()))
         Card(
             modifier = Modifier
                 .fillMaxWidth()

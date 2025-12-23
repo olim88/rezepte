@@ -62,7 +62,6 @@ import olim.android.rezepte.fileManagment.dropbox.DownloadTask
 import olim.android.rezepte.fileManagment.dropbox.DropboxClient
 import olim.android.rezepte.fileManagment.dropbox.UploadTask
 import olim.android.rezepte.ui.theme.RezepteTheme
-import olim.android.rezepte.R
 
 
 class LoginActivity : AppCompatActivity() {
@@ -219,12 +218,15 @@ fun MainLoginUi(finished: () -> Unit) {
 private fun MainScreen() {
     // Fetching the Local Context
     val mContext = LocalContext.current
+    Spacer(Modifier.height(height = getStatusBarHeight()))
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
+        //allow for status bar height
+        Spacer(Modifier.height(height = getStatusBarHeight()))
         //return home button
         Button(onClick = {
 

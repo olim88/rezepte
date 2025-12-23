@@ -23,12 +23,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
@@ -53,7 +54,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
 import olim.android.rezepte.ui.theme.RezepteTheme
-import kotlin.collections.iterator
 
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -151,7 +151,8 @@ class SettingsActivity : ComponentActivity() {
                             loadToOptions(settings, option.subSettings, start + option.name + ".")
                     }
                     if (option is SettingsConditionalSubMenu) {//just set to default settings values
-                        option.subSettings = loadToOptions(settings, option.subSettings, start + option.name + ".")
+                        option.subSettings =
+                            loadToOptions(settings, option.subSettings, start + option.name + ".")
                     }
                 }
             } catch (e: Exception) {
@@ -443,26 +444,32 @@ private fun SettingsHeader(header: String, onclick: () -> Unit) {
             .animateContentSize()
 
     ) {
-        Row(modifier = Modifier.padding(15.dp)) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "return ", modifier = Modifier
-                .align(Alignment.CenterVertically)
-                .clickable { onclick() })
-            Spacer(modifier = Modifier.padding(10.dp))
-            Text(
-                text = header,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
+        Column() {
+            //allow for status bar height
+            Spacer(Modifier.height(height = getStatusBarHeight()))
+            Row(modifier = Modifier.padding(15.dp)) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "return ", modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .clickable { onclick() })
+                Spacer(modifier = Modifier.padding(10.dp))
+                Text(
+                    text = header,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun SettingsMenuSubMenuButton(header: String, body: String, onclick: () -> Unit) {
-    Row(modifier = Modifier
-        .padding(5.dp)
-        .fillMaxWidth()
-        .clickable { onclick() }) {
+    Row(
+        modifier = Modifier
+            .padding(5.dp)
+            .fillMaxWidth()
+            .clickable { onclick() }) {
         Column {
             Text(text = header, style = MaterialTheme.typography.titleMedium)
             Text(text = body, style = MaterialTheme.typography.bodyMedium)
@@ -474,13 +481,14 @@ private fun SettingsMenuSubMenuButton(header: String, body: String, onclick: () 
 private fun SettingsIntentButton(header: String, body: String, intentActivity: Class<*>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
-    Row(modifier = Modifier
-        .padding(5.dp)
-        .fillMaxWidth()
-        .clickable {
-            val intent = Intent(mContext, intentActivity)
-            mContext.startActivity(intent)
-        }) {
+    Row(
+        modifier = Modifier
+            .padding(5.dp)
+            .fillMaxWidth()
+            .clickable {
+                val intent = Intent(mContext, intentActivity)
+                mContext.startActivity(intent)
+            }) {
         Column {
             Text(text = header, style = MaterialTheme.typography.titleMedium)
             Text(text = body, style = MaterialTheme.typography.bodyMedium)
@@ -490,9 +498,10 @@ private fun SettingsIntentButton(header: String, body: String, intentActivity: C
 
 @Composable
 fun SettingsMenuToggle(header: String, body: String, state: MutableState<Boolean>) {
-    Row(modifier = Modifier
-        .padding(5.dp)
-        .clickable { state.value = !state.value }) {
+    Row(
+        modifier = Modifier
+            .padding(5.dp)
+            .clickable { state.value = !state.value }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -502,7 +511,8 @@ fun SettingsMenuToggle(header: String, body: String, state: MutableState<Boolean
             Text(text = body, style = MaterialTheme.typography.bodyMedium)
         }
 
-        Switch(checked = state.value,
+        Switch(
+            checked = state.value,
             onCheckedChange = { state.value = !state.value })
     }
 }
@@ -530,9 +540,10 @@ fun SettingsMenuDropDown(
             Text(text = body, style = MaterialTheme.typography.bodyMedium)
         }
 
-        Card(modifier = Modifier
-            .align(Alignment.CenterVertically)
-            .clickable { mExpanded = !mExpanded }) {
+        Card(
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .clickable { mExpanded = !mExpanded }) {
             Row(modifier = Modifier.padding(3.dp)) {
                 Text(
                     text = options[index.value],
@@ -547,7 +558,8 @@ fun SettingsMenuDropDown(
                         .padding(10.dp)
                         .size(24.dp)
                 )
-                DropdownMenu(expanded = mExpanded,
+                DropdownMenu(
+                    expanded = mExpanded,
                     onDismissRequest = { mExpanded = false }) {
                     for ((indexClick, option) in options.withIndex()) {
                         DropdownMenuItem(onClick = {
@@ -645,7 +657,8 @@ private fun MainScreen(loadedSettings: Map<String, String>) {
 
 
         ) {
-            AnimatedContent(targetState = settingsMenuStack.last().first, label = "",
+            AnimatedContent(
+                targetState = settingsMenuStack.last().first, label = "",
                 transitionSpec = {
                     if (direction) {
                         slideInHorizontally { width -> +width } togetherWith

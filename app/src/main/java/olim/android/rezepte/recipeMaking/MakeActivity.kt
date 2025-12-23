@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,6 +84,7 @@ import olim.android.rezepte.XmlExtraction
 import olim.android.rezepte.R
 import olim.android.rezepte.fileManagment.FileSync
 import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.getStatusBarHeight
 import olim.android.rezepte.recipeCreation.CreateActivity
 import olim.android.rezepte.ui.theme.RezepteTheme
 
@@ -762,6 +764,8 @@ private fun MainScreen(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
+        //allow for status bar height
+        Spacer(Modifier.height(height = getStatusBarHeight()))
         //title
         Card(
             modifier = Modifier

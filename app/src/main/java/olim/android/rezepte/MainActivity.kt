@@ -22,11 +22,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -53,11 +55,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -82,7 +86,6 @@ import olim.android.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import olim.android.rezepte.recipeCreation.externalLoading.ImageToRecipe
 import olim.android.rezepte.recipeCreation.parseData
 import olim.android.rezepte.ui.theme.RezepteTheme
-import olim.android.rezepte.R
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -161,7 +164,6 @@ class MainActivity : ComponentActivity() {
 private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
     // Fetching the Local Context
     val mContext = LocalContext.current
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -232,21 +234,26 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
     }
 
     //settings button
-    Row {
-        Spacer(modifier = Modifier.weight(1f))
-        IconButton(onClick = {
-            val intent = Intent(mContext, SettingsActivity::class.java)
-            mContext.startActivity(intent)
-        }) {
-            Icon(
-                Icons.Filled.Settings, stringResource(R.string.settings_button_text),
-                Modifier
-                    .padding(10.dp)
-                    .size(24.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
+    Column() {
+        //allow for status bar height
+        Spacer(Modifier.height(height = getStatusBarHeight()))
+        Row {
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(onClick = {
+                val intent = Intent(mContext, SettingsActivity::class.java)
+                mContext.startActivity(intent)
+            }) {
+                Icon(
+                    Icons.Filled.Settings, stringResource(R.string.settings_button_text),
+                    Modifier
+                        .padding(10.dp)
+                        .size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -612,6 +619,13 @@ fun createTempFile(context: Context): File {
         ".jpg",
         context.externalCacheDir
     )
+}
+
+@Composable
+fun getStatusBarHeight():  Dp {
+    val statusBars = WindowInsets.statusBars
+    val density = LocalDensity.current
+    return with(density) { statusBars.getTop(density).toDp() }
 }
 
 @SuppressLint("UnrememberedMutableState")

@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.annotation.StringRes
@@ -56,7 +55,6 @@ import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
 import olim.android.rezepte.recipeMaking.CookingStepDisplay
 import olim.android.rezepte.recipeMaking.getColor
 import olim.android.rezepte.ui.theme.RezepteTheme
-import olim.android.rezepte.R
 
 class WalkThoughActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -505,6 +503,7 @@ private fun MainScreen() {
             )
         )
     }
+    Spacer(Modifier.height(height = getStatusBarHeight()))
     //make the back gesture do the same as the back button
     BackHandler(enabled = true, onBack = {
         //save the settings

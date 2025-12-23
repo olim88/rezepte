@@ -121,6 +121,7 @@ import olim.android.rezepte.fileManagment.FileSync
 import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
 import olim.android.rezepte.getEmptyRecipe
 import olim.android.rezepte.getEmptySearchData
+import olim.android.rezepte.getStatusBarHeight
 import olim.android.rezepte.recipeCreation.externalLoading.DownloadWebsite
 import olim.android.rezepte.ui.theme.RezepteTheme
 import org.redundent.kotlin.xml.xml
@@ -703,6 +704,8 @@ fun TitleInput(data: MutableState<Recipe>) {
             data.value.data.name = name.trim() //update name
         },
         modifier = Modifier
+            //allow for status bar height
+            .padding(top = getStatusBarHeight())
             .fillMaxWidth(),
         textStyle = TextStyle(fontSize = 18.sp),
         singleLine = true,

@@ -108,10 +108,7 @@ import olim.android.rezepte.recipeCreation.CreateAutomations
 import olim.android.rezepte.recipeMaking.MakeActivity
 import olim.android.rezepte.recipeMaking.getColor
 import olim.android.rezepte.ui.theme.RezepteTheme
-import olim.android.rezepte.R
 import java.util.Random
-import kotlin.collections.get
-import kotlin.collections.iterator
 
 
 class SearchActivity : ComponentActivity() {
@@ -855,12 +852,15 @@ fun MyTopBar() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchView(state: MutableState<TextFieldValue>) {
+
     TextField(
         value = state.value,
         onValueChange = { value ->
             state.value = value
         },
         modifier = Modifier
+            //allow for status bar height
+            .padding(top = getStatusBarHeight())
             .fillMaxWidth(),
         textStyle = TextStyle(fontSize = 18.sp),
         leadingIcon = {
@@ -1031,6 +1031,8 @@ fun NoReciepsFoundOuput() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(30.dp)
+            //allow for status bar height
+            .padding(top = 30.dp + getStatusBarHeight())
             .animateContentSize()
     ) {
         Column(
