@@ -24,6 +24,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -38,8 +39,10 @@ import androidx.compose.foundation.layout.requiredWidthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -48,6 +51,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridS
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Search
@@ -56,6 +61,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,6 +78,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -180,7 +187,8 @@ class SearchActivity : ComponentActivity() {
 
             }
             //add local only files to that list
-            val localFiles = LocalFilesTask.Companion.listFolder("${this@SearchActivity.filesDir}/xml/")
+            val localFiles =
+                LocalFilesTask.Companion.listFolder("${this@SearchActivity.filesDir}/xml/")
             if (settings["Local Saves.Cache recipes"] == "true" && !localFiles.isNullOrEmpty()) {
                 for (fileName in localFiles) {
                     if (!recipeNameData.value.contains(fileName.removeSuffix(".xml"))) {//if the list dose not contain the file name add it to the list
@@ -491,7 +499,9 @@ fun RecipeCard(name: String, extraData: BasicData?, thumbNail: Bitmap?, getName:
 
                 ) {
                     Text(
-                        if (getName) stringResource(id = R.string.recipe_action_link) else stringResource(id = R.string.recipe_action_make),
+                        if (getName) stringResource(id = R.string.recipe_action_link) else stringResource(
+                            id = R.string.recipe_action_make
+                        ),
                         modifier = Modifier.padding(all = 2.dp),
                         style = MaterialTheme.typography.titleLarge
                     )
@@ -513,7 +523,9 @@ fun RecipeList(
     thumbnails: MutableMap<String, Bitmap?>,
     searchFieldState: MutableState<TextFieldValue>,
     getName: Boolean,
-    settings: Map<String, String>
+    settings: Map<String, String>,
+    lazyGridState: LazyStaggeredGridState,
+    lazyListState: LazyListState
 ) {
     var filteredNames: List<String>
     val filters = getFilters(names.value, extraData.values)
@@ -521,7 +533,7 @@ fun RecipeList(
 
     if (settings["Search menu.Search Menu List"] == "true") {
         //animated the suggesting in and out when they are in sue
-        val lazyListState = rememberLazyListState()
+
         val firstItemTranslationY by remember {
             derivedStateOf {
                 when {
@@ -575,7 +587,7 @@ fun RecipeList(
     } else {
 
         //animated the suggesting in and out when they are in sue
-        val lazyGridState = rememberLazyStaggeredGridState()
+
         val firstItemTranslationY by remember {
             derivedStateOf {
                 when {
@@ -634,6 +646,8 @@ fun RecipeList(
                 }
             }
         }
+
+
         //when a recipe is selected show an expanded bottom sheet with extra detail and the button to link or make the recipe
         RecipeExpanded(selectedName, extraData[selectedName], thumbnails[selectedName], getName) {
             selectedName = ""
@@ -905,14 +919,15 @@ fun SearchFilters(
     settings: Map<String, String>,
     updateSelectedFilters: (List<String>) -> Unit,
 ) {
-    val currentFilters by remember { mutableStateOf(filters ) }
+    val currentFilters by remember { mutableStateOf(filters) }
 
-    Row(modifier = Modifier
-        .horizontalScroll(rememberScrollState())
-        .graphicsLayer {
-            translationY = firstItemTranslationY
-            alpha = 1f - visibility
-        }) {
+    Row(
+        modifier = Modifier
+            .horizontalScroll(rememberScrollState())
+            .graphicsLayer {
+                translationY = firstItemTranslationY
+                alpha = 1f - visibility
+            }) {
         for (filter in currentFilters) {
             FilterChip(
                 onClick = {
@@ -998,19 +1013,145 @@ private fun MainScreen(
 ) {
     val textState = remember { mutableStateOf(TextFieldValue("")) }
     if (names.value.isNotEmpty()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            SearchView(textState)
+        val lazyGridState = rememberLazyStaggeredGridState()
+        val lazyListState = rememberLazyListState()
+        val scope = rememberCoroutineScope()
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                SearchView(textState)
 
-            RecipeList(names, extraData, thumbnails, textState, getName, settings)
-            if (updatedThumbnail.value) {
-                //this will update the thumbnails
-                updatedThumbnail.value = false
+                RecipeList(
+                    names,
+                    extraData,
+                    thumbnails,
+                    textState,
+                    getName,
+                    settings,
+                    lazyGridState,
+                    lazyListState
+                )
+                if (updatedThumbnail.value) {
+                    //this will update the thumbnails
+                    updatedThumbnail.value = false
+                }
+
             }
+            // scroll to bottom button
+            val isAtBottom by remember {
+                derivedStateOf {
+                    if (settings["Search menu.Search Menu List"] == "true") {
+                        val layoutInfo = lazyListState.layoutInfo
+                        val totalItems = layoutInfo.totalItemsCount
+
+                        if (totalItems == 0) return@derivedStateOf true
+
+                        val lastVisibleIndex =
+                            layoutInfo.visibleItemsInfo.maxOfOrNull { it.index }
+
+                        lastVisibleIndex == totalItems - 1
+                    } else {
+                        val layoutInfo = lazyGridState.layoutInfo
+                        val totalItems = layoutInfo.totalItemsCount
+
+                        if (totalItems == 0) return@derivedStateOf true
+
+                        val lastVisibleIndex =
+                            layoutInfo.visibleItemsInfo.maxOfOrNull { it.index }
+
+                        lastVisibleIndex == totalItems - 1
+                    }
+
+                }
+            }
+            AnimatedVisibility(
+                visible = !isAtBottom,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            if (settings["Search menu.Search Menu List"] == "true") {
+                                lazyListState.animateScrollToItem(
+                                    index = lazyListState.layoutInfo.totalItemsCount - 1
+                                )
+                            } else {
+                                lazyGridState.animateScrollToItem(
+                                    index = lazyGridState.layoutInfo.totalItemsCount - 1
+                                )
+                            }
+
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.ArrowDownward, contentDescription = "Scroll to bottom")
+                }
+            }
+            //scroll to top button
+            val isAtTop by remember {
+                derivedStateOf {
+                    if (settings["Search menu.Search Menu List"] == "true") {
+                        val layoutInfo = lazyListState.layoutInfo
+                        val totalItems = layoutInfo.totalItemsCount
+
+                        if (totalItems == 0) return@derivedStateOf true
+
+                        val lastVisibleIndex =
+                            layoutInfo.visibleItemsInfo.minOfOrNull { it.index }
+
+                        lastVisibleIndex == 0
+                    } else {
+                        val layoutInfo = lazyGridState.layoutInfo
+                        val totalItems = layoutInfo.totalItemsCount
+
+                        if (totalItems == 0) return@derivedStateOf true
+
+                        val lastVisibleIndex =
+                            layoutInfo.visibleItemsInfo.minOfOrNull { it.index }
+
+                        lastVisibleIndex == 0
+                    }
+
+                }
+            }
+            AnimatedVisibility(
+                visible = !isAtTop,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .padding(top = getStatusBarHeight() + 40.dp + 16.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            if (settings["Search menu.Search Menu List"] == "true") {
+                                lazyListState.animateScrollToItem(
+                                    index = 0
+                                )
+                            } else {
+                                lazyGridState.animateScrollToItem(
+                                    index = 0
+                                )
+                            }
+
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.ArrowUpward, contentDescription = "Scroll to top")
+                }
+            }
+
         }
+
     } else {//if there are not recipes loaded show message say none found and to login or create with buttons
         NoReciepsFoundOuput()
     }
@@ -1049,7 +1190,7 @@ fun NoReciepsFoundOuput() {
             Spacer(modifier = Modifier.width(40.dp))
 
             Text(
-                text =stringResource(id = R.string.no_recipes_prompt_create),
+                text = stringResource(id = R.string.no_recipes_prompt_create),
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1182,7 +1323,9 @@ fun previewRecipeCards() {
                 hashMapOf(),
                 textState,
                 false,
-                mapOf()
+                mapOf(),
+                rememberLazyStaggeredGridState(),
+                rememberLazyListState()
             )
         }
     }
