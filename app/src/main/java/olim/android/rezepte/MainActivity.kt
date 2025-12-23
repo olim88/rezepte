@@ -1,7 +1,9 @@
 package olim.android.rezepte
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.res.Resources
 import android.net.Uri
@@ -67,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import androidx.core.content.edit
 import com.dropbox.core.v2.users.FullAccount
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
@@ -154,14 +157,44 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             RezepteTheme {
-                MainScreen(accountData)
+                MainScreen(accountData) { logout() }
             }
         }
+    }
+
+    private fun logout() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dropbox_logout_button)
+            .setMessage(R.string.dropbox_login_out_question)
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .setPositiveButton(
+                android.R.string.yes,
+                DialogInterface.OnClickListener { dialog, whichButton ->
+                    Toast.makeText(
+                        this@MainActivity,
+                        R.string.dropbox_login_out_toast,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    val prefs = this.getSharedPreferences(
+                        "olim.android.rezepte.dropboxintegration",
+                        Context.MODE_PRIVATE
+                    )
+                    prefs.edit { clear() }
+                    //Back to LoginActivity
+                    val intent = Intent(this, LoginActivity::class.java)
+                    this.startActivity(intent)
+
+                })
+
+            .setNegativeButton(android.R.string.no, null).show()
     }
 }
 
 @Composable
-private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
+private fun MainScreen(
+    accountData: MutableState<Pair<FullAccount?, Boolean>>,
+    onLogoutClick: () -> Unit
+) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     Column(
@@ -208,7 +241,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
             Modifier
                 .weight(0.9f)
         )
-        DropboxInfo(accountData)
+        DropboxInfo(accountData, onLogoutClick)
 
         // Banner Ad at the bottom
         AndroidView(
@@ -258,7 +291,7 @@ private fun MainScreen(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
+fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>, onLogoutClick: () -> Unit) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     Card(
@@ -287,22 +320,16 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                 )
                 Button(
                     onClick = {
-                        Toast.makeText(mContext, R.string.dropbox_login_out_toast, Toast.LENGTH_SHORT).show()
-
-                        val prefs = mContext.getSharedPreferences(
-                            "olim.android.rezepte.dropboxintegration",
-                            Context.MODE_PRIVATE
-                        )
-                        prefs.edit().clear().apply()
-                        //Back to LoginActivity
-                        val intent = Intent(mContext, LoginActivity::class.java)
-                        mContext.startActivity(intent)
+                        onLogoutClick()
 
                     }, modifier = Modifier
                         .padding(5.dp)
                         .align(Alignment.CenterVertically)
                 ) {
-                    Text(text = stringResource(R.string.dropbox_logout_button), textAlign = TextAlign.Center)
+                    Text(
+                        text = stringResource(R.string.dropbox_logout_button),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         } else { //the user is not logged in (show the option to log in
@@ -329,12 +356,16 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>) {
                         .padding(5.dp)
                         .align(Alignment.CenterVertically)
                 ) {
-                    Text(text = stringResource(id = R.string.dropbox_login_button), textAlign = TextAlign.Center)
+                    Text(
+                        text = stringResource(id = R.string.dropbox_login_button),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun CreateButtonOptions() {
@@ -366,7 +397,10 @@ fun CreateButtonOptions() {
                 onClick = { urlInput = !urlInput },
                 modifier = Modifier.padding(vertical = 5.dp) // Simplified padding
             ) {
-                Text(text = stringResource(id = R.string.load_website_button_text), textAlign = TextAlign.Center)
+                Text(
+                    text = stringResource(id = R.string.load_website_button_text),
+                    textAlign = TextAlign.Center
+                )
             }
             Spacer(
                 Modifier
@@ -375,7 +409,10 @@ fun CreateButtonOptions() {
             Button(onClick = {
                 imageInput = !imageInput
             }, modifier = Modifier.padding(vertical = 5.dp)) { // Simplified padding
-                Text(text = stringResource(id = R.string.load_image_button_text), textAlign = TextAlign.Center)
+                Text(
+                    text = stringResource(id = R.string.load_image_button_text),
+                    textAlign = TextAlign.Center
+                )
             }
         }
 
@@ -435,12 +472,14 @@ fun CreateButtonOptions() {
                         )
                     ),
                     error = {
-                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT)
+                            .show()
                     })
                 {
                     //if the recipe is still empty don't start create just give error
                     if (it == getEmptyRecipe()) {
-                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT)
+                            .show()
                         return@convert
                     }
                     //when loaded send the recipe to the create menu
@@ -507,7 +546,10 @@ fun GetStringDialog(
                         .padding(5.dp)
                         .fillMaxWidth()
                 ) {
-                    Text(text = stringResource(R.string.get_string_dialog_enter_string), textAlign = TextAlign.Center)
+                    Text(
+                        text = stringResource(R.string.get_string_dialog_enter_string),
+                        textAlign = TextAlign.Center
+                    )
 
                 }
                 Card(
@@ -579,7 +621,10 @@ fun AddImageDialog(descriptionText: String, onDismiss: () -> Unit, onReturnUri: 
                             .padding(0.dp, 5.dp)
                             .weight(1f)
                     ) {
-                        Text(text = stringResource(id = R.string.add_image_camera), textAlign = TextAlign.Center)
+                        Text(
+                            text = stringResource(id = R.string.add_image_camera),
+                            textAlign = TextAlign.Center
+                        )
 
                     }
                     Spacer(modifier = Modifier.weight(0.2f))
@@ -591,7 +636,10 @@ fun AddImageDialog(descriptionText: String, onDismiss: () -> Unit, onReturnUri: 
                             .padding(0.dp, 5.dp)
                             .weight(1f)
                     ) {
-                        Text(text = stringResource(id = R.string.add_image_File), textAlign = TextAlign.Center)
+                        Text(
+                            text = stringResource(id = R.string.add_image_File),
+                            textAlign = TextAlign.Center
+                        )
 
                     }
                 }
@@ -622,7 +670,7 @@ fun createTempFile(context: Context): File {
 }
 
 @Composable
-fun getStatusBarHeight():  Dp {
+fun getStatusBarHeight(): Dp {
     val statusBars = WindowInsets.statusBars
     val density = LocalDensity.current
     return with(density) { statusBars.getTop(density).toDp() }
@@ -633,6 +681,6 @@ fun getStatusBarHeight():  Dp {
 @Composable
 fun homePreview() {
     RezepteTheme {
-        MainScreen(mutableStateOf(Pair(null, false)))
+        MainScreen(mutableStateOf(Pair(null, false)), {})
     }
 }

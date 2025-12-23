@@ -23,6 +23,7 @@
     <string name="settings_button_text">Settings</string>
     <string name="dropbox_account">Dropbox Account</string>
     <string name="dropbox_login_out_toast">Logging out…</string>
+    <string name="dropbox_login_out_question">Are you sure you want to logout</string>
     <string name="dropbox_logout_button">Logout</string>
     <string name="dropbox_login_description">Unlock cloud sync and backup by connecting to Dropbox</string>
     <string name="dropbox_login_button">Login</string>

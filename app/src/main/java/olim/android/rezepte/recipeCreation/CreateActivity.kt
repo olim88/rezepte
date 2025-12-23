@@ -274,7 +274,7 @@ class CreateActivity : ComponentActivity() {
     }
 
     private fun deleteRecipe() {
-        //comfirm delete
+        //confirm delete
 
         if (loadedRecipeName != null && !intent.extras!!.getBoolean("creating")) //only need to delete files if it was save before
         {
