@@ -1,11 +1,14 @@
 package olim.android.rezepte
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -52,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import olim.android.rezepte.fileManagment.LocalFilesTask
 import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
 import olim.android.rezepte.ui.theme.RezepteTheme
 
@@ -379,6 +383,50 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     mutableStateOf(2),
                     listOf("none", "thumbnail", "full sized")
                 ),
+                SettingsUnit(
+                    "Clear Local Data",
+                    "deletes all local data"
+                ) {
+                    AlertDialog.Builder(it)
+                        .setTitle("Delete All Local Files")
+                        .setMessage("If you have unsynced recipes they could be lost. Only use this if you are having problems with the app. Are you sure you want to delete them?")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(
+                            android.R.string.yes,
+                            DialogInterface.OnClickListener { dialog, whichButton ->
+                                Toast.makeText(
+                                    it,
+                                    R.string.dialog_title_delete_recipe,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                // delete xml
+                                val xmlFiles = LocalFilesTask.listFolder("${it.filesDir}/xml/")
+                                if (xmlFiles != null) {
+                                    for (file in xmlFiles) {
+                                        LocalFilesTask.removeFile("${it.filesDir}/xml/", file)
+                                    }
+                                }
+                                //delete images
+                                val imgFiles = LocalFilesTask.listFolder("${it.filesDir}/image/")
+                                if (imgFiles != null) {
+                                    for (file in imgFiles) {
+                                        LocalFilesTask.removeFile("${it.filesDir}/image/", file)
+                                    }
+                                }
+                                //delete thumbs
+                                val thumbFiles =
+                                    LocalFilesTask.listFolder("${it.filesDir}/thumbnail/")
+                                if (thumbFiles != null) {
+                                    for (file in thumbFiles) {
+                                        LocalFilesTask.removeFile("${it.filesDir}/thumbnail/", file)
+                                    }
+                                }
+                                //delete metadata files
+                                LocalFilesTask.removeFile("${it.filesDir}/", "searchData.xml")
+                                LocalFilesTask.removeFile("${it.filesDir}/", "listOfRecipes.xml")
+                            })
+                        .setNegativeButton(android.R.string.no, null).show()
+                },
             )
         ) {
             val login = DbTokenHandling(
@@ -422,6 +470,12 @@ data class SettingsIntent(
     val intentActivity: Class<*>
 ) : SettingOptionInterface
 
+data class SettingsUnit(
+    override val name: String,
+    override val description: String,
+    val intentUnit: (context: Context) -> Unit
+) : SettingOptionInterface
+
 data class SettingsSubMenu(
     override val name: String,
     override val description: String,
@@ -449,7 +503,9 @@ private fun SettingsHeader(header: String, onclick: () -> Unit) {
             Spacer(Modifier.height(height = getStatusBarHeight()))
             Row(modifier = Modifier.padding(15.dp)) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "return ", modifier = Modifier
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "return ",
+                    modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .clickable { onclick() })
                 Spacer(modifier = Modifier.padding(10.dp))
@@ -713,6 +769,13 @@ private fun MainScreen(loadedSettings: Map<String, String>) {
                                 header = menu.name,
                                 body = menu.description,
                                 intentActivity = menu.intentActivity
+                            )
+                        }
+                        if (menu is SettingsUnit) {
+                            SettingsMenuSubMenuButton(
+                                header = menu.name,
+                                body = menu.description,
+                                onclick = { menu.intentUnit(mContext) }
                             )
                         }
                     }
