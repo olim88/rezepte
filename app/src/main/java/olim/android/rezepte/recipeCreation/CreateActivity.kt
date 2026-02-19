@@ -26,8 +26,11 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -1660,6 +1663,7 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                     modifier = Modifier
                         .padding(5.dp)
                 ) {
+                    Spacer(modifier = Modifier.weight(1f))
                     Button(
                         onClick = {
                             data.value.instructions =
@@ -1669,23 +1673,11 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                                 )
                             instructionsInput = getInstructions(data)
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(0.5f)
                     ) {
                         Text(text = stringResource(R.string.button_text_smart_split), textAlign = TextAlign.Center)
                     }
-                    Spacer(modifier = Modifier.weight(0.5f))
-                    Button(
-                        onClick = {
-                            data.value.instructions = CreateAutomations.autoSplitInstructions(
-                                data.value.instructions,
-                                CreateAutomations.Companion.InstructionSplitStrength.Sentences
-                            )
-                            instructionsInput = getInstructions(data)
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(text = stringResource(R.string.button_text_sentence_split), textAlign = TextAlign.Center)
-                    }
+
                 }
             }
         }
@@ -1838,7 +1830,9 @@ private fun MainScreen(
     if (recipeDataInput.value != getEmptyRecipe()) {
         Column(
             modifier = Modifier
-                .fillMaxHeight()
+                .fillMaxSize()
+                .imePadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .background(MaterialTheme.colorScheme.background)
         ) {
@@ -1872,6 +1866,8 @@ private fun MainScreen(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
+                .imePadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .background(MaterialTheme.colorScheme.background)
         ) {

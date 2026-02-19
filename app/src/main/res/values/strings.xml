@@ -195,7 +195,6 @@
         <string name="label_ingredients">Ingredients</string>
         <string name="label_instructions">Instructions</string> <!-- Capitalized -->
         <string name="button_text_smart_split">Smart Split</string>
-        <string name="button_text_sentence_split">Sentence Split</string>
         <string name="button_text_delete">Delete</string>
 
 
