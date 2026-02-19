@@ -21,6 +21,10 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -45,6 +49,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,20 +64,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -85,6 +95,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -1737,29 +1748,65 @@ fun FinishButton(
     onFinish: (Recipe, Uri?, Bitmap?, Boolean) -> Unit,
     imageBitmap: MutableState<Bitmap?>
 ) {
+    var widthPx by remember { mutableIntStateOf(0) }
+    val interactionSource = remember { MutableInteractionSource() }
     Card(
         modifier = Modifier
             .padding(5.dp)
             .animateContentSize()
             .fillMaxWidth()
-            .clickable {
-                if (data.value.data.cookingSteps.list.isEmpty()) onFinish(
-                    data.value,
-                    image.value,
-                    imageBitmap.value,
-                    false
+            .indication(
+                interactionSource = interactionSource,
+                indication = ripple()
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { offset ->
+                        val press = PressInteraction.Press(offset)
+                        interactionSource.emit(press)
+
+                        val released = tryAwaitRelease()
+
+                        interactionSource.emit(
+                            if (released)
+                                PressInteraction.Release(press)
+                            else
+                                PressInteraction.Cancel(press)
+                        )
+                    },
+                    onTap = { offset ->
+                        if (data.value.data.cookingSteps.list.isEmpty()) onFinish(
+                            data.value,
+                            image.value,
+                            imageBitmap.value,
+                            false
+                        ) else if (offset.x < widthPx / 2f){
+                            onFinish(data.value, image.value, imageBitmap.value, false)
+
+                        }else {
+                            onFinish(data.value, image.value, imageBitmap.value, true)
+                        }
+
+                    }
                 )
             }
+
+            .onSizeChanged { size: IntSize ->
+                widthPx = size.width
+            }
+
             .clip(RoundedCornerShape(50.dp)),
 
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary,
         )) {
         //buttons
+
         Row(
             modifier = Modifier
                 .padding(8.dp)
                 .height(IntrinsicSize.Min)
+
         ) {
             if (update.value) update.value = false
             if (data.value.data.cookingSteps.list.isNotEmpty()) {
@@ -1769,9 +1816,6 @@ fun FinishButton(
                 )
                 Text(text = stringResource(R.string.finish)+ " ", style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
-                        .clickable {
-                            onFinish(data.value, image.value, imageBitmap.value, false)
-                        }
                         .padding(2.dp))
                 Spacer(
                     Modifier
@@ -1790,7 +1834,6 @@ fun FinishButton(
                 Text(text = " " + stringResource(R.string.recipe_action_link),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
-                        .clickable { onFinish(data.value, image.value, imageBitmap.value, true) }
                         .padding(2.dp))
                 Spacer(
                     Modifier
