@@ -2,7 +2,9 @@ package olim.android.rezepte.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -10,6 +12,9 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -36,7 +41,35 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF1C1B1F),
     */
 )
+@RequiresApi(Build.VERSION_CODES.S)
+@Composable
+fun DistinctDynamicColorScheme(darkTheme: Boolean): ColorScheme {
+    val context = LocalContext.current
 
+    // Get dynamic system colors
+    val baseColors = if (darkTheme) {
+        dynamicDarkColorScheme(context)
+    } else {
+        dynamicLightColorScheme(context)
+    }
+
+    // Minimum perceptible luminance difference (0..1)
+    val minContrast = 0.15f
+
+    fun ensureContrast(base: Color, other: Color): Color {
+        val diff = kotlin.math.abs(base.luminance() - other.luminance())
+        return if (diff < minContrast) {
+            // Push other color away from base
+            if (darkTheme) lerp(other, Color.Black, minContrast - diff)
+            else lerp(other, Color.White, minContrast - diff)
+        } else other
+    }
+
+    return baseColors.copy(
+        secondary = ensureContrast(baseColors.primary, baseColors.secondary),
+        tertiary = ensureContrast(baseColors.primary, baseColors.tertiary)
+    )
+    }
 @Composable
 fun RezepteTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -47,7 +80,7 @@ fun RezepteTheme(
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            DistinctDynamicColorScheme(darkTheme)
         }
 
         darkTheme -> DarkColorScheme
