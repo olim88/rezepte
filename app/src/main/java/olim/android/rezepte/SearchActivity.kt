@@ -116,6 +116,7 @@ import olim.android.rezepte.recipeMaking.MakeActivity
 import olim.android.rezepte.recipeMaking.getColor
 import olim.android.rezepte.ui.theme.RezepteTheme
 import java.util.Random
+import java.util.SortedMap
 
 
 class SearchActivity : ComponentActivity() {
@@ -973,11 +974,11 @@ fun SearchFilters(
 fun getFilters(
     recipeNames: List<String>,
     authors: MutableCollection<BasicData>
-): Map<String, MutableState<Boolean>> { //get common words to use as suggested filters
-    val popularWords = mutableMapOf<String, MutableState<Boolean>>()
+): SortedMap<String, MutableState<Boolean>> { //get common words to use as suggested filters
+    var popularWords = mutableMapOf<String, MutableState<Boolean>>()
     val usedWordsCount = mutableMapOf<String, Int>()
     for (name in recipeNames) {
-        for (word in CreateAutomations.Companion.getWords(name)) {
+        for (word in CreateAutomations.getWords(name)) {
             if (usedWordsCount[word] == null) {
                 usedWordsCount[word] = 1
             } else {
@@ -1000,6 +1001,13 @@ fun getFilters(
             popularWords[word.key] = mutableStateOf(false)
         }
     }
+    // sort to have most used first (this is a weird way to do it but there can not be duplicates at the same value. this should work fine for upto 1000 items. and at that point there is another problem
+    var i = 1
+    popularWords = popularWords.toSortedMap { key1, key2 ->
+        return@toSortedMap ((usedWordsCount[key2]!! - usedWordsCount[key1]!!) * 1000) + i++
+    }
+
+
 
     return popularWords
 }
