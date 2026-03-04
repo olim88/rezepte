@@ -529,7 +529,7 @@ fun RecipeList(
     lazyListState: LazyListState
 ) {
     var filteredNames: List<String>
-    val filters = getFilters(names.value, extraData.values)
+    val filters = remember {getFilters(names.value, extraData.values) }
     val currentFilters = remember { mutableStateListOf<String>() }
 
     if (settings["Search menu.Search Menu List"] == "true") {
