@@ -88,6 +88,7 @@ import olim.android.rezepte.getEmptyRecipe
 import olim.android.rezepte.getStatusBarHeight
 import olim.android.rezepte.recipeCreation.CreateActivity
 import olim.android.rezepte.ui.theme.RezepteTheme
+import java.util.regex.Pattern
 
 class MakeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -154,8 +155,10 @@ class MakeActivity : AppCompatActivity() {
 
             withContext(Dispatchers.Main) {
                 if (extractedData.value == getEmptyRecipe()) { //if no data has been loaded show error and close window
-                    Toast.makeText(this@MakeActivity,
-                        R.string.make_recipe_not_exist_toast, Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        this@MakeActivity,
+                        R.string.make_recipe_not_exist_toast, Toast.LENGTH_SHORT
+                    )
                         .show()
                     this@MakeActivity.finish()
                 }
@@ -163,7 +166,7 @@ class MakeActivity : AppCompatActivity() {
         }
 
         //if setting enabled add keep screen on flag
-        if (settings["Making.Keep Screen On"] == "true"){
+        if (settings["Making.Keep Screen On"] == "true") {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
@@ -219,12 +222,26 @@ fun DataOutput(
             TextField(
                 value = multiplierInput,
                 onValueChange = { value ->
-                    multiplierInput = value //if valid number set recipe multiplier to that value
-                    val temp = value.toFloatOrNull()
-                    if (temp != null) multiplier.value = temp else multiplier.value = 1f
+                    multiplierInput = value
+                    //check to see if it's a fraction
+                    val fraction = Pattern.compile("(\\d*)/(\\d+)")
+                    val match = fraction.matcher(multiplierInput);
+                    if (match.matches()) {
+                        //let there be no number at start and assume we are dividing 1 e.g. "/2" would be half
+                        val temp = match.group(1)!!.toFloatOrNull()
+                        if (temp == null) {
+                            multiplier.value = 1 / match.group(2)!!.toFloat();
+                        } else {
+                            multiplier.value = temp / match.group(2)!!.toFloat();
+                        }
+                    } else {
+                        //if valid number set recipe multiplier to that value
+                        val temp = value.toFloatOrNull()
+                        if (temp != null) multiplier.value = temp else multiplier.value = 1f
+                    }
                 },
                 label = { Text(stringResource(R.string.make_label_multiplier)) },
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier
                     .fillMaxWidth(),
                 singleLine = true
@@ -436,7 +453,11 @@ fun Ingredient(
         -1 //when it is showing conversions and then the settings is struck stop showing the conversions
     if (userSettings["Units.Show Conversions"] == "false" || measurementsInside.isEmpty()) {//if can not find measurements just show the ingredient or the setting is disabled
         Text(
-            text = stringResource(id = R.string.make_ingredient_item_format, intToRoman(index + 1), convertedText),
+            text = stringResource(
+                id = R.string.make_ingredient_item_format,
+                intToRoman(index + 1),
+                convertedText
+            ),
             modifier = Modifier
                 .padding(5.dp)
                 .fillMaxWidth(),
@@ -451,7 +472,11 @@ fun Ingredient(
             ) {
                 //ingredient number
                 Text(
-                    text = stringResource(id = R.string.make_ingredient_item_format, intToRoman(index + 1), ""),
+                    text = stringResource(
+                        id = R.string.make_ingredient_item_format,
+                        intToRoman(index + 1),
+                        ""
+                    ),
                     textAlign = TextAlign.Center,
                     style = style
                 )
@@ -740,7 +765,10 @@ fun LinkedRecipesOutput(recipeData: Recipe) {
                             Modifier
                                 .weight(1f)
                         )
-                        Icon(Icons.Default.ArrowForward, stringResource(R.string.make_icon_go_to_arrow_description))
+                        Icon(
+                            Icons.Default.ArrowForward,
+                            stringResource(R.string.make_icon_go_to_arrow_description)
+                        )
 
                     }
                 }
