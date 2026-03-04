@@ -24,9 +24,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -503,7 +505,7 @@ private fun MainScreen() {
             )
         )
     }
-    Spacer(Modifier.height(height = getStatusBarHeight()))
+
     //make the back gesture do the same as the back button
     BackHandler(enabled = true, onBack = {
         //save the settings
@@ -521,17 +523,18 @@ private fun MainScreen() {
     })
     Card(
         modifier = Modifier
+            .navigationBarsPadding()
             .fillMaxWidth()
     ) {
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
+                .fillMaxSize()
+                .imePadding()
                 .background(MaterialTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
+            Spacer(Modifier.height(height = getStatusBarHeight()))
 
             //render pages
             AnimatedContent(
