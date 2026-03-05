@@ -632,7 +632,7 @@ fun RecipeList(
                     searchFieldState.value.text,
                     settings
                 )
-            items(filteredNames) { name ->
+            items(filteredNames, key = {name -> name}) { name ->
 
                 RecipeTile(
                     name,
