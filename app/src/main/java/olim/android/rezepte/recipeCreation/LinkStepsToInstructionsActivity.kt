@@ -95,8 +95,7 @@ class LinkStepsToInstructionsActivity : AppCompatActivity() {
             )
         CoroutineScope(Dispatchers.IO).launch {
             //load the file data
-            val priority =
-                if (settings["Local Saves.Cache recipe names"] == "true") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val priority = FileSync.FilePriority.None
             val uploadData = FileSync.Data(priority, dropboxPreference)
             val xmlSaveFile =
                 FileSync.FileInfo(

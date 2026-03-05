@@ -177,11 +177,10 @@ class SearchActivity : ComponentActivity() {
         val file =
             FileSync.FileInfo("", "${this@SearchActivity.filesDir}", "listOfRecipes.xml")
         CoroutineScope(Dispatchers.IO).launch {
-            if (settings["Local Saves.Cache recipe names"] == "true") {
-                FileSync.downloadString(loadLocalFileData, file) {
-                    localList = it
-                }
+            FileSync.downloadString(loadLocalFileData, file) {
+                localList = it
             }
+
 
             if (localList != null) {
                 recipeNameData.value = localList.replace(".xml", "").split("\n").toMutableList()
@@ -247,13 +246,12 @@ class SearchActivity : ComponentActivity() {
                             .split("\n")
                     ) { //if the lists are different use the online version and save to to local if enabled
                         recipeNameData.value = onlineList
-                        if (settings["Local Saves.Cache recipe names"] == "true") {
-                            FileSync.uploadString(
-                                loadLocalFileData,
-                                file,
-                                onlineList.joinToString("\n")
-                            ) {}
-                        }
+                        FileSync.uploadString(
+                            loadLocalFileData,
+                            file,
+                            onlineList.joinToString("\n")
+                        ) {}
+
                     }
                 }
 
@@ -530,7 +528,7 @@ fun RecipeList(
     lazyListState: LazyListState
 ) {
     var filteredNames: List<String>
-    val filters = remember {getFilters(names.value, extraData.values) }
+    val filters = remember { getFilters(names.value, extraData.values) }
     val currentFilters = remember { mutableStateListOf<String>() }
 
     if (settings["Search menu.Search Menu List"] == "true") {

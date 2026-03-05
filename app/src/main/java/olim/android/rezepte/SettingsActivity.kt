@@ -373,11 +373,6 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     "save a copy of recipes",
                     mutableStateOf(true)
                 ),
-                SettingsOptionToggle(
-                    "Cache recipe names",
-                    "save a copy of names",
-                    mutableStateOf(true)
-                ),
                 SettingsOptionDropDown(
                     "Cache recipe image",
                     "save a copy of images (can use up more space )",

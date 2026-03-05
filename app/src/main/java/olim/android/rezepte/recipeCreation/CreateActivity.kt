@@ -296,7 +296,8 @@ class CreateActivity : ComponentActivity() {
                 .setTitle(R.string.dialog_title_delete_recipe)
                 .setMessage(R.string.dialog_message_delete_recipe)
                 .setIcon(android.R.drawable.ic_dialog_alert)
-                .setPositiveButton(android.R.string.yes,
+                .setPositiveButton(
+                    android.R.string.yes,
                     DialogInterface.OnClickListener { dialog, whichButton ->
                         Toast.makeText(
                             this@CreateActivity,
@@ -388,8 +389,7 @@ class CreateActivity : ComponentActivity() {
                     }
                 }
             }
-            val uploadPriority =
-                if (settings["Local Saves.Cache recipe names"] == "true") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val uploadPriority = FileSync.FilePriority.None
             val uploadData = FileSync.Data(uploadPriority, dropboxPreference)
             FileSync.uploadString(
                 uploadData,
@@ -440,8 +440,7 @@ class CreateActivity : ComponentActivity() {
             )
         CoroutineScope(Dispatchers.IO).launch {
             //upload the file data
-            val priorityXml =
-                if (settings["Local Saves.Cache recipe names"] == "true") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val priorityXml = FileSync.FilePriority.None
             val priorityImage =
                 if (settings["Local Saves.Cache recipe image"] == "full sized") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
             val saveThumbnail =
@@ -514,8 +513,7 @@ class CreateActivity : ComponentActivity() {
             }
             //add new recipe
             searchData!!.data.add(BasicData(name, recipe.data.serves, recipe.data.author))
-            val prioritySave =
-                if (settings["Local Saves.Cache recipe names"] == "true") FileSync.FilePriority.None else FileSync.FilePriority.OnlineOnly
+            val prioritySave = FileSync.FilePriority.None
             val searchDataUpload = FileSync.Data(prioritySave, dropboxPreference)
             FileSync.uploadString(
                 searchDataUpload,
@@ -775,10 +773,11 @@ fun ImageInput(image: MutableState<Uri?>, savedBitmap: MutableState<Bitmap?>) {
                         .weight(1f)
                 )
             }
-            Button(onClick =
-            {         //Show menu to add image
-                showImageSelectionMenu = true
-            }, modifier = Modifier.padding(5.dp)
+            Button(
+                onClick =
+                    {         //Show menu to add image
+                        showImageSelectionMenu = true
+                    }, modifier = Modifier.padding(5.dp)
             ) {
                 Icon(
                     if (image.value == null && savedBitmap.value == null) Icons.Filled.Add else Icons.Filled.Edit,
@@ -927,7 +926,8 @@ fun LinkedRecipesInput(data: MutableState<Recipe>) {
                     Modifier
                         .weight(1f)
                 )
-                Icon(icon, stringResource(R.string.label_linked_recipes),
+                Icon(
+                    icon, stringResource(R.string.label_linked_recipes),
                     Modifier
                         .clickable { isExpanded = !isExpanded }
                         .padding(10.dp)
@@ -1054,7 +1054,8 @@ fun CookingStepsInput(
                     Modifier
                         .weight(1f)
                 )
-                Icon(icon, stringResource(R.string.label_cooking_steps),
+                Icon(
+                    icon, stringResource(R.string.label_cooking_steps),
                     Modifier
                         .clickable { isExpanded = !isExpanded }
                         .padding(10.dp)
@@ -1186,10 +1187,11 @@ fun CookingStep(
             }
         }
     }
-    Card(modifier = Modifier
-        .clickable { isExpanded.value = !isExpanded.value }
-        .padding(3.dp)
-        .animateContentSize()) {
+    Card(
+        modifier = Modifier
+            .clickable { isExpanded.value = !isExpanded.value }
+            .padding(3.dp)
+            .animateContentSize()) {
         if (!isExpanded.value) {
             Row {
                 Text(
@@ -1346,7 +1348,14 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text(stringResource(R.string.label_size,if (settings["Units.metric Lengths"] == "true") "cm" else "in")) } //size plus the units the user has selected
+                            label = {
+                                Text(
+                                    stringResource(
+                                        R.string.label_size,
+                                        if (settings["Units.metric Lengths"] == "true") "cm" else "in"
+                                    )
+                                )
+                            } //size plus the units the user has selected
                         )
                     }
 
@@ -1368,7 +1377,14 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text(stringResource(R.string.label_length,if (settings["Units.metric Lengths"] == "true") "cm" else "in")) } //size plus the units the user has selected
+                            label = {
+                                Text(
+                                    stringResource(
+                                        R.string.label_length,
+                                        if (settings["Units.metric Lengths"] == "true") "cm" else "in"
+                                    )
+                                )
+                            } //size plus the units the user has selected
                         )
                         TextField(
                             value = dimensionTwoValue,
@@ -1387,7 +1403,14 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text(stringResource(R.string.label_width,if (settings["Units.metric Lengths"] == "true") "cm" else "in")) } //size plus the units the user has selected
+                            label = {
+                                Text(
+                                    stringResource(
+                                        R.string.label_width,
+                                        if (settings["Units.metric Lengths"] == "true") "cm" else "in"
+                                    )
+                                )
+                            } //size plus the units the user has selected
                         )
                     }
 
@@ -1409,7 +1432,14 @@ fun CookingStep(
                             textStyle = TextStyle(fontSize = 18.sp),
                             singleLine = true,
                             shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
-                            label = { Text(stringResource(R.string.label_volume,if (settings["Units.metric Volume"] == "true") "l" else "pt")) } //size plus the units the user has selected
+                            label = {
+                                Text(
+                                    stringResource(
+                                        R.string.label_volume,
+                                        if (settings["Units.metric Volume"] == "true") "l" else "pt"
+                                    )
+                                )
+                            } //size plus the units the user has selected
                         )
                     }
 
@@ -1451,12 +1481,14 @@ inline fun <reified T> MenuItemWithDropDown(
             Modifier
                 .weight(1f)
         )
-        Icon(icon, "contentDescription",
+        Icon(
+            icon, "contentDescription",
             Modifier
                 .clickable { mExpanded = !mExpanded }
                 .padding(10.dp)
                 .size(24.dp))
-        DropdownMenu(expanded = mExpanded,
+        DropdownMenu(
+            expanded = mExpanded,
             onDismissRequest = { mExpanded = false }) {
             values.forEach { label ->
                 if (label is CookingStage) { //todo do not repeat the code
@@ -1686,7 +1718,10 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                         },
                         modifier = Modifier.weight(0.5f)
                     ) {
-                        Text(text = stringResource(R.string.button_text_smart_split), textAlign = TextAlign.Center)
+                        Text(
+                            text = stringResource(R.string.button_text_smart_split),
+                            textAlign = TextAlign.Center
+                        )
                     }
 
                 }
@@ -1780,10 +1815,10 @@ fun FinishButton(
                             image.value,
                             imageBitmap.value,
                             false
-                        ) else if (offset.x < widthPx / 2f){
+                        ) else if (offset.x < widthPx / 2f) {
                             onFinish(data.value, image.value, imageBitmap.value, false)
 
-                        }else {
+                        } else {
                             onFinish(data.value, image.value, imageBitmap.value, true)
                         }
 
@@ -1814,9 +1849,12 @@ fun FinishButton(
                     Modifier
                         .weight(1f)
                 )
-                Text(text = stringResource(R.string.finish)+ " ", style = MaterialTheme.typography.titleLarge,
+                Text(
+                    text = stringResource(R.string.finish) + " ",
+                    style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
-                        .padding(2.dp))
+                        .padding(2.dp)
+                )
                 Spacer(
                     Modifier
                         .weight(1f)
@@ -1831,10 +1869,12 @@ fun FinishButton(
                     Modifier
                         .weight(1f)
                 )
-                Text(text = " " + stringResource(R.string.recipe_action_link),
+                Text(
+                    text = " " + stringResource(R.string.recipe_action_link),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
-                        .padding(2.dp))
+                        .padding(2.dp)
+                )
                 Spacer(
                     Modifier
                         .weight(1f)
@@ -1845,7 +1885,8 @@ fun FinishButton(
                         .weight(1f)
                 )
                 Text(
-                    text = stringResource(R.string.finish), style = MaterialTheme.typography.titleLarge,
+                    text = stringResource(R.string.finish),
+                    style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .padding(2.dp)
                 )
