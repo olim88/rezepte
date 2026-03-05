@@ -3,7 +3,6 @@ package olim.android.rezepte.recipeMaking
 import olim.android.rezepte.CookingStage
 import olim.android.rezepte.CookingStep
 import olim.android.rezepte.TinOrPanOptions
-import kotlin.collections.iterator
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -16,13 +15,13 @@ class MakeFormatting {
                 val fraction = this - whole
 
                 for (i in 1 until fractions.size) {
-                    if (abs(fraction) > (fractionValues[i] + fractionValues[i - 1]) / 2) {
-                        return if (fractionValues[i - 1] == 1.0) {
+                    if (abs(fraction) > (fractions[i].value + fractions[i - 1].value) / 2) {
+                        return if (fractions[i - 1].value == 1.0f) {
                             "${whole + sign}" to (whole + sign).toFloat()
                         } else if (whole != 0) {
-                            "$whole${fractions[i - 1]}" to whole + sign * fractionValues[i - 1].toFloat()
+                            "$whole${fractions[i - 1].label}" to whole + sign * fractions[i - 1].value
                         } else {
-                            fractions[i - 1] to sign * fractionValues[i - 1].toFloat()
+                            fractions[i - 1].label to sign * fractions[i - 1].value
                         }
 
                     }
@@ -40,7 +39,7 @@ class MakeFormatting {
                 }
                 //convert fraction to number
                 val fractionalValue = if (fraction != "") {
-                    fractionValues[fractions.indexOf(fraction)]
+                    (fractions.find { it.label == fraction })?.value
                 } else {
                     null
                 }
@@ -192,24 +191,25 @@ class MakeFormatting {
         }
 
 
-        private val fractions = arrayOf(
-            "",                           // 16/16
-            "\u00B9\u2075/\u2081\u2086",  // 15/16
-            "\u215E",                     // 7/8
-            "\u00B9\u00B3/\u2081\u2086",  // 13/16
-            "\u00BE",                     // 3/4
-            "\u00B9\u00B9/\u2081\u2086",  // 11/16
-            "\u215D",                     // 5/8
-            "\u2079/\u2081\u2086",        // 9/16
-            "\u00BD",                     // 1/2
-            "\u2077/\u2081\u2086",        // 7/16
-            "\u215C",                     // 3/8
-            "\u2075/\u2081\u2086",        // 5/16
-            "\u00BC",                     // 1/4
-            "\u00B3/\u2081\u2086",        // 3/16
-            "\u215B",                     // 1/8
-            "\u00B9/\u2081\u2086",        // 1/16
-            ""                            // 0/16
+
+        data class Fraction(val value: Float, val label: String)
+        private val fractions = listOf(
+            Fraction(1.0f, ""),
+            Fraction(7 / 8.0f, "⅞"),
+
+            Fraction(3 / 4.0f, "¾"),
+
+            Fraction(2 / 3f, "⅔"),
+
+            Fraction(1 / 2.0f, "½"),
+
+            Fraction(1 / 3f, "⅓"),
+
+            Fraction(1 / 4.0f, "¼"),
+
+            Fraction(1 / 8.0f, "⅛"),
+
+            Fraction(0.0f, "")
         )
         private val numberRegex = Regex(
             "([0-9]+(/|\\d*\\.)?[0-9]*(((${
@@ -217,13 +217,7 @@ class MakeFormatting {
             }))?))|(((${fractions.slice(1..fractions.count() - 2).joinToString(")|(")})))"
         ) //the regex to show that it is a number
 
-        private val fractionValues = arrayOf(
-            1.0,
-            15.0 / 16, 7.0 / 8, 13.0 / 16, 3.0 / 4, 11.0 / 16,
-            5.0 / 8, 9.0 / 16, 1.0 / 2, 7.0 / 16, 3.0 / 8,
-            5.0 / 16, 1.0 / 4, 3.0 / 16, 1.0 / 8, 1.0 / 16,
-            0.0
-        )
+
 
         private fun combineNumbersWithThereFractions(string: String): String {
             //combines split number and fraction pairs
