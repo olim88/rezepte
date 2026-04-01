@@ -11,7 +11,19 @@ import olim.android.rezepte.TinOrPanOptions
 import olim.android.rezepte.TinOrPanSizeOptions
 
 class CreateAutomations {
+
     companion object {
+
+        private val blankRegex = Regex("^\\s*$")
+        private val sentenceSplitRegex = Regex("(?<=\\.)\\s+")
+        private val timeRegex = Regex("(seconds)|(min(ute)?s?)|(hours?)")
+        private val waitRegex = Regex(" (wait)|(sit for)|(leave)|(off the heat)|(allow to) ")
+        private val hobRegex = Regex(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ")
+        private val ovenRegex = Regex(" (oven)|(bake)|(roast) ")
+        private val celsiusRegex = Regex("(([°º]?c)|℃)")
+        private val celsiusValueRegex = Regex("[0-9]+(([°º]?c)|℃)")
+        private val fahrenheitRegex = Regex("(([°º]?f)|℉)")
+        private val fahrenheitValueRegex = Regex("[0-9]+(([°º]?f)|℉)")
         fun autoGenerateStepsFromInstructions(instructions: Instructions): Pair<List<CookingStep>, Instructions> {
             val generatedSteps: MutableList<CookingStep> = mutableListOf()
             var ovenStepIndex = -1
@@ -95,13 +107,13 @@ class CreateAutomations {
 
         private fun getInstructionStage(text: String, lastStep: CookingStage?): CookingStage {
             val cleanText = getCleanText(text)
-            if (cleanText.contains(" (wait)|(sit for)|(leave)|(off the heat)|(allow to) ".toRegex())) {
+            if (cleanText.contains(waitRegex)) {
                 return CookingStage.wait
             }
-            if (cleanText.contains(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ".toRegex())) {
+            if (cleanText.contains(hobRegex)) {
                 return CookingStage.hob
             }
-            if (cleanText.contains(" (oven)|(bake)|(roast) ".toRegex())) {
+            if (cleanText.contains(ovenRegex)) {
                 return CookingStage.oven
             }
             if (cleanText.contains(" fridge ")) {
@@ -126,21 +138,21 @@ class CreateAutomations {
                 var fahrenheitTemperature =
                     -1 //if temp is not found in C see but found in fahrenheit use this to convert to C
                 for ((index, word) in words.withIndex()) {
-                    if (word.matches("[0-9]+(([°º]?c)|℃)".toRegex())) {//should be a temperature
+                    if (word.matches(celsiusValueRegex)) {//should be a temperature
                         if (index < words.count() - 1 && words[index + 1].lowercase() == "fan") {//if fan or not
                             return CookingStepTemperature(
-                                word.replace("(([°º]?c)|℃)".toRegex(), "").toInt(),
+                                word.replace(celsiusRegex, "").toInt(),
                                 HobOption.zero,
                                 true
                             )
                         }
                         return CookingStepTemperature(
-                            word.replace("(([°º]?c)|℃)".toRegex(), "").toInt(),
+                            word.replace(celsiusRegex, "").toInt(),
                             HobOption.zero,
                             false
                         )
-                    } else if (word.matches("[0-9]+(([°º]?f)|℉)".toRegex())) {//should be fahrenheit a temperature
-                        fahrenheitTemperature = word.replace("(([°º]?f)|℉)".toRegex(), "").toInt()
+                    } else if (word.matches(fahrenheitValueRegex)) {//should be fahrenheit a temperature
+                        fahrenheitTemperature = word.replace(fahrenheitRegex, "").toInt()
                     }
                 }
                 //C temperature has not been found so see if there is a fahrenheit temperature to use
@@ -298,7 +310,7 @@ class CreateAutomations {
         private fun getInstructionTime(text: String): String {
             val words = getWords(text)
             for ((index, word) in words.withIndex()) {
-                if (word != "" && word.matches("(seconds)|(min(ute)?s?)|(hours?)".toRegex())) {
+                if (word != "" && word.matches(timeRegex)) {
                     return "${words[index - 1]} $word"
                 }
             }
@@ -324,8 +336,9 @@ class CreateAutomations {
                     val newInstructions = mutableListOf<Instruction>() //create new list
                     var index = 0
                     for (instruction in instructions.list) {
-                        instruction.text.split(".").forEach {
-                            if (!it.matches("\\s*".toRegex())) {
+
+                        instruction.text.split(sentenceSplitRegex).forEach {
+                            if (!it.matches(blankRegex)) {
                                 newInstructions.add(Instruction(index, "$it.", null))
                                 index++
                             }
@@ -341,10 +354,10 @@ class CreateAutomations {
                     for (instruction in instructions.list) {
                         val sentences = instruction.text.split(".")
                         var nextInstruction = ""
-                        for (sentenceIndex in 0..sentences.count() - 1) {
+                        for (sentenceIndex in 0..<sentences.count()) {
                             val sentence =
                                 sentences[sentenceIndex]//current sentence looking to split of from what is before it
-                            if (!sentence.matches("\\s*".toRegex())) {
+                            if (!sentence.matches(blankRegex)) {
                                 if (getIsNewSentence(sentence.removePrefix(" "))) {
                                     //add the next instruction to the instructions and start fresh with this sentence
                                     if (nextInstruction != "") {
@@ -379,7 +392,7 @@ class CreateAutomations {
             }
         }
 
-        private val falseStartingList = listOf(
+        private val falseStartingList = setOf(
             ")",//if its ending inside a bracket do not split it
             "this",//if starting with this is is probably describing the last step and should not be new
             "there",
@@ -398,12 +411,7 @@ class CreateAutomations {
 
         private fun getIsNewSentence(sentence: String): Boolean {//todo could be smarter
             if (sentence.length < 28) return false // to short to think about splitting off
-            for (word in falseStartingList) {
-                if (sentence.startsWith(word, ignoreCase = true)) {
-                    return false
-                }
-            }
-            return true // if passes all checks return try
+            return !falseStartingList.any{ sentence.startsWith(it, ignoreCase = true) } // if passes all checks return try
         }
 
         enum class InstructionSplitStrength {

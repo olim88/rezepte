@@ -1633,7 +1633,22 @@ fun getInstructions(data: MutableState<Recipe>): String {
     }
     return output
 }
+fun onInstructionChange(value: String, data: MutableState<Recipe>) : String {
+    //save value to data
+    val instructions: MutableList<Instruction> = mutableListOf()
+    var index = 0
+    for (instruction in value.split("\n")) {
+        if (!instruction.matches("\\s*".toRegex())) {
+            instructions.add(Instruction(index, instruction, null))
+            index += 1
+        }
 
+    }
+    data.value.instructions = Instructions(instructions)
+
+
+    return value
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Recipe>) {
@@ -1643,6 +1658,7 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
         MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.tertiary
     )
+    var undoState: Instructions? by remember { mutableStateOf(null) }
 
     Card(
         shape = MaterialTheme.shapes.small,
@@ -1656,18 +1672,9 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                 TextField(
                     value = instructionsInput,
                     onValueChange = { value ->
-                        instructionsInput = value
-                        //save value to data
-                        val instructions: MutableList<Instruction> = mutableListOf()
-                        var index = 0
-                        for (instruction in value.split("\n")) {
-                            if (!instruction.matches("\\s*".toRegex())) {
-                                instructions.add(Instruction(index, instruction, null))
-                                index += 1
-                            }
-
-                        }
-                        data.value.instructions = Instructions(instructions)
+                        instructionsInput = onInstructionChange(value, data)
+                        //invalidate undo sate
+                        undoState = null
                     },
                     visualTransformation = {
                         TransformedText(
@@ -1683,18 +1690,9 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                 TextField(
                     value = instructionsInput,
                     onValueChange = { value ->
-                        instructionsInput = value
-                        //save value to data
-                        val instructions: MutableList<Instruction> = mutableListOf()
-                        var index = 0
-                        for (instruction in value.split("\n")) {
-                            if (!instruction.matches("\\s*".toRegex())) {
-                                instructions.add(Instruction(index, instruction, null))
-                                index += 1
-                            }
-
-                        }
-                        data.value.instructions = Instructions(instructions)
+                        instructionsInput = onInstructionChange(value, data)
+                        //invalidate undo sate
+                        undoState = null
                     },
                     modifier = Modifier.fillMaxWidth(1f),
                     textStyle = TextStyle(fontSize = 18.sp),
@@ -1707,22 +1705,46 @@ fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Reci
                         .padding(5.dp)
                 ) {
                     Spacer(modifier = Modifier.weight(1f))
-                    Button(
-                        onClick = {
-                            data.value.instructions =
-                                CreateAutomations.autoSplitInstructions(
-                                    data.value.instructions,
-                                    CreateAutomations.Companion.InstructionSplitStrength.Intelligent
-                                )
-                            instructionsInput = getInstructions(data)
-                        },
-                        modifier = Modifier.weight(0.5f)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.button_text_smart_split),
-                            textAlign = TextAlign.Center
-                        )
+                    //show undo button only when there is something worth undoing
+                    if (undoState == null) {
+                        Button(
+                            onClick = {
+                                //save current instructions to undo state
+                                undoState = data.value.instructions
+                                data.value.instructions =
+                                    CreateAutomations.autoSplitInstructions(
+                                        data.value.instructions,
+                                        CreateAutomations.Companion.InstructionSplitStrength.Intelligent
+                                    )
+                                instructionsInput = getInstructions(data)
+                            },
+                            modifier = Modifier.weight(0.5f)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.button_text_smart_split),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                //revert back to undo sate
+                                undoState?.let {
+                                    data.value.instructions = it
+                                }
+                                undoState = null
+
+                                instructionsInput = getInstructions(data)
+                            },
+                            modifier = Modifier.weight(0.5f)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.button_text_undo),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
+
 
                 }
             }
