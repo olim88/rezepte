@@ -844,7 +844,9 @@ fun DataInput(
                 shape = RectangleShape, // The TextFiled has rounded corners top left and right by default
                 label = { Text(stringResource(R.string.label_servings)) }
             )
-            CookingStepsInput(settings, data, updatedSteps)
+            if (settings["Creation.Advanced Step Config"] == "true") {
+                CookingStepsInput(settings, data, updatedSteps)
+            }
             LinkedRecipesInput(data)
             TextField(
                 value = if (data.value.data.website == null) "" else data.value.data.website!!,
@@ -1633,7 +1635,8 @@ fun getInstructions(data: MutableState<Recipe>): String {
     }
     return output
 }
-fun onInstructionChange(value: String, data: MutableState<Recipe>) : String {
+
+fun onInstructionChange(value: String, data: MutableState<Recipe>): String {
     //save value to data
     val instructions: MutableList<Instruction> = mutableListOf()
     var index = 0
@@ -1649,6 +1652,7 @@ fun onInstructionChange(value: String, data: MutableState<Recipe>) : String {
 
     return value
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InstructionsInput(userSettings: Map<String, String>, data: MutableState<Recipe>) {
@@ -1769,6 +1773,7 @@ fun buildAnnotatedStringWithColors(text: String, colors: List<Color>): Annotated
 
 @Composable
 fun DeleteAndFinishButtons(
+    settings: Map<String, String>,
     data: MutableState<Recipe>,
     updatedSteps: MutableState<Boolean>,
     onDeleteClick: () -> Unit,
@@ -1793,12 +1798,13 @@ fun DeleteAndFinishButtons(
                 .width(10.dp)
         )
 
-        FinishButton(data, imageUri, updatedSteps, onFinishClick, imageBitmap)
+        FinishButton(settings, data, imageUri, updatedSteps, onFinishClick, imageBitmap)
     }
 }
 
 @Composable
 fun FinishButton(
+    settings: Map<String, String>,
     data: MutableState<Recipe>,
     image: MutableState<Uri?>,
     update: MutableState<Boolean>,
@@ -1866,7 +1872,7 @@ fun FinishButton(
 
         ) {
             if (update.value) update.value = false
-            if (data.value.data.cookingSteps.list.isNotEmpty()) {
+            if (data.value.data.cookingSteps.list.isNotEmpty() && settings["Creation.Advanced Step Config"] == "true") {
                 Spacer(
                     Modifier
                         .weight(1f)
@@ -1959,6 +1965,7 @@ private fun MainScreen(
 
             Spacer(modifier = Modifier.weight(1f))
             DeleteAndFinishButtons(
+                userSettings,
                 recipeDataInput,
                 updatedSteps,
                 onDeleteClick,
@@ -1994,6 +2001,7 @@ private fun MainScreen(
             }
             Spacer(modifier = Modifier.weight(1f))
             DeleteAndFinishButtons(
+                userSettings,
                 recipeDataInput,
                 updatedSteps,
                 onDeleteClick,

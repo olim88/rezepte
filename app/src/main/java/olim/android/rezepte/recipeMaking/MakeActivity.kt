@@ -87,6 +87,7 @@ import olim.android.rezepte.fileManagment.FileSync
 import olim.android.rezepte.getEmptyRecipe
 import olim.android.rezepte.getStatusBarHeight
 import olim.android.rezepte.recipeCreation.CreateActivity
+import olim.android.rezepte.recipeCreation.CreateAutomations
 import olim.android.rezepte.ui.theme.RezepteTheme
 import java.util.regex.Pattern
 
@@ -135,6 +136,11 @@ class MakeActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 FileSync.downloadString(data, file) {
                     extractedData.value = XmlExtraction.Companion.getData(it)
+                    //if no steps are found and setting is enabled generate steps
+                    if (extractedData.value.data.cookingSteps.list.isEmpty() && settings["Making.Auto Generate Steps"] == "true")
+                    {
+                        extractedData.value.data.cookingSteps.list = CreateAutomations.autoGenerateStepsFromInstructions(extractedData.value.instructions).first as MutableList<CookingStep>
+                    }
                 }
             }
 
@@ -150,7 +156,12 @@ class MakeActivity : AppCompatActivity() {
             }
             //sync files
 
-            FileSync.syncFile(data, file) {}
+            FileSync.syncFile(data, file) {
+
+            }
+
+
+
             FileSync.syncFile(imageData, imageFile) {}
 
             withContext(Dispatchers.Main) {

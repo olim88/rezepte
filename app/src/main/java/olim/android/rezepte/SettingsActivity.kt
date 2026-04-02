@@ -263,6 +263,7 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     "when units have all been converted to the same type there may be duplicate in the ingredients list. remove these",
                     mutableStateOf(true)
                 ),
+
             )
         ),
         SettingsSubMenu(
@@ -286,6 +287,11 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     "Keep Screen On",
                     "keep the screen on when making a recipe",
                     mutableStateOf(false)
+                ),
+                SettingsOptionToggle(
+                    "Auto Generate Steps",
+                    "Show Auto generated cooking steps if none are available",
+                    mutableStateOf(true)
                 ),
             )
         ),
@@ -340,6 +346,11 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     "Horizontal Layout",
                     "show ingredients and instructions next to each other in landscape mode",
                     mutableStateOf(true)
+                ),
+                SettingsOptionToggle(
+                    "Advanced Step Config",
+                    "Enable menu to manually set cooking steps for recipe",
+                    mutableStateOf(false)
                 ),
             )
         ),
