@@ -350,7 +350,7 @@ class CreateAutomations {
         fun autoSplitInstructions(
             instructions: Instructions, strength: InstructionSplitStrength
         ): Instructions {
-            //go though each instructions and split it in to the amount needed
+            //go though each instruction and split it in to the amount needed
             when (strength) {
                 InstructionSplitStrength.Sentences -> {
                     //split at every full stop found in the instructions
