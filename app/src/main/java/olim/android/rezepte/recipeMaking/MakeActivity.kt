@@ -139,7 +139,7 @@ class MakeActivity : AppCompatActivity() {
                     //if no steps are found and setting is enabled generate steps
                     if (extractedData.value.data.cookingSteps.list.isEmpty() && settings["Making.Auto Generate Steps"] == "true")
                     {
-                        extractedData.value.data.cookingSteps.list = CreateAutomations.autoGenerateStepsFromInstructions(extractedData.value.instructions).first as MutableList<CookingStep>
+                        extractedData.value.data.cookingSteps.list = CreateAutomations.autoGenerateStepsFromInstructions(extractedData.value.instructions, settings).first as MutableList<CookingStep>
                     }
                 }
             }

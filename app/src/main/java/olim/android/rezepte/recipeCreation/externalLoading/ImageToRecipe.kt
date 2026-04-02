@@ -4,19 +4,18 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text.TextBlock
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import olim.android.rezepte.CookingSteps
-import olim.android.rezepte.getEmptyRecipe
 import olim.android.rezepte.Ingredient
 import olim.android.rezepte.Ingredients
 import olim.android.rezepte.Instruction
 import olim.android.rezepte.Instructions
 import olim.android.rezepte.Recipe
+import olim.android.rezepte.getEmptyRecipe
 import olim.android.rezepte.recipeCreation.CreateAutomations
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.Text.TextBlock
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import kotlin.collections.iterator
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -398,7 +397,7 @@ class ImageToRecipe {
 
                     if (settings["Creation.Image Loading.Generate cooking steps"] == "true") {
                         val stepsAndLinks =
-                            CreateAutomations.Companion.autoGenerateStepsFromInstructions(recipe.instructions)
+                            CreateAutomations.Companion.autoGenerateStepsFromInstructions(recipe.instructions, settings)
                         recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
                         recipe.instructions = stepsAndLinks.second
                     }

@@ -17,14 +17,17 @@ class CreateAutomations {
         private val blankRegex = Regex("^\\s*$")
         private val sentenceSplitRegex = Regex("(?<=\\.)\\s+")
         private val timeRegex = Regex("(seconds)|(min(ute)?s?)|(hours?)")
-        private val waitRegex = Regex(" (wait)|(sit for)|(leave)|(off the heat)|(allow to) ")
+        private val waitRegex =
+            Regex(" (wait)|(sit for)|(leave)|(off the heat)|(allow to)|(set aside) ")
         private val hobRegex = Regex(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ")
         private val ovenRegex = Regex(" (oven)|(bake)|(roast) ")
-        private val celsiusRegex = Regex("(([°º]?c)|℃)")
-        private val celsiusValueRegex = Regex("[0-9]+(([°º]?c)|℃)")
-        private val fahrenheitRegex = Regex("(([°º]?f)|℉)")
-        private val fahrenheitValueRegex = Regex("[0-9]+(([°º]?f)|℉)")
-        fun autoGenerateStepsFromInstructions(instructions: Instructions): Pair<List<CookingStep>, Instructions> {
+        private val temperatureRegex =
+            Regex("""(-?\d+)([°º]?[cf]|℃|℉)(?:\s*(fan))?""", RegexOption.IGNORE_CASE)
+
+        fun autoGenerateStepsFromInstructions(
+            instructions: Instructions,
+            settings: Map<String, String>
+        ): Pair<List<CookingStep>, Instructions> {
             val generatedSteps: MutableList<CookingStep> = mutableListOf()
             var ovenStepIndex = -1
             var lastStepStage: CookingStage? = null
@@ -34,7 +37,12 @@ class CreateAutomations {
                 //get the temperature
                 var temperature: CookingStepTemperature? = null
                 if (stage == CookingStage.oven || stage == CookingStage.hob) {
-                    temperature = getInstructionTemp(instruction.text, stage == CookingStage.oven)
+                    temperature = getInstructionTemp(
+                        instruction.text,
+                        stage == CookingStage.oven,
+                        settings["Units.Fan Oven"] == "true",
+                        settings["Units.Temperature"] == "false"
+                    )
                 }
                 //get the time
                 val time = getInstructionTime(instruction.text)
@@ -130,39 +138,52 @@ class CreateAutomations {
             return CookingStage.prep // most likely if can not find word hinting at what it is
         }
 
-        private fun getInstructionTemp(
-            text: String, isOven: Boolean
-        ): CookingStepTemperature? { //todo see if fan can be found if that is what the user wants
+
+        fun getInstructionTemp(
+            text: String, isOven: Boolean, fanPreferred: Boolean, fahrenheitPreferred: Boolean
+        ): CookingStepTemperature? {
             val words = getWords(text)
             if (isOven) {//if looking for temperature for oven
-                var fahrenheitTemperature =
-                    -1 //if temp is not found in C see but found in fahrenheit use this to convert to C
-                for ((index, word) in words.withIndex()) {
-                    if (word.matches(celsiusValueRegex)) {//should be a temperature
-                        if (index < words.count() - 1 && words[index + 1].lowercase() == "fan") {//if fan or not
-                            return CookingStepTemperature(
-                                word.replace(celsiusRegex, "").toInt(),
-                                HobOption.zero,
-                                true
-                            )
-                        }
-                        return CookingStepTemperature(
-                            word.replace(celsiusRegex, "").toInt(),
-                            HobOption.zero,
-                            false
-                        )
-                    } else if (word.matches(fahrenheitValueRegex)) {//should be fahrenheit a temperature
-                        fahrenheitTemperature = word.replace(fahrenheitRegex, "").toInt()
+
+                val tempOptions = temperatureRegex.findAll(text).map { match ->
+                    val (number, unit, fan) = match.destructured
+
+                    var temperature = number.toInt()
+                    var originalUnit: String? = null
+                    //convert fahrenheit to celsius
+                    if (unit.contains("f", ignoreCase = true) || unit == "℉") {
+                        originalUnit = "F"
+                        temperature = ((5f / 9f) * (number.toFloat() - 32)).toInt()
+                    }
+
+                    CookingStepTemperature(
+                        temperature,
+                        HobOption.zero,
+                        fan.isNotEmpty(),
+                        originalUnit
+                    )
+                }.toList()
+                //if the user want's a fan temperature priorities it over the other options
+                if (fanPreferred) {
+                    tempOptions.firstOrNull { it.isFan == true }?.let {
+                        return it
                     }
                 }
-                //C temperature has not been found so see if there is a fahrenheit temperature to use
-                if (fahrenheitTemperature != -1) {
-                    //save fahrenheit converted to Degrees C
-                    return CookingStepTemperature(
-                        ((5f / 9f) * (fahrenheitTemperature - 32)).toInt(), //convert to deg C
-                        HobOption.zero, false
-                    )
+                //if the user want's a fahrenheit temperature priorities it over the other options
+                if (fahrenheitPreferred) {
+                    tempOptions.firstOrNull { it.originalUnit == "F" }?.let {
+                        return it
+                    }
                 }
+                //try to find non F and non fan option
+                tempOptions.firstOrNull { it.originalUnit != "F" && it.isFan != true }?.let {
+                    return it
+                }
+                //else return first
+                tempOptions.firstOrNull().let {
+                    return it
+                }
+
             } else { //if looking for temperature for hob
                 for ((index, word) in words.withIndex()) {
                     if (word.lowercase() == "heat" && index > 0) {//if it fits the key word and is not the first word
@@ -411,7 +432,12 @@ class CreateAutomations {
 
         private fun getIsNewSentence(sentence: String): Boolean {//todo could be smarter
             if (sentence.length < 28) return false // to short to think about splitting off
-            return !falseStartingList.any{ sentence.startsWith(it, ignoreCase = true) } // if passes all checks return try
+            return !falseStartingList.any {
+                sentence.startsWith(
+                    it,
+                    ignoreCase = true
+                )
+            } // if passes all checks return try
         }
 
         enum class InstructionSplitStrength {

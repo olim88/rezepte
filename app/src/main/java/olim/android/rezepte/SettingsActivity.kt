@@ -229,6 +229,11 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                     mutableStateOf(true)
                 ),
                 SettingsOptionToggle(
+                    "Fan Oven",
+                    "use fan oven temperature when available",
+                    mutableStateOf(true)
+                ),
+                SettingsOptionToggle(
                     "metric Volume",
                     "use the metric system to display volumes (instead of imperial)",
                     mutableStateOf(true)

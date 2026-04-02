@@ -75,7 +75,7 @@ data class CookingStepContainer(
 }
 
 data class CookingStepTemperature(
-    var temperature: Int?, var hobTemperature: HobOption, var isFan: Boolean?
+    var temperature: Int?, var hobTemperature: HobOption, var isFan: Boolean?, var originalUnit: String? = null
 ) {
     companion object {
         fun xml(k: Konsumer): CookingStepTemperature {

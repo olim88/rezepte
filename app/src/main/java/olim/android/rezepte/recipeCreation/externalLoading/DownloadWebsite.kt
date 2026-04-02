@@ -3,14 +3,6 @@ package olim.android.rezepte.recipeCreation.externalLoading
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import olim.android.rezepte.CookingSteps
-import olim.android.rezepte.Ingredient
-import olim.android.rezepte.Ingredients
-import olim.android.rezepte.Instruction
-import olim.android.rezepte.Instructions
-import olim.android.rezepte.Recipe
-import olim.android.rezepte.getEmptyRecipe
-import olim.android.rezepte.recipeCreation.CreateAutomations
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -22,6 +14,14 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import olim.android.rezepte.CookingSteps
+import olim.android.rezepte.Ingredient
+import olim.android.rezepte.Ingredients
+import olim.android.rezepte.Instruction
+import olim.android.rezepte.Instructions
+import olim.android.rezepte.Recipe
+import olim.android.rezepte.getEmptyRecipe
+import olim.android.rezepte.recipeCreation.CreateAutomations
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import java.net.URL
@@ -128,7 +128,7 @@ class DownloadWebsite {
 
             if (settings["Creation.Website Loading.Generate cooking steps"] == "true") {
                 val stepsAndLinks =
-                    CreateAutomations.Companion.autoGenerateStepsFromInstructions(recipe.instructions)
+                    CreateAutomations.Companion.autoGenerateStepsFromInstructions(recipe.instructions, settings)
                 recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
                 recipe.instructions = stepsAndLinks.second
             }

@@ -1111,7 +1111,7 @@ fun CookingStepsInput(
                             onClick = {
                                 //get the value and then save that to the data
                                 val output =
-                                    CreateAutomations.autoGenerateStepsFromInstructions(data.value.instructions)
+                                    CreateAutomations.autoGenerateStepsFromInstructions(data.value.instructions, settings)
                                 data.value.instructions = output.second
                                 steps = CookingSteps(output.first.toMutableList()).list
                                 data.value.data.cookingSteps.list = steps
