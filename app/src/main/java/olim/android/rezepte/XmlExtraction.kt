@@ -42,7 +42,8 @@ data class Data(
     companion object {
         fun xml(k: Konsumer): Data {
             k.checkCurrent("data")
-            return Data(k.childText("name"),
+            return Data(
+                k.childText("name"),
                 k.childText("author"),
                 k.childText("servings"),
                 k.child("cookingSteps") { CookingSteps.xml(this) },
@@ -75,7 +76,10 @@ data class CookingStepContainer(
 }
 
 data class CookingStepTemperature(
-    var temperature: Int?, var hobTemperature: HobOption, var isFan: Boolean?, var originalUnit: String? = null
+    var temperature: Int?,
+    var hobTemperature: HobOption,
+    var isFan: Boolean?,
+    var originalUnit: String? = null
 ) {
     companion object {
         fun xml(k: Konsumer): CookingStepTemperature {
@@ -190,7 +194,8 @@ data class Recipe(var data: Data, var ingredients: Ingredients, var instructions
     companion object {
         fun xml(k: Konsumer): Recipe {
             k.checkCurrent("recipe")
-            return Recipe(k.child("data") { Data.xml(this) },
+            return Recipe(
+                k.child("data") { Data.xml(this) },
                 k.child("ingredients") { Ingredients.xml(this) },
                 k.child("instructions") { Instructions.xml(this) })
         }
@@ -203,27 +208,33 @@ enum class CookingStage(val text: String) {
 }
 
 enum class TinOrPanOptions(val text: String, val sizeing: TinOrPanSizeOptions) {
-    none("none", TinOrPanSizeOptions.None), fryingPan(
+    None("none", TinOrPanSizeOptions.None),
+    FryingPan(
         "frying pan",
         TinOrPanSizeOptions.None
     ),
-    wok("wok", TinOrPanSizeOptions.None), saucePan(
+    Wok("wok", TinOrPanSizeOptions.None),
+    SaucePan(
         "sauce pan",
         TinOrPanSizeOptions.None
     ),
-    bowl("bowl", TinOrPanSizeOptions.None), tray(
+    Bowl("bowl", TinOrPanSizeOptions.None),
+    Tray(
         "tray",
         TinOrPanSizeOptions.None
     ),
-    roastingTin("roasting tin", TinOrPanSizeOptions.None), roundTin(
+    MuffinTin("muffin Tin", TinOrPanSizeOptions.None),
+    CupcakeTin("cupcake Tin", TinOrPanSizeOptions.None),
+    RoastingTin("roasting tin", TinOrPanSizeOptions.None),
+    RoundTin(
         "round tin",
         TinOrPanSizeOptions.OneDimension
     ),
-    rectangleTin("rectangular tin", TinOrPanSizeOptions.TwoDimension), loafTin(
+    RectangleTin("rectangular tin", TinOrPanSizeOptions.TwoDimension), loafTin(
         "loaf tin",
         TinOrPanSizeOptions.TwoDimension
     ),
-    dish("dish", TinOrPanSizeOptions.Volume),
+    Dish("dish", TinOrPanSizeOptions.Volume),
 
 }
 

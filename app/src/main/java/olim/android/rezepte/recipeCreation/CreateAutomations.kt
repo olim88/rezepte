@@ -8,7 +8,6 @@ import olim.android.rezepte.HobOption
 import olim.android.rezepte.Instruction
 import olim.android.rezepte.Instructions
 import olim.android.rezepte.TinOrPanOptions
-import olim.android.rezepte.TinOrPanSizeOptions
 
 class CreateAutomations {
 
@@ -22,7 +21,14 @@ class CreateAutomations {
         private val hobRegex = Regex(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ")
         private val ovenRegex = Regex(" (oven)|(bake)|(roast) ")
         private val temperatureRegex =
-            Regex("""(-?\d+)([°º]?[cf]|℃|℉)(?:\s*(fan))?""", RegexOption.IGNORE_CASE)
+            Regex("""(?:\s*(fan))?(-?\d+)([°º]?[cf]|℃|℉)(?:\s*(fan))?""", RegexOption.IGNORE_CASE)
+        private val dimensionsRegex = Regex(
+            """(\d+\.?\d*)\s*(?:[xX](\d+\.?\d*))?\s*((cm|centimeter)|(in|inch))""",
+            RegexOption.IGNORE_CASE
+        )
+        private val volumeRegex = Regex("""(\d+\.?\d*)(l|litre|pint|pt)""",RegexOption.IGNORE_CASE)
+
+        private val cleanRegex = Regex("""[;,()|/\-_]""")
 
         fun autoGenerateStepsFromInstructions(
             instructions: Instructions,
@@ -47,7 +53,11 @@ class CreateAutomations {
                 //get the time
                 val time = getInstructionTime(instruction.text)
                 //get the container
-                val container = getInstructionContainer(instruction.text)
+                val container = getInstructionContainer(
+                    instruction.text,
+                    settings["Units.metric Lengths"] == "true",
+                    settings["Units.metric Volume"] == "true"
+                )
                 //either link to existing or create step
                 if (ovenStepIndex >= 0 && stage == CookingStage.oven) { //if its oven there is usually only one use of the oven so combine the data together
                     //if there are multiple times create new step for new time
@@ -146,7 +156,7 @@ class CreateAutomations {
             if (isOven) {//if looking for temperature for oven
 
                 val tempOptions = temperatureRegex.findAll(text).map { match ->
-                    val (number, unit, fan) = match.destructured
+                    val (fan1, number, unit, fan2) = match.destructured
 
                     var temperature = number.toInt()
                     var originalUnit: String? = null
@@ -159,7 +169,7 @@ class CreateAutomations {
                     CookingStepTemperature(
                         temperature,
                         HobOption.zero,
-                        fan.isNotEmpty(),
+                        fan1.isNotEmpty() || fan2.isNotEmpty(),
                         originalUnit
                     )
                 }.toList()
@@ -206,125 +216,86 @@ class CreateAutomations {
             return null
         }
 
-        private fun getInstructionContainer(text: String): CookingStepContainer? {
+
+        fun getInstructionContainer(text: String, metricPreferred: Boolean, metricVolumePreferred: Boolean): CookingStepContainer? {
             val cleanText = getCleanText(text)
             val option = when {
-                cleanText.contains(" frying pan ") -> TinOrPanOptions.fryingPan
-                cleanText.contains("pan ") -> TinOrPanOptions.saucePan
-                cleanText.contains(" wok ") -> TinOrPanOptions.saucePan
-                cleanText.contains(" bowl ") -> TinOrPanOptions.bowl
-                cleanText.contains(" trays? ".toRegex()) -> TinOrPanOptions.tray
+                cleanText.contains(" frying pan ") -> TinOrPanOptions.FryingPan
+                cleanText.contains("pan ") -> TinOrPanOptions.SaucePan
+                cleanText.contains(" wok ") -> TinOrPanOptions.SaucePan
+                cleanText.contains(" bowl ") -> TinOrPanOptions.Bowl
+                cleanText.contains(" trays? ".toRegex()) -> TinOrPanOptions.Tray
                 cleanText.contains(" loaf tin ") -> TinOrPanOptions.loafTin
-                cleanText.contains(" roasting tin ") -> TinOrPanOptions.roastingTin
-                cleanText.contains(" rectangular tin ") -> TinOrPanOptions.rectangleTin
-                cleanText.contains(" tins? ".toRegex()) -> TinOrPanOptions.roundTin
-                cleanText.contains(" dish ") -> TinOrPanOptions.dish
-                else -> TinOrPanOptions.none
+                cleanText.contains(" roasting tin ") -> TinOrPanOptions.RoastingTin
+                cleanText.contains(" rectangular tin ") -> TinOrPanOptions.RectangleTin
+                cleanText.contains(" muffin ") -> TinOrPanOptions.MuffinTin
+                cleanText.contains(" cupcake ") -> TinOrPanOptions.CupcakeTin
+                cleanText.contains("tins?".toRegex()) -> TinOrPanOptions.RoundTin
+                cleanText.contains(" dish ") -> TinOrPanOptions.Dish
+                else -> TinOrPanOptions.None
             }
 
-            //if tin see if size can be found
-            var dimensionOne: Float? = null
-            var dimensionTwo: Float? = null
-            var dimensionVolume: Float? = null
-            when (option.sizeing) {
-                TinOrPanSizeOptions.OneDimension -> {// if its an option with one dimensional sizing see if value can be found for it
-                    //split words and see if a word is cm or in and if so find the value associated with this word
-                    val words = getWords(text)
-                    for ((index, word) in words.withIndex()) {
-                        if (word.matches("[0-9]+(cm|centimeter|in|inch)".toRegex())) {//number next to unit
-                            //if inch convert to cm
-                            if ("in" in word || "inch" in word) {
-                                dimensionOne =
-                                    (word.removeSuffix("in").removeSuffix("inch").toIntOrNull()
-                                        ?.times(0.3937008f))
-                                break
-                            }
-                            dimensionOne =
-                                word.removeSuffix("cm").removeSuffix("centimeter").toFloatOrNull()
-                            break
-                        }
-                        if (word.matches("(cm|centimeter|in|inch)".toRegex())) {//find number before unit
-                            //if inch convert to cm
-                            if ("in" in word || "inch" in word) {
-                                dimensionOne = (words[index - 1].toIntOrNull()?.times(0.3937008f))
-                            }
-                            dimensionOne = words[index - 1].toFloatOrNull()
-                            break
-                        }
-                    }
+            data class Dimension(
+                val d1: Float?,
+                val d2: Float?,
+                val metric: Boolean
+            )
+            //find dimensions if any
+            val dimensions = dimensionsRegex.findAll(cleanText).map {
+                val (d1, d2, unit) = it.destructured
+                if (unit == "cm" || unit == "centimeter") {
+                    Dimension(d1.toFloatOrNull(), d2.toFloatOrNull(), true)
+
+                } else {
+                    Dimension(
+                        d1.toFloatOrNull()?.times(2.54f),
+                        d2.toFloatOrNull()?.times(2.54f),
+                        false
+                    )
                 }
 
-                TinOrPanSizeOptions.TwoDimension -> {// if its an option with two dimensional sizing see if value can be found for it
-                    //split words and see if a word is cm or in and if so find the value associated with this word
-                    val words = getWords(text)
-                    for ((index, word) in words.withIndex()) {
-                        if (word.matches("(cm|centimeter|in|inch)".toRegex()) && index > 0) {//find number before unit
-                            val dimensions =
-                                words[index - 1]//should have at least one of the dimensions
-                            //if x in the word both dimensions should be there and just split on x
-                            var num1: String
-                            var num2: String
-                            if (dimensions.contains("x")) {
-                                val split = dimensions.split("x")
-                                if (split.count() < 2) {//if not enough numbers for some reason just break
-                                    break
-                                }
-                                num1 = split[0]
-                                num2 = split[1]
-                            } else if (index > 3) { //assume there is a space between the x and numbers
-                                num1 = words[index - 1]
-                                num2 = words[index - 3]
-                            } else { //nums can not be found
-                                break
-                            }
-                            //now numbers are found convert to cm
-                            //if inch convert
-                            if (word.matches("in|inch".toRegex())) {
-                                dimensionOne = (num1.toIntOrNull()?.times(0.3937008f))
-                                dimensionTwo = (num2.toIntOrNull()?.times(0.3937008f))
-                            } else { //just save cm
-                                dimensionOne = num1.toFloatOrNull()
-                                dimensionTwo = num2.toFloatOrNull()
-                            }
-                        }
-                    }
-
+            }.sortedBy {
+                // prefer the uses main dimension
+                if (metricPreferred) {
+                    !it.metric
+                } else {
+                    it.metric
                 }
-
-                TinOrPanSizeOptions.Volume -> {// if its an option with volume sizing see if value can be found for it
-                    //split words and see if a word is litre or pint and if so find the value associated with this word
-                    val words = getWords(text)
-                    for ((index, word) in words.withIndex()) {
-                        if (word.matches("[0-9]+(l|litre|pint|pt)".toRegex())) {//number next to unit
-                            //if inch convert to litre
-                            if ("pint" in word || "pt" in word) {
-                                dimensionVolume =
-                                    (word.removeSuffix("pint").removeSuffix("pt").toIntOrNull()
-                                        ?.times(0.5682612f))
-                                break
-                            }
-                            dimensionVolume =
-                                word.removeSuffix("l").removeSuffix("litre").toFloatOrNull()
-                            break
-                        }
-                        if (word.matches("(l|litre|pint|pt)".toRegex())) {//find number before unit
-                            //if inch convert to litre
-                            if ("pint" in word || "pt" in word) {
-                                dimensionVolume =
-                                    (words[index - 1].toIntOrNull()?.times(0.5682612f))
-                                break
-                            }
-                            dimensionVolume = words[index - 1].toFloatOrNull()
-                            break
-                        }
-                    }
-                }
-
-                else -> {}
             }
-            if (option != TinOrPanOptions.none) {
-                return CookingStepContainer(option, dimensionOne, dimensionTwo, dimensionVolume)
+            dimensions.firstOrNull()?.let {
+                //if got two dimensions but thinking its a round tin change it to rectangular todo maybe have this as one value and logic elsewhere changes
+                if (it.d2 != null && option == TinOrPanOptions.RoundTin) {
+                    return CookingStepContainer(TinOrPanOptions.RectangleTin, it.d1, it.d2, null)
+                }
+
+                return CookingStepContainer(option, it.d1, it.d2, null)
+
             }
+
+            //if no dimensions where found look for volume
+            data class Volume(
+                val volume: Float?,
+                val metric: Boolean
+            )
+            val volume = volumeRegex.findAll(cleanText).map {
+                val (volume, unit) = it.destructured
+                if (unit == "l" || unit == "litre") {
+                    Volume(volume.toFloatOrNull(), true)
+                }
+                else {
+                    Volume(volume.toFloatOrNull()?.times(0.5682612f), false)
+                }
+            }.sortedBy {
+                if (metricVolumePreferred) {
+                    !it.metric
+                } else {
+                    it.metric
+                }
+            }
+            volume.firstOrNull()?.let {
+                return CookingStepContainer(option, null, null, it.volume)
+            }
+
             return null
         }
 
@@ -344,7 +315,7 @@ class CreateAutomations {
         }
 
         private fun getCleanText(text: String): String {
-            return text.lowercase().replace("[.;,()|/]".toRegex(), " ")
+            return text.lowercase().replace(cleanRegex, " ")
         }
 
         fun autoSplitInstructions(
