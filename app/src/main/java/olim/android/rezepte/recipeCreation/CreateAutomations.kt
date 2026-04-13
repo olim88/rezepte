@@ -17,13 +17,13 @@ class CreateAutomations {
         private val sentenceSplitRegex = Regex("(?<=\\.)\\s+")
         private val timeRegex = Regex("(seconds)|(min(ute)?s?)|(hours?)")
         private val waitRegex =
-            Regex(" (wait)|(sit for)|(leave)|(off the heat)|(allow to)|(set aside) ")
+            Regex(" (wait)|(sit for)|(leave)|(off the heat)|(allow to)|(set aside)|(cool) ")
         private val hobRegex = Regex(" (hob)|(simmer)|(pan)|(sauté)|(skillet)|(boil)|(fry) ")
         private val ovenRegex = Regex(" (oven)|(bake)|(roast) ")
         private val temperatureRegex =
             Regex("""(?:\s*(fan))?(-?\d+)([°º]?[cf]|℃|℉)(?:\s*(fan))?""", RegexOption.IGNORE_CASE)
         private val dimensionsRegex = Regex(
-            """(\d+\.?\d*)\s*(?:[xX](\d+\.?\d*))?\s*((cm|centimeter)|(in|inch))""",
+            """(\d+\.?\d*)\s*(?:[x×X](\d+\.?\d*))?\s*((cm|centimeter)|(in|inch))""",
             RegexOption.IGNORE_CASE
         )
         private val volumeRegex = Regex("""(\d+\.?\d*)(l|litre|pint|pt)""",RegexOption.IGNORE_CASE)
@@ -125,9 +125,6 @@ class CreateAutomations {
 
         private fun getInstructionStage(text: String, lastStep: CookingStage?): CookingStage {
             val cleanText = getCleanText(text)
-            if (cleanText.contains(waitRegex)) {
-                return CookingStage.wait
-            }
             if (cleanText.contains(hobRegex)) {
                 return CookingStage.hob
             }
@@ -136,6 +133,9 @@ class CreateAutomations {
             }
             if (cleanText.contains(" fridge ")) {
                 return CookingStage.fridge
+            }
+            if (cleanText.contains(waitRegex)) {
+                return CookingStage.wait
             }
             //if the last stage was hob infer cook as hob else infer it as oven
             if (cleanText.contains(" cook ")) {
