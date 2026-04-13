@@ -2,6 +2,7 @@ package olim.android.rezepte.recipeCreation.externalLoading
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Point
 import android.net.Uri
 import android.util.Log
 import com.google.mlkit.vision.common.InputImage
@@ -30,9 +31,21 @@ private val TextBlock.lineHeight: Int?
         return height / this.lines.count()
     }
 
+data class Box(val start: Point, val end: Point)
+data class RecipeBounds(
+    var title: Box? = null,
+    var servings: Box? = null,
+    var ingredients: List<Box> = listOf(),
+    var instructions: List<Box> = listOf(),
+    var extra: List<Box> = listOf(),
+)
+
 class ImageToRecipe {
     companion object {
-        private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        private val recognizer by lazy {
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        }
+
         fun convert(
             imageUri: Uri,
             context: Context,
@@ -54,14 +67,55 @@ class ImageToRecipe {
             convert(image, settings, error, callback)
         }
 
-        private fun convert(
-            inputImage: InputImage,
-            settings: Map<String, String>,
-            error: () -> Unit,
-            callback: (Recipe) -> Unit
-        ) {
+        fun getBox(corners: Array<Point>?): Box? {
+            if (corners.isNullOrEmpty()) {
+                return null
+            }
+            corners.sortBy { point -> point.x + point.y }
+            return Box(corners.first(), corners.last())
+        }
 
-            val recipe = getEmptyRecipe()
+        fun getBox(textBlocks: List<TextBlock>): Box? {
+            val boxes = textBlocks.map { block -> getBox(block.cornerPoints) }
+            val starts = boxes.mapNotNull { box -> box?.start }
+            val ends = boxes.mapNotNull { box -> box?.end }
+            starts.sortedBy { point -> point.x + point.y }
+            ends.sortedBy { point -> point.x + point.y }
+            if (starts.isEmpty() || ends.isEmpty()) {
+                return null
+            }
+            return Box(starts.first(), ends.last())
+        }
+
+        fun blockInBox(box: Box?, block: TextBlock?): Boolean {
+            if (box == null || block == null || block.cornerPoints.isNullOrEmpty()) {
+                return false
+            }
+            val points = block.cornerPoints!!
+
+            val avgX = points.sumOf { it.x } / points.size.toFloat()
+            val avgY = points.sumOf { it.y } / points.size.toFloat()
+
+            val point = Point(avgX.toInt(), avgY.toInt())
+            if (point.x >= box.start.x && point.x <= box.end.x) {
+                if (point.y >= box.start.y && point.y <= box.end.y) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        fun blockInBoxes(boxes: List<Box>, block: TextBlock?): Boolean {
+            return boxes.any { box -> blockInBox(box, block) }
+        }
+
+        private fun findBoundingBoxes(
+            inputImage: InputImage,
+            error: () -> Unit,
+            callback: (RecipeBounds, List<TextBlock>) -> Unit
+
+        ) {
+            val recipeBounds = RecipeBounds()
             recognizer.process(inputImage)
                 .addOnSuccessListener { visionText ->
                     // Task completed successfully
@@ -84,10 +138,10 @@ class ImageToRecipe {
                     }
                     //find and sort the needed elements in the image
                     //the indexes of the textBlocks based on top left going from top to bottom and left to right
-                    val verticallySorted = (0..textBlocks.count() - 1).toMutableList()
-                    val horizontalSorted = (0..textBlocks.count() - 1).toMutableList()
+                    val verticallySorted = (0..<textBlocks.count()).toMutableList()
+                    val horizontalSorted = (0..<textBlocks.count()).toMutableList()
                     //the indexes of the line height for the textblocks
-                    val lineHeightSorted = (0..textBlocks.count() - 1).toMutableList()
+                    val lineHeightSorted = (0..<textBlocks.count()).toMutableList()
 
                     // sort to order the indexes
                     horizontalSorted.sortBy {
@@ -100,14 +154,7 @@ class ImageToRecipe {
                         textBlocks[it].lineHeight
                     }
                     lineHeightSorted.reverse()
-                    //debug
-                    //println(horizontalSorted)
-                    //println(verticallySorted)
-                    //println(lineHeightSorted)
-                    //println(textBlocks[verticallySorted[0]].lineHeight)
-                    for (int in 0..textBlocks.count() - 1) {
-                        //println("$int: ${textBlocks[int].text}")
-                    }
+
 
                     //find the title (going to be the largest thing in the top 6 blocks)
                     var titleIndex = -1
@@ -117,7 +164,7 @@ class ImageToRecipe {
                         if (verticallySorted.slice(0..min(5, verticallySorted.count() - 1))
                                 .contains(index)
                         ) {
-                            recipe.data.name = cleanTitle(textBlocks[index].text)
+                            recipeBounds.title = getBox(textBlocks[index].cornerPoints)
                             titleIndex = index
                             break
                         }
@@ -129,18 +176,19 @@ class ImageToRecipe {
                         if (textBlocks[verticallySorted[index]].text.lowercase()
                                 .contains("ma[kr]es?|serving?s|serves".toRegex()) && textBlocks[verticallySorted[index]].text.length < 30
                         ) {
-                            recipe.data.serves = cleanTitle(textBlocks[verticallySorted[index]].text)
+                            recipeBounds.servings =
+                                getBox(textBlocks[verticallySorted[index]].cornerPoints)
                             servingsIndex = verticallySorted[index]
                             break
                         }
                     }
                     //find columns of items
-                    val colums = mutableMapOf<Int, MutableList<Int>>(Pair(0, mutableListOf()))
+                    val columns = mutableMapOf<Int, MutableList<Int>>(Pair(0, mutableListOf()))
                     var currentCol = 0
                     for (blockIndex in horizontalSorted) {
                         //skip first and add to first colum
                         if (blockIndex == horizontalSorted[0]) {
-                            colums[currentCol]!!.add(blockIndex)
+                            columns[currentCol]!!.add(blockIndex)
                             continue
                         }
                         //do not add the servings
@@ -148,20 +196,20 @@ class ImageToRecipe {
                             continue
                         }
                         if (textBlocks[blockIndex].cornerPoints != null) {
-                            //if the corrners are on a similar x value add to the current col else increase col number and add it to that
+                            //if the corners are on a similar x value add to the current col else increase col number and add it to that
                             val thisX = textBlocks[blockIndex].cornerPoints!![0].x
                             val range = textBlocks[blockIndex].lineHeight!!
-                            if (textBlocks[colums[currentCol]!!.last()].cornerPoints!![0].x in thisX - range..thisX + range) {
-                                colums[currentCol]!!.add(blockIndex)
+                            if (textBlocks[columns[currentCol]!!.last()].cornerPoints!![0].x in thisX - range..thisX + range) {
+                                columns[currentCol]!!.add(blockIndex)
                             } else {
                                 currentCol += 1
-                                colums[currentCol] = mutableListOf(blockIndex)
+                                columns[currentCol] = mutableListOf(blockIndex)
                             }
                         }
                     }
                     //sort the elements in the colums by each of the heights
                     //reorder based on the vertical height of the text blocks
-                    for (col in colums) {
+                    for (col in columns) {
                         col.value.sortBy {
                             textBlocks[it].cornerPoints?.get(0)?.y
                         }
@@ -173,8 +221,8 @@ class ImageToRecipe {
                     val currentColSpacing =
                         mutableListOf<Int>()//the spacing between the current coll
                     currentCol = 0
-                    //println("old$colums")
-                    for (colList in colums.values) { //loop though each col
+
+                    for (colList in columns.values) { //loop though each col
                         for (index in colList) {
                             //if first in col continue and add to first
                             if (index == colList[0]) {
@@ -322,92 +370,144 @@ class ImageToRecipe {
                             secondLongest
                         }
 
-                    //clean up the text then create the elements then add to recipe
-
-                    //sometimes ingredients are split into multiple elements or combined into one. try to fix this
-                    //if there is an ingredient that dose not contain a number and is short combine it to the ingredient before it
-
-                    val ingredientTextList: MutableList<String> = mutableListOf()
-                    var currentIngredient = ""
-                    for ((listIndex, blockIndex) in (ingredients).withIndex()) {
-                        //look at lines and if one of the list starts with a number and is not the first line split of that line and start new
-                        val lines = textBlocks[blockIndex].lines
-
-                        for ((lineIndex, line) in lines.withIndex()) {
-                            val text = cleanIngredient(line.text)
-
-                            //val text = textBlocks[blockIndex].text
-                            if (listIndex == 0 && lineIndex == 0) { //skip first
-                                currentIngredient = text
-                                continue
-
-                            }
-                            if ((text.length < (if (lineIndex == 0) 20 else 30) && !text[0].isDigit())) { //if its a short line and dose not start with number combine (if its a start of a  new block more likely to be new line
-                                //combine to above ingredient
-                                currentIngredient += " $text"
-                            } else {
-                                //end previce ingredient and start new
-                                ingredientTextList.add(currentIngredient)
-                                currentIngredient = text
-                            }
-                        }
+                    getBox(
+                        textBlocks.withIndex().filter { (index, _) -> ingredients.contains(index) }
+                            .map { (_, block) -> block })?.let {
+                        recipeBounds.ingredients = listOf(it)
                     }
-                    //add last bit to ingredient text
-                    ingredientTextList.add(currentIngredient)
-                    //ingredients
-                    val recipeIngredients = mutableListOf<Ingredient>()
-                    for ((listIndex, ingredientText) in (ingredientTextList).withIndex()) {
-                        recipeIngredients.add(
-                            Ingredient(
-                                listIndex,
-                                cleanIngredient(ingredientText)
-                            )
-                        )
-                    }
-                    recipe.ingredients = Ingredients(recipeIngredients)
-                    //instructions
-                    val recipeInstructions = mutableListOf<Instruction>()
-                    for ((listIndex, blockIndex) in (instructions).withIndex()) {
-                        recipeInstructions.add(
-                            Instruction(
-                                listIndex,
-                                cleanInstruction(textBlocks[blockIndex].text),
-                                null
-                            )
-                        )
-                    }
-                    recipe.instructions = Instructions(recipeInstructions)
-
-                    //check settings to see if extra needs to be done
-                    when (settings["Creation.Image Loading.Split instructions"]) {
-                        "intelligent" -> recipe.instructions =
-                            CreateAutomations.Companion.autoSplitInstructions(
-                                recipe.instructions,
-                                CreateAutomations.Companion.InstructionSplitStrength.Intelligent
-                            )
-
-                        "sentences" -> recipe.instructions =
-                            CreateAutomations.Companion.autoSplitInstructions(
-                                recipe.instructions,
-                                CreateAutomations.Companion.InstructionSplitStrength.Sentences
-                            )
-
-                        else -> {}
+                    getBox(
+                        textBlocks.withIndex().filter { (index, _) -> instructions.contains(index) }
+                            .map { (_, block) -> block })?.let {
+                        recipeBounds.instructions = listOf(it)
                     }
 
-                    if (settings["Creation.Image Loading.Generate cooking steps"] == "true") {
-                        val stepsAndLinks =
-                            CreateAutomations.Companion.autoGenerateStepsFromInstructions(recipe.instructions, settings)
-                        recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
-                        recipe.instructions = stepsAndLinks.second
-                    }
 
-                    callback(recipe)
+                    callback(recipeBounds, textBlocks)
                 }
                 .addOnFailureListener { e ->
                     // Task failed with an exception
                     Log.d("can't load image", "$e")
                 }
+        }
+
+        fun boundsToRecipe(
+            bounds: RecipeBounds,
+            blocks: List<TextBlock>,
+            settings: Map<String, String>,
+        ): Recipe {
+            val recipe = getEmptyRecipe()
+
+            //find title
+            blocks.firstOrNull { block -> blockInBox(bounds.title, block) }?.let {
+                recipe.data.name = it.text
+            }
+            // find servings
+            blocks.firstOrNull { block -> blockInBox(bounds.servings, block) }?.let {
+                recipe.data.serves = it.text
+            }
+
+            // find ingredients and instructions and extra
+            val ingredients = blocks.filter { block -> blockInBoxes(bounds.ingredients, block) }
+            val instructions = blocks.filter { block -> blockInBoxes(bounds.instructions, block) }
+            val extra = blocks.filter { block -> blockInBoxes(bounds.extra, block) }
+
+            //clean up the text then create the elements then add to recipe
+
+            //sometimes ingredients are split into multiple elements or combined into one. try to fix this
+            //if there is an ingredient that dose not contain a number and is short combine it to the ingredient before it
+
+            val ingredientTextList: MutableList<String> = mutableListOf()
+            var currentIngredient = ""
+            for ((listIndex, block) in (ingredients).withIndex()) {
+                //look at lines and if one of the list starts with a number and is not the first line split of that line and start new
+                val lines = block.lines
+
+                for ((lineIndex, line) in lines.withIndex()) {
+                    val text = cleanIngredient(line.text)
+
+                    //val text = textBlocks[blockIndex].text
+                    if (listIndex == 0 && lineIndex == 0) { //skip first
+                        currentIngredient = text
+                        continue
+
+                    }
+                    if ((text.length < (if (lineIndex == 0) 20 else 30) && !text[0].isDigit())) { //if its a short line and dose not start with number combine (if its a start of a  new block more likely to be new line
+                        //combine to above ingredient
+                        currentIngredient += " $text"
+                    } else {
+                        //end previce ingredient and start new
+                        ingredientTextList.add(currentIngredient)
+                        currentIngredient = text
+                    }
+                }
+            }
+            //add last bit to ingredient text
+            ingredientTextList.add(currentIngredient)
+            //ingredients
+            val recipeIngredients = mutableListOf<Ingredient>()
+            for ((listIndex, ingredientText) in (ingredientTextList).withIndex()) {
+                recipeIngredients.add(
+                    Ingredient(
+                        listIndex,
+                        cleanIngredient(ingredientText)
+                    )
+                )
+            }
+            recipe.ingredients = Ingredients(recipeIngredients)
+            //instructions
+            val recipeInstructions = mutableListOf<Instruction>()
+            for ((listIndex, block) in (instructions).withIndex()) {
+                recipeInstructions.add(
+                    Instruction(
+                        listIndex,
+                        cleanInstruction(block.text),
+                        null
+                    )
+                )
+            }
+            recipe.instructions = Instructions(recipeInstructions)
+
+            //check settings to see if extra needs to be done
+            when (settings["Creation.Image Loading.Split instructions"]) {
+                "intelligent" -> recipe.instructions =
+                    CreateAutomations.Companion.autoSplitInstructions(
+                        recipe.instructions,
+                        CreateAutomations.Companion.InstructionSplitStrength.Intelligent
+                    )
+
+                "sentences" -> recipe.instructions =
+                    CreateAutomations.Companion.autoSplitInstructions(
+                        recipe.instructions,
+                        CreateAutomations.Companion.InstructionSplitStrength.Sentences
+                    )
+
+                else -> {}
+            }
+
+            if (settings["Creation.Image Loading.Generate cooking steps"] == "true") {
+                val stepsAndLinks =
+                    CreateAutomations.Companion.autoGenerateStepsFromInstructions(
+                        recipe.instructions,
+                        settings
+                    )
+                recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
+                recipe.instructions = stepsAndLinks.second
+            }
+
+
+            return recipe
+        }
+
+        private fun convert(
+            inputImage: InputImage,
+            settings: Map<String, String>,
+            error: () -> Unit,
+            callback: (Recipe) -> Unit
+        ) {
+            findBoundingBoxes(inputImage, error) { bounds, text ->
+
+                callback(boundsToRecipe(bounds, text, settings))
+            }
         }
 
         private fun capitalize(str: String): String {
