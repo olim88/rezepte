@@ -36,12 +36,12 @@ private val TextBlock.lineHeight: Int?
         return height / this.lines.count()
     }
 
-public enum class ScanBoxType(val color: Color) {
-    Title(Color.Red),
-    Servings(Color.Green),
-    Ingredients(Color.Blue),
-    Instructions(Color.Black),
-    Extra(Color.Yellow),
+enum class ScanBoxType(val color: Color) {
+    Title(Color(0xFFD32F2F)),        // Red 700
+    Servings(Color(0xFF388E3C)),     // Green 700
+    Ingredients(Color(0xFF1976D2)), // Blue 700
+    Instructions(Color(0xFF7B1FA2)),// Purple 700
+    Extra(Color(0xFFF57C00)),        // Orange 700
 }
 
 enum class Edge {
@@ -67,6 +67,9 @@ data class ScanBox(
     }
 
     operator fun plusAssign(offset: Offset) {
+        val imageHeight = ImageToRecipe.height ?: return
+        val imageWidth = ImageToRecipe.width ?: return
+        if (start.y + offset.y < 0 || start.x + offset.x < 0 || end.y + offset.y > imageHeight || end.x + offset.x > imageWidth) return
         start = Point((start.x + offset.x).toInt(), (start.y + offset.y).toInt());
         end = Point((end.x + offset.x).toInt(), (end.y + offset.y).toInt())
     }
@@ -79,47 +82,79 @@ data class ScanBox(
         return contains(x.toInt(), y.toInt())
     }
 
-    private fun edgeContains(x: Int, y: Int, edge: Edge): Boolean {
-        val edgeSize = 5;
+    fun edgeContains(x: Float, y: Float, edge: Edge, xdpi: Float, ydpi: Float): Boolean {
+        val xEdgeSize = 20f * (xdpi / 160f)
+        val yEdgeSize = 20f * (ydpi / 160f)
+
+        val startX = start.x.toFloat()
+        val startY = start.y.toFloat()
+        val endX = end.x.toFloat()
+        val endY = end.y.toFloat()
+
         return when (edge) {
-            Edge.Top -> x in start.x..end.x &&
-                    y.toDouble() in (start.y - height() * 0.1)..(start.y + height() * 0.2)
+            Edge.Top ->
+                x in startX..endX &&
+                        y in (startY - yEdgeSize)..(startY + yEdgeSize)
 
-            Edge.Bottom -> x in start.x..end.x &&
-                    y.toDouble() in (end.y - height() * 0.2)..(end.y + height() * 0.1)
+            Edge.Bottom ->
+                x in startX..endX &&
+                        y in (endY - yEdgeSize)..(endY + yEdgeSize)
 
-            Edge.Left -> y in start.y..end.y &&
-                    x.toDouble() in (start.x - width() * 0.1)..(start.x + width() * 0.2)
+            Edge.Left ->
+                y in startY..endY &&
+                        x in (startX - xEdgeSize)..(startX + xEdgeSize)
 
-            Edge.Right -> y in start.y..end.y &&
-                    x.toDouble() in (end.x - width() * 0.2)..(end.x + width() * 0.1)
+            Edge.Right ->
+                y in startY..endY &&
+                        x in (endX - xEdgeSize)..(endX + xEdgeSize)
         }
     }
 
-    fun edgeContains(x: Float, y: Float, edge: Edge): Boolean {
-        return edgeContains(x.toInt(), y.toInt(), edge)
-    }
-
-    private fun expand(direction: Edge, amount: Int) {
+    private fun expand(
+        direction: Edge,
+        amount: Int,
+        xdpi: Float,
+        ydpi: Float
+    ) { //todo let grow to small box
+        val xMinSize = 80f * (xdpi / 160f)
+        val yMinSize = 40f * (ydpi / 160f)
+        val imageHeight = ImageToRecipe.height ?: return
+        val imageWidth = ImageToRecipe.width ?: return
         when (direction) {
-            Edge.Top -> start.y += amount
-            Edge.Bottom -> end.y += amount
-            Edge.Left -> start.x += amount
-            Edge.Right -> end.x += amount
+            Edge.Top -> if (height() - amount > yMinSize && start.y + amount > 0) {
+                start.y += amount
+            }
+
+            Edge.Bottom -> if (height() + amount > yMinSize && end.y + amount < imageHeight) {
+                end.y += amount
+            }
+
+            Edge.Left -> if (width() - amount > xMinSize && start.x + amount > 0) {
+                start.x += amount
+            }
+
+            Edge.Right -> if (width() + amount > xMinSize && end.x + amount < imageWidth) {
+                end.x += amount
+            }
         }
     }
 
-    fun expand(direction: Edge, amount: Float, updateTime: Int) {
-        expand(direction, amount.toInt())
+    fun expand(direction: Edge, amount: Float, updateTime: Int, xdpi: Float, ydpi: Float) {
+        expand(direction, amount.toInt(), xdpi, ydpi)
+
         lastUpdate = updateTime
     }
 
     /**
      * If an input is in the top right (where delete button is) remove the box
      */
-    fun detectDelete(x: Float, y: Float): Boolean {
-        return y in (start.y - height() * 0.2)..(start.y + height() * 0.2) && //todo this is probably to big. for all these hitbox checks i should probably use some preset size instead of a percentage
-                x in (end.x - width() * 0.2)..(end.x + width() * 0.2)
+    fun detectDelete(x: Float, y: Float, xdpi: Float, ydpi: Float): Boolean {
+        val xEdgeSize = 20f * (xdpi / 160f)
+        val yEdgeSize = 20f * (ydpi / 160f)
+        val startY = start.y.toFloat()
+        val endX = end.x.toFloat()
+        return y in startY - yEdgeSize..startY + yEdgeSize &&
+                x in (endX - xEdgeSize)..(endX + xEdgeSize)
 
     }
 
@@ -149,7 +184,9 @@ data class RecipeBounds(
     fun findAll(type: ScanBoxType): List<ScanBox> = scanBoxes.filter { it.type == type }
     fun title(): ScanBox? = find(ScanBoxType.Title)
     fun servings(): ScanBox? = find(ScanBoxType.Servings)
-    fun ingredients(): List<ScanBox> = findAll(ScanBoxType.Ingredients) //todo sort from top left to get correct order
+    fun ingredients(): List<ScanBox> =
+        findAll(ScanBoxType.Ingredients) //todo sort from top left to get correct order
+
     fun instructions(): List<ScanBox> = findAll(ScanBoxType.Instructions)
     fun extra(): List<ScanBox> = findAll(ScanBoxType.Extra)
 
@@ -157,9 +194,9 @@ data class RecipeBounds(
         return scanBoxes.size
     }
 
-    fun removeDeleted(targetX: Float, targetY: Float): Boolean {
+    fun removeDeleted(targetX: Float, targetY: Float, xdpi: Float, ydpi: Float): Boolean {
         return scanBoxes.removeAll {
-            it.detectDelete(targetX, targetY)
+            it.detectDelete(targetX, targetY, xdpi, ydpi)
         }
     }
 
@@ -176,11 +213,13 @@ data class RecipeBounds(
 data class Block(
     val center: Point,
     val text: String,
-    val lines : List<String>
+    val lines: List<String>
 ) : Parcelable
 
-class ImageToRecipe{
+class ImageToRecipe {
     companion object {
+        var width: Int? = null
+        var height: Int? = null
         private val recognizer by lazy {
             TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         }
@@ -215,6 +254,8 @@ class ImageToRecipe{
             callback: (Recipe) -> Unit,
             context: Context
         ) {
+            width = inputImage.width
+            height = inputImage.height
             findBoundingBoxes(inputImage, error) { bounds, text ->
                 val intent = Intent(context, BoxSelectionActivity::class.java)
 
@@ -563,7 +604,12 @@ class ImageToRecipe{
                     )?.let {
                         recipeBounds.addAll(listOf(it))
                     }
-                    val blocks = textBlocks.map { Block(findCenter(it), it.text, it.lines.map { line -> line.text }) }
+                    val blocks = textBlocks.map {
+                        Block(
+                            findCenter(it),
+                            it.text,
+                            it.lines.map { line -> line.text })
+                    }
 
                     callback(recipeBounds, blocks)
                 }
@@ -653,13 +699,13 @@ class ImageToRecipe{
             //check settings to see if extra needs to be done
             when (settings["Creation.Image Loading.Split instructions"]) {
                 "intelligent" -> recipe.instructions =
-                    CreateAutomations.Companion.autoSplitInstructions(
+                    CreateAutomations.autoSplitInstructions(
                         recipe.instructions,
                         CreateAutomations.Companion.InstructionSplitStrength.Intelligent
                     )
 
                 "sentences" -> recipe.instructions =
-                    CreateAutomations.Companion.autoSplitInstructions(
+                    CreateAutomations.autoSplitInstructions(
                         recipe.instructions,
                         CreateAutomations.Companion.InstructionSplitStrength.Sentences
                     )
@@ -669,7 +715,7 @@ class ImageToRecipe{
 
             if (settings["Creation.Image Loading.Generate cooking steps"] == "true") {
                 val stepsAndLinks =
-                    CreateAutomations.Companion.autoGenerateStepsFromInstructions(
+                    CreateAutomations.autoGenerateStepsFromInstructions(
                         recipe.instructions,
                         settings
                     )

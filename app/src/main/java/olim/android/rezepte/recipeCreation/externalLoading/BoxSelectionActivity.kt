@@ -18,7 +18,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
-import androidx.compose.foundation.gestures.calculateRotation
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -55,16 +54,24 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import olim.android.rezepte.MainActivity.Companion.resources
 import olim.android.rezepte.R
 import olim.android.rezepte.SettingsActivity
 import olim.android.rezepte.getEmptyRecipe
@@ -129,11 +136,18 @@ private fun MainScreen(
     var scale: Float by remember { mutableFloatStateOf(0f) }
     var dx: Float by remember { mutableFloatStateOf(0f) }
     var dy: Float by remember { mutableFloatStateOf(0f) }
+    val displayMetrics = resources?.displayMetrics ?: return
+    val textMeasurer = rememberTextMeasurer()
+
+
 
     Scaffold(modifier = Modifier.navigationBarsPadding(), bottomBar = {
         //buttons to create new boxes
         Column {
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.onTertiary)) {
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+            ) {
                 for (type in ScanBoxType.entries) {
                     Button(
                         modifier = Modifier.padding(5.dp),
@@ -146,17 +160,17 @@ private fun MainScreen(
                                 ScanBox(
                                     Point(centerX - sizeX, centerY - sizeY),
                                     Point(centerX + sizeX, centerY + sizeY),
-                                    type, uiUpdate
+                                    type, lastUpdate =  ++uiUpdate
                                 )
 
                             )
-                            uiUpdate++
+
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = type.color,
                             contentColor = Color.White,
 
-                        )
+                            )
 
                     ) {
                         Column {
@@ -175,11 +189,14 @@ private fun MainScreen(
             }
             Spacer(Modifier.size(5.dp))
             Button(onClick = {
-                val recipe = ImageToRecipe.boundsToRecipe(bounds,blocks, settings = SettingsActivity.loadSettings(
-                    mContext.getSharedPreferences(
-                        "olim.android.rezepte.settings",
-                        Context.MODE_PRIVATE
-                    )))
+                val recipe = ImageToRecipe.boundsToRecipe(
+                    bounds, blocks, settings = SettingsActivity.loadSettings(
+                        mContext.getSharedPreferences(
+                            "olim.android.rezepte.settings",
+                            Context.MODE_PRIVATE
+                        )
+                    )
+                )
                 //if the recipe is still empty don't start create just give error
                 if (recipe == getEmptyRecipe()) {
                     Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT)
@@ -244,15 +261,21 @@ private fun MainScreen(
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             var transformed = false
+                            val xdpiScaled = displayMetrics.xdpi / scale
+                            val ydpiScaled = displayMetrics.ydpi / scale
+                            val modifyingEdge: MutableList<Edge> = mutableListOf()  //list to allow corner dragging
+                            var selectedBound: ScanBox? = null
                             do {
                                 val event = awaitPointerEvent()
                                 val touchSlop = viewConfiguration.touchSlop
 
                                 val zoomChange = event.calculateZoom()
-                                val rotationChange = event.calculateRotation()
                                 val panChange = event.calculatePan()
                                 val center = event.calculateCentroid(useCurrent = false)
+                                val relativeX = (center.x - dx) / (scale);
+                                val relativeY = (center.y - dy) / (scale)
 
+                                //check if expanding box by dragging edge
 
                                 //dragging finger
                                 if (panChange.getDistance() > touchSlop || zoomChange > touchSlop) {
@@ -260,57 +283,68 @@ private fun MainScreen(
                                 }
                                 if (transformed && (zoomChange != 1f || panChange != Offset.Zero)) {
 
-                                    for (bound in bounds.scanBoxesByLastUpdate()) {
-                                        val relativeX = (center.x - dx) / (scale);
-                                        val relativeY = (center.y - dy) / (scale)
-                                        //check if expanding box by dragging edge
-                                        val oldState = uiUpdate;
-                                        if (bound.edgeContains(relativeX, relativeY, Edge.Top)) {
-                                            bound.expand(Edge.Top, panChange.y / (scale),uiUpdate)
-                                            uiUpdate++
+                                    if (selectedBound == null) {
+                                        //find which bound is being modified
+                                        for (bound in bounds.scanBoxesByLastUpdate()) {
+                                            //check if expanding box by dragging edge
+                                            for (edge in Edge.entries) {
+                                                if (bound.edgeContains(
+                                                        relativeX,
+                                                        relativeY,
+                                                        edge,
+                                                        xdpiScaled,
+                                                        ydpiScaled
+                                                    )
+                                                ) {
+                                                    modifyingEdge.add(edge)
+                                                    selectedBound = bound
+                                                }
+                                            }
 
-                                        }
-                                        if (bound.edgeContains(relativeX, relativeY, Edge.Bottom)) {
-                                            bound.expand(Edge.Bottom, panChange.y / (scale),uiUpdate)
-                                            uiUpdate++
-
-                                        }
-                                        if (bound.edgeContains(relativeX, relativeY, Edge.Left)) {
-                                            bound.expand(Edge.Left, panChange.x / (scale),uiUpdate)
-                                            uiUpdate++
-
-                                        }
-                                        if (bound.edgeContains(relativeX, relativeY, Edge.Right)) {
-                                            bound.expand(Edge.Right, panChange.x / (scale),uiUpdate)
-                                            uiUpdate++
-
-                                        }
-                                        //don't move box if expanding edges
-                                        if (oldState != uiUpdate) {
-                                            break
+                                            //check if inside of box
+                                            if (bound.contains(relativeX, relativeY)
+                                            ) {
+                                                selectedBound = bound
+                                                break
+                                            }
                                         }
 
-                                        //check if inside of box
-                                        if (bound.contains(
-                                                relativeX,
-                                                relativeY
-                                            )
-                                        ) {
+                                    } else {
+                                        //there is going to be updated ui
+                                        uiUpdate++
+                                        //modify select bounds instead of changing between different in same action
+                                        if (modifyingEdge.isNotEmpty()) {
+                                           for (edge in modifyingEdge) {
+                                               if (edge == Edge.Top || edge == Edge.Bottom) {
+                                                   selectedBound.expand(
+                                                       edge,
+                                                       panChange.y / (scale),
+                                                       uiUpdate,
+                                                       xdpiScaled,
+                                                       ydpiScaled
+                                                   )
+                                               }
+                                               else {
+                                                   selectedBound.expand(
+                                                       edge,
+                                                       panChange.x / (scale),
+                                                       uiUpdate,
+                                                       xdpiScaled,
+                                                       ydpiScaled
+                                                   )
+                                               }
+                                           }
 
+                                        }
+                                        //else move
+                                        else {
                                             //todo zoom as well
-
-
-                                            bound += panChange / scale
-                                            bound.lastUpdate = uiUpdate
+                                            selectedBound += panChange / scale
+                                            selectedBound.lastUpdate = uiUpdate
                                             //bound += pan / scale
-                                            uiUpdate++
 
-
-                                            break;
                                         }
                                     }
-
-
                                 }
 
 
@@ -325,13 +359,13 @@ private fun MainScreen(
                                         change.consume()
                                     }
                                 }
-                            } while (event.changes.fastAny { it.pressed })
+                            } while (event.changes.any { it.pressed })
 
                             if (!transformed) {
                                 // Tap
                                 val pos = (down.position - Offset(dx, dy)) / scale
-                                println(pos)
-                                val removed = bounds.removeDeleted(pos.x, pos.y)
+                                val removed =
+                                    bounds.removeDeleted(pos.x, pos.y, xdpiScaled, ydpiScaled)
 
                                 if (removed) {
                                     uiUpdate++
@@ -355,7 +389,7 @@ private fun MainScreen(
 
 
                 for (bound in bounds.scanBoxesByLastUpdate()) {
-                    drawBox(bound, bound.type.color, scale, dx, dy)
+                    drawBox(bound, bound.type.color, textMeasurer, scale, dx, dy)
                     continue
 
 
@@ -372,6 +406,7 @@ private fun MainScreen(
 fun DrawScope.drawBox(
     rect: ScanBox,
     color: Color,
+    textMeasurer: TextMeasurer,
     scale: Float,
     dx: Float,
     dy: Float
@@ -393,6 +428,30 @@ fun DrawScope.drawBox(
         size = size,
         cornerRadius = CornerRadius(16f, 16f),
         style = Stroke(width = 4f)
+    )
+
+    // Measure text
+    val textLayout = textMeasurer.measure(
+        AnnotatedString(rect.type.name),
+        style = TextStyle(
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+    )
+    // Label text
+    drawText(
+        textLayoutResult = textLayout,
+        color = color,
+        shadow = Shadow(
+            color = Color.Black,
+            offset = Offset(1f, 1f),
+            blurRadius = 6f
+        ),
+        topLeft = Offset(
+            topLeft.x,
+            topLeft.y - textLayout.size.height
+        )
     )
 
     // ---- CROSS ICON ----
@@ -424,4 +483,5 @@ fun DrawScope.drawBox(
         end = Offset(topRight.x + half, topRight.y - half),
         strokeWidth = 3f
     )
+
 }
