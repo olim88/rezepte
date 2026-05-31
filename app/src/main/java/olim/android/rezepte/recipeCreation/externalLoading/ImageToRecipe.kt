@@ -1,14 +1,19 @@
 package olim.android.rezepte.recipeCreation.externalLoading
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Point
 import android.net.Uri
+import android.os.Parcelable
 import android.util.Log
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text.TextBlock
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.parcelize.Parcelize
 import olim.android.rezepte.CookingSteps
 import olim.android.rezepte.Ingredient
 import olim.android.rezepte.Ingredients
@@ -31,16 +36,150 @@ private val TextBlock.lineHeight: Int?
         return height / this.lines.count()
     }
 
-data class Box(val start: Point, val end: Point)
-data class RecipeBounds(
-    var title: Box? = null,
-    var servings: Box? = null,
-    var ingredients: List<Box> = listOf(),
-    var instructions: List<Box> = listOf(),
-    var extra: List<Box> = listOf(),
-)
+public enum class ScanBoxType(val color: Color) {
+    Title(Color.Red),
+    Servings(Color.Green),
+    Ingredients(Color.Blue),
+    Instructions(Color.Black),
+    Extra(Color.Yellow),
+}
 
-class ImageToRecipe {
+enum class Edge {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+@Parcelize
+data class ScanBox(
+    var start: Point,
+    var end: Point,
+    val type: ScanBoxType,
+    var lastUpdate: Int = 0
+) : Parcelable {
+    fun height(): Int {
+        return end.y - start.y
+    }
+
+    fun width(): Int {
+        return end.x - start.x
+    }
+
+    operator fun plusAssign(offset: Offset) {
+        start = Point((start.x + offset.x).toInt(), (start.y + offset.y).toInt());
+        end = Point((end.x + offset.x).toInt(), (end.y + offset.y).toInt())
+    }
+
+    fun contains(x: Int, y: Int): Boolean {
+        return x in start.x..end.x && y in start.y..end.y
+    }
+
+    fun contains(x: Float, y: Float): Boolean {
+        return contains(x.toInt(), y.toInt())
+    }
+
+    private fun edgeContains(x: Int, y: Int, edge: Edge): Boolean {
+        val edgeSize = 5;
+        return when (edge) {
+            Edge.Top -> x in start.x..end.x &&
+                    y.toDouble() in (start.y - height() * 0.1)..(start.y + height() * 0.2)
+
+            Edge.Bottom -> x in start.x..end.x &&
+                    y.toDouble() in (end.y - height() * 0.2)..(end.y + height() * 0.1)
+
+            Edge.Left -> y in start.y..end.y &&
+                    x.toDouble() in (start.x - width() * 0.1)..(start.x + width() * 0.2)
+
+            Edge.Right -> y in start.y..end.y &&
+                    x.toDouble() in (end.x - width() * 0.2)..(end.x + width() * 0.1)
+        }
+    }
+
+    fun edgeContains(x: Float, y: Float, edge: Edge): Boolean {
+        return edgeContains(x.toInt(), y.toInt(), edge)
+    }
+
+    private fun expand(direction: Edge, amount: Int) {
+        when (direction) {
+            Edge.Top -> start.y += amount
+            Edge.Bottom -> end.y += amount
+            Edge.Left -> start.x += amount
+            Edge.Right -> end.x += amount
+        }
+    }
+
+    fun expand(direction: Edge, amount: Float, updateTime: Int) {
+        expand(direction, amount.toInt())
+        lastUpdate = updateTime
+    }
+
+    /**
+     * If an input is in the top right (where delete button is) remove the box
+     */
+    fun detectDelete(x: Float, y: Float): Boolean {
+        return y in (start.y - height() * 0.2)..(start.y + height() * 0.2) && //todo this is probably to big. for all these hitbox checks i should probably use some preset size instead of a percentage
+                x in (end.x - width() * 0.2)..(end.x + width() * 0.2)
+
+    }
+
+
+}
+
+@Parcelize
+data class RecipeBounds(
+    private val scanBoxes: MutableList<ScanBox> = mutableListOf()
+
+
+) : Parcelable {
+
+    fun add(newBox: ScanBox?) {
+        newBox?.let { scanBoxes.add(it) }
+
+    }
+
+    fun addAll(newBox: List<ScanBox>?) {
+        newBox?.let { scanBoxes.addAll(it) }
+
+    }
+
+    fun find(type: ScanBoxType): ScanBox? =
+        scanBoxes.firstOrNull { it.type == type }
+
+    fun findAll(type: ScanBoxType): List<ScanBox> = scanBoxes.filter { it.type == type }
+    fun title(): ScanBox? = find(ScanBoxType.Title)
+    fun servings(): ScanBox? = find(ScanBoxType.Servings)
+    fun ingredients(): List<ScanBox> = findAll(ScanBoxType.Ingredients) //todo sort from top left to get correct order
+    fun instructions(): List<ScanBox> = findAll(ScanBoxType.Instructions)
+    fun extra(): List<ScanBox> = findAll(ScanBoxType.Extra)
+
+    fun size(): Int {
+        return scanBoxes.size
+    }
+
+    fun removeDeleted(targetX: Float, targetY: Float): Boolean {
+        return scanBoxes.removeAll {
+            it.detectDelete(targetX, targetY)
+        }
+    }
+
+    /**
+     *  order by last update so we are moving the most recently moved
+     */
+    fun scanBoxesByLastUpdate(): List<ScanBox> =
+        scanBoxes.sortedByDescending { it.lastUpdate }
+
+}
+
+
+@Parcelize
+data class Block(
+    val center: Point,
+    val text: String,
+    val lines : List<String>
+) : Parcelable
+
+class ImageToRecipe{
     companion object {
         private val recognizer by lazy {
             TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -54,29 +193,56 @@ class ImageToRecipe {
             callback: (Recipe) -> Unit
         ) {
             val image = InputImage.fromFilePath(context, imageUri)
-            convert(image, settings, error, callback)
+            convert(image, imageUri, settings, error, callback, context)
         }
 
         fun convert(
             imageBitmap: Bitmap,
             settings: Map<String, String>,
             error: () -> Unit,
-            callback: (Recipe) -> Unit
+            callback: (Recipe) -> Unit,
+            context: Context
         ) {
             val image = InputImage.fromBitmap(imageBitmap, 0)
-            convert(image, settings, error, callback)
+            convert(image, null, settings, error, callback, context)
         }
 
-        fun getBox(corners: Array<Point>?): Box? {
+        private fun convert(
+            inputImage: InputImage,
+            imageUri: Uri?,
+            settings: Map<String, String>,
+            error: () -> Unit,
+            callback: (Recipe) -> Unit,
+            context: Context
+        ) {
+            findBoundingBoxes(inputImage, error) { bounds, text ->
+                val intent = Intent(context, BoxSelectionActivity::class.java)
+
+                intent.putExtra("bounds", bounds)
+                intent.putParcelableArrayListExtra("blocks", ArrayList(text))
+                intent.putExtra("image_uri", imageUri)
+                intent.putExtra("image_width", inputImage.width)
+                intent.putExtra("image_height", inputImage.height)
+
+
+                context.startActivity(intent)
+
+                callback(boundsToRecipe(bounds, text, settings))
+
+            }
+        }
+
+
+        fun getBox(corners: Array<Point>?, type: ScanBoxType): ScanBox? {
             if (corners.isNullOrEmpty()) {
                 return null
             }
             corners.sortBy { point -> point.x + point.y }
-            return Box(corners.first(), corners.last())
+            return ScanBox(corners.first(), corners.last(), type)
         }
 
-        fun getBox(textBlocks: List<TextBlock>): Box? {
-            val boxes = textBlocks.map { block -> getBox(block.cornerPoints) }
+        fun getBox(textBlocks: List<TextBlock>, type: ScanBoxType): ScanBox? {
+            val boxes = textBlocks.map { block -> getBox(block.cornerPoints, type) }
             val starts = boxes.mapNotNull { box -> box?.start }
             val ends = boxes.mapNotNull { box -> box?.end }
             starts.sortedBy { point -> point.x + point.y }
@@ -84,35 +250,40 @@ class ImageToRecipe {
             if (starts.isEmpty() || ends.isEmpty()) {
                 return null
             }
-            return Box(starts.first(), ends.last())
+            return ScanBox(starts.first(), ends.last(), type)
         }
 
-        fun blockInBox(box: Box?, block: TextBlock?): Boolean {
-            if (box == null || block == null || block.cornerPoints.isNullOrEmpty()) {
+        fun blockInBox(scanBox: ScanBox?, block: Block?): Boolean {
+            if (scanBox == null || block == null) {
                 return false
             }
-            val points = block.cornerPoints!!
-
-            val avgX = points.sumOf { it.x } / points.size.toFloat()
-            val avgY = points.sumOf { it.y } / points.size.toFloat()
-
-            val point = Point(avgX.toInt(), avgY.toInt())
-            if (point.x >= box.start.x && point.x <= box.end.x) {
-                if (point.y >= box.start.y && point.y <= box.end.y) {
+            val point = block.center
+            if (point.x >= scanBox.start.x && point.x <= scanBox.end.x) {
+                if (point.y >= scanBox.start.y && point.y <= scanBox.end.y) {
                     return true
                 }
             }
             return false
         }
 
-        fun blockInBoxes(boxes: List<Box>, block: TextBlock?): Boolean {
-            return boxes.any { box -> blockInBox(box, block) }
+        fun findCenter(block: TextBlock): Point {
+            val points = block.cornerPoints!!
+
+            val avgX = points.sumOf { it.x } / points.size.toFloat()
+            val avgY = points.sumOf { it.y } / points.size.toFloat()
+
+            val point = Point(avgX.toInt(), avgY.toInt())
+            return point
         }
 
-        private fun findBoundingBoxes(
+        fun blockInBoxes(ScanBoxes: List<ScanBox>, block: Block?): Boolean {
+            return ScanBoxes.any { box -> blockInBox(box, block) }
+        }
+
+        fun findBoundingBoxes(
             inputImage: InputImage,
             error: () -> Unit,
-            callback: (RecipeBounds, List<TextBlock>) -> Unit
+            callback: (RecipeBounds, List<Block>) -> Unit
 
         ) {
             val recipeBounds = RecipeBounds()
@@ -164,7 +335,12 @@ class ImageToRecipe {
                         if (verticallySorted.slice(0..min(5, verticallySorted.count() - 1))
                                 .contains(index)
                         ) {
-                            recipeBounds.title = getBox(textBlocks[index].cornerPoints)
+                            recipeBounds.add(
+                                getBox(
+                                    textBlocks[index].cornerPoints,
+                                    ScanBoxType.Title
+                                )
+                            )
                             titleIndex = index
                             break
                         }
@@ -176,8 +352,13 @@ class ImageToRecipe {
                         if (textBlocks[verticallySorted[index]].text.lowercase()
                                 .contains("ma[kr]es?|serving?s|serves".toRegex()) && textBlocks[verticallySorted[index]].text.length < 30
                         ) {
-                            recipeBounds.servings =
-                                getBox(textBlocks[verticallySorted[index]].cornerPoints)
+                            recipeBounds.add(
+                                getBox(
+                                    textBlocks[verticallySorted[index]].cornerPoints,
+                                    ScanBoxType.Servings
+                                )
+                            )
+
                             servingsIndex = verticallySorted[index]
                             break
                         }
@@ -372,17 +553,19 @@ class ImageToRecipe {
 
                     getBox(
                         textBlocks.withIndex().filter { (index, _) -> ingredients.contains(index) }
-                            .map { (_, block) -> block })?.let {
-                        recipeBounds.ingredients = listOf(it)
+                            .map { (_, block) -> block }, ScanBoxType.Ingredients
+                    )?.let {
+                        recipeBounds.addAll(listOf(it))
                     }
                     getBox(
                         textBlocks.withIndex().filter { (index, _) -> instructions.contains(index) }
-                            .map { (_, block) -> block })?.let {
-                        recipeBounds.instructions = listOf(it)
+                            .map { (_, block) -> block }, ScanBoxType.Instructions
+                    )?.let {
+                        recipeBounds.addAll(listOf(it))
                     }
+                    val blocks = textBlocks.map { Block(findCenter(it), it.text, it.lines.map { line -> line.text }) }
 
-
-                    callback(recipeBounds, textBlocks)
+                    callback(recipeBounds, blocks)
                 }
                 .addOnFailureListener { e ->
                     // Task failed with an exception
@@ -392,29 +575,29 @@ class ImageToRecipe {
 
         fun boundsToRecipe(
             bounds: RecipeBounds,
-            blocks: List<TextBlock>,
+            blocks: List<Block>,
             settings: Map<String, String>,
         ): Recipe {
             val recipe = getEmptyRecipe()
 
             //find title
-            blocks.firstOrNull { block -> blockInBox(bounds.title, block) }?.let {
+            blocks.firstOrNull { block -> blockInBox(bounds.title(), block) }?.let {
                 recipe.data.name = it.text
             }
             // find servings
-            blocks.firstOrNull { block -> blockInBox(bounds.servings, block) }?.let {
+            blocks.firstOrNull { block -> blockInBox(bounds.servings(), block) }?.let {
                 recipe.data.serves = it.text
             }
 
             // find ingredients and instructions and extra
-            val ingredients = blocks.filter { block -> blockInBoxes(bounds.ingredients, block) }
-            val instructions = blocks.filter { block -> blockInBoxes(bounds.instructions, block) }
-            val extra = blocks.filter { block -> blockInBoxes(bounds.extra, block) }
+            val ingredients = blocks.filter { block -> blockInBoxes(bounds.ingredients(), block) }
+            val instructions = blocks.filter { block -> blockInBoxes(bounds.instructions(), block) }
+            val extra = blocks.filter { block -> blockInBoxes(bounds.extra(), block) }
 
             //clean up the text then create the elements then add to recipe
 
             //sometimes ingredients are split into multiple elements or combined into one. try to fix this
-            //if there is an ingredient that dose not contain a number and is short combine it to the ingredient before it
+            //if there is an ingredient that does not contain a number and is short combine it to the ingredient before it
 
             val ingredientTextList: MutableList<String> = mutableListOf()
             var currentIngredient = ""
@@ -423,7 +606,7 @@ class ImageToRecipe {
                 val lines = block.lines
 
                 for ((lineIndex, line) in lines.withIndex()) {
-                    val text = cleanIngredient(line.text)
+                    val text = cleanIngredient(line)
 
                     //val text = textBlocks[blockIndex].text
                     if (listIndex == 0 && lineIndex == 0) { //skip first
@@ -493,22 +676,13 @@ class ImageToRecipe {
                 recipe.data.cookingSteps = CookingSteps(stepsAndLinks.first.toMutableList())
                 recipe.instructions = stepsAndLinks.second
             }
+            //add extra to notes
+            recipe.data.notes = extra.joinToString(" ") { it.text }
 
 
             return recipe
         }
 
-        private fun convert(
-            inputImage: InputImage,
-            settings: Map<String, String>,
-            error: () -> Unit,
-            callback: (Recipe) -> Unit
-        ) {
-            findBoundingBoxes(inputImage, error) { bounds, text ->
-
-                callback(boundsToRecipe(bounds, text, settings))
-            }
-        }
 
         private fun capitalize(str: String): String {
             return str.trim().split("\\s+".toRegex())

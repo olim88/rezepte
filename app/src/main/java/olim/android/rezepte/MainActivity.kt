@@ -464,7 +464,7 @@ fun CreateButtonOptions() {
                 stringResource(id = R.string.image_dialog_description),
                 onDismiss = { imageInput = false })
             { imageUri: Uri ->
-                ImageToRecipe.Companion.convert(
+                ImageToRecipe.convert(
                     imageUri,
                     mContext,
                     settings = SettingsActivity.loadSettings(
@@ -478,19 +478,7 @@ fun CreateButtonOptions() {
                             .show()
                     })
                 {
-                    //if the recipe is still empty don't start create just give error
-                    if (it == getEmptyRecipe()) {
-                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT)
-                            .show()
-                        return@convert
-                    }
-                    //when loaded send the recipe to the create menu
-                    val intent = Intent(mContext, CreateActivity::class.java)
-
-                    intent.putExtra("data", parseData(it))
-                    //intent.putExtra("imageData",recipe.second) add image
-                    mContext.startActivity(intent)
-                    imageInput = false
+                    //todo remove
                 }
             }
         }

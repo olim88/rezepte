@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="Rezepte">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-12-23T16:11:45.753592177Z">
+        <DropdownSelection timestamp="2026-05-31T13:26:06.065146837Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/home/olim/.var/app/com.google.AndroidStudio/config/.android/avd/Pixel_7_Pro.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=/home/olim/.var/app/com.google.AndroidStudio/config/.android/avd/Medium_Tablet.avd" />
             </handle>
           </Target>
         </DropdownSelection>

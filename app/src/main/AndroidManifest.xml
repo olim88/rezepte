@@ -48,6 +48,10 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MaterialComponents.NoActionBar" />
+        <activity android:name="olim.android.rezepte.recipeCreation.externalLoading.BoxSelectionActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.MaterialComponents.NoActionBar" />
         <activity android:name="olim.android.rezepte.SettingsActivity"
             android:exported="true"
             android:label="@string/app_name"

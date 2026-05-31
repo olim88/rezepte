@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("kotlin-parcelize")
     kotlin("plugin.serialization") version "1.8.10"
 }
 
@@ -74,6 +75,7 @@ dependencies {
     implementation("androidx.preference:preference:1.2.1")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     implementation("androidx.compose.foundation:foundation-layout:1.10.4")
+    implementation("androidx.compose.ui:ui-graphics:1.10.6")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.16.1")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
