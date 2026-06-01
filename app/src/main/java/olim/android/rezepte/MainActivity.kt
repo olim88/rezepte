@@ -473,10 +473,7 @@ fun CreateButtonOptions() {
                             Context.MODE_PRIVATE
                         )
                     ),
-                    error = {
-                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT)
-                            .show()
-                    })
+                    )
                 {
                     //todo remove
                 }

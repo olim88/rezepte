@@ -115,25 +115,25 @@ data class ScanBox(
         amount: Int,
         xdpi: Float,
         ydpi: Float
-    ) { //todo let grow to small box
+    ) {
         val xMinSize = 80f * (xdpi / 160f)
         val yMinSize = 40f * (ydpi / 160f)
         val imageHeight = ImageToRecipe.height ?: return
         val imageWidth = ImageToRecipe.width ?: return
         when (direction) {
-            Edge.Top -> if (height() - amount > yMinSize && start.y + amount > 0) {
+            Edge.Top -> if ((height() - amount > yMinSize || amount < 0) && start.y + amount > 0) {
                 start.y += amount
             }
 
-            Edge.Bottom -> if (height() + amount > yMinSize && end.y + amount < imageHeight) {
+            Edge.Bottom -> if ((height() + amount > yMinSize || amount > 0) && end.y + amount < imageHeight) {
                 end.y += amount
             }
 
-            Edge.Left -> if (width() - amount > xMinSize && start.x + amount > 0) {
+            Edge.Left -> if ((width() - amount > xMinSize || amount < 0) && start.x + amount > 0) {
                 start.x += amount
             }
 
-            Edge.Right -> if (width() + amount > xMinSize && end.x + amount < imageWidth) {
+            Edge.Right -> if ((width() + amount > xMinSize || amount > 0) && end.x + amount < imageWidth) {
                 end.x += amount
             }
         }
@@ -143,6 +143,15 @@ data class ScanBox(
         expand(direction, amount.toInt(), xdpi, ydpi)
 
         lastUpdate = updateTime
+    }
+
+    fun scale(factor: Float, updateTime: Int, xdpi: Float, ydpi: Float) {
+        val deltaX = width() * (factor - 1)
+        val deltaY = height() * (factor - 1)
+        expand(Edge.Right, deltaX / 2, updateTime, xdpi, ydpi)
+        expand(Edge.Left, -deltaX / 2, updateTime, xdpi, ydpi)
+        expand(Edge.Top, -deltaY / 2, updateTime, xdpi, ydpi)
+        expand(Edge.Bottom, deltaY / 2, updateTime, xdpi, ydpi)
     }
 
     /**
@@ -203,8 +212,10 @@ data class RecipeBounds(
     /**
      *  order by last update so we are moving the most recently moved
      */
-    fun scanBoxesByLastUpdate(): List<ScanBox> =
+    fun scanBoxesByLastUpdateDescending(): List<ScanBox> =
         scanBoxes.sortedByDescending { it.lastUpdate }
+    fun scanBoxesByLastUpdateAscending(): List<ScanBox> =
+        scanBoxes.sortedBy{ it.lastUpdate }
 
 }
 
@@ -228,35 +239,32 @@ class ImageToRecipe {
             imageUri: Uri,
             context: Context,
             settings: Map<String, String>,
-            error: () -> Unit,
             callback: (Recipe) -> Unit
         ) {
             val image = InputImage.fromFilePath(context, imageUri)
-            convert(image, imageUri, settings, error, callback, context)
+            convert(image, imageUri, settings, callback, context)
         }
 
         fun convert(
             imageBitmap: Bitmap,
             settings: Map<String, String>,
-            error: () -> Unit,
             callback: (Recipe) -> Unit,
             context: Context
         ) {
             val image = InputImage.fromBitmap(imageBitmap, 0)
-            convert(image, null, settings, error, callback, context)
+            convert(image, null, settings, callback, context)
         }
 
         private fun convert(
             inputImage: InputImage,
             imageUri: Uri?,
             settings: Map<String, String>,
-            error: () -> Unit,
             callback: (Recipe) -> Unit,
             context: Context
         ) {
             width = inputImage.width
             height = inputImage.height
-            findBoundingBoxes(inputImage, error) { bounds, text ->
+            findBoundingBoxes(inputImage) { bounds, text ->
                 val intent = Intent(context, BoxSelectionActivity::class.java)
 
                 intent.putExtra("bounds", bounds)
@@ -323,10 +331,10 @@ class ImageToRecipe {
 
         fun findBoundingBoxes(
             inputImage: InputImage,
-            error: () -> Unit,
             callback: (RecipeBounds, List<Block>) -> Unit
 
         ) {
+
             val recipeBounds = RecipeBounds()
             recognizer.process(inputImage)
                 .addOnSuccessListener { visionText ->
@@ -343,9 +351,15 @@ class ImageToRecipe {
                             textBlocks.add(it)
                         }
                     }
+                    val blocks = textBlocks.map {
+                        Block(
+                            findCenter(it),
+                            it.text,
+                            it.lines.map { line -> line.text })
+                    }
                     //if there are no text blocks found call error and return
                     if (textBlocks.isEmpty()) {
-                        error()
+                        callback(recipeBounds, blocks)
                         return@addOnSuccessListener
                     }
                     //find and sort the needed elements in the image
@@ -575,7 +589,7 @@ class ImageToRecipe {
                     }
                     //if can not find second longest there can not be found a good recipe so error
                     if (secondLongest.isEmpty()) {
-                        error()
+                        callback(recipeBounds, blocks)
                         return@addOnSuccessListener
                     }
                     //if the longest is the ingredients
@@ -604,12 +618,7 @@ class ImageToRecipe {
                     )?.let {
                         recipeBounds.addAll(listOf(it))
                     }
-                    val blocks = textBlocks.map {
-                        Block(
-                            findCenter(it),
-                            it.text,
-                            it.lines.map { line -> line.text })
-                    }
+
 
                     callback(recipeBounds, blocks)
                 }

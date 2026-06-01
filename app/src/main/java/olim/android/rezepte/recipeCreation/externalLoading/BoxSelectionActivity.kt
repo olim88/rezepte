@@ -16,7 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculateCentroidSize
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.horizontalScroll
@@ -78,6 +78,7 @@ import olim.android.rezepte.getEmptyRecipe
 import olim.android.rezepte.recipeCreation.CreateActivity
 import olim.android.rezepte.recipeCreation.parseData
 import olim.android.rezepte.ui.theme.RezepteTheme
+import kotlin.math.abs
 import kotlin.math.min
 
 class BoxSelectionActivity : ComponentActivity() {
@@ -160,7 +161,7 @@ private fun MainScreen(
                                 ScanBox(
                                     Point(centerX - sizeX, centerY - sizeY),
                                     Point(centerX + sizeX, centerY + sizeY),
-                                    type, lastUpdate =  ++uiUpdate
+                                    type, lastUpdate = ++uiUpdate
                                 )
 
                             )
@@ -260,10 +261,12 @@ private fun MainScreen(
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
+                            val pos = (down.position - Offset(dx, dy)) / scale
                             var transformed = false
                             val xdpiScaled = displayMetrics.xdpi / scale
                             val ydpiScaled = displayMetrics.ydpi / scale
-                            val modifyingEdge: MutableList<Edge> = mutableListOf()  //list to allow corner dragging
+                            val modifyingEdge: MutableList<Edge> =
+                                mutableListOf()  //list to allow corner dragging
                             var selectedBound: ScanBox? = null
                             do {
                                 val event = awaitPointerEvent()
@@ -271,26 +274,25 @@ private fun MainScreen(
 
                                 val zoomChange = event.calculateZoom()
                                 val panChange = event.calculatePan()
-                                val center = event.calculateCentroid(useCurrent = false)
-                                val relativeX = (center.x - dx) / (scale);
-                                val relativeY = (center.y - dy) / (scale)
+                                val centroidSize = event.calculateCentroidSize(useCurrent = false)
+                                val zoomMotion = abs(1 - zoomChange) * centroidSize
 
                                 //check if expanding box by dragging edge
 
                                 //dragging finger
-                                if (panChange.getDistance() > touchSlop || zoomChange > touchSlop) {
+                                if (panChange.getDistance() > touchSlop || zoomMotion > touchSlop) {
                                     transformed = true
                                 }
                                 if (transformed && (zoomChange != 1f || panChange != Offset.Zero)) {
 
                                     if (selectedBound == null) {
                                         //find which bound is being modified
-                                        for (bound in bounds.scanBoxesByLastUpdate()) {
+                                        for (bound in bounds.scanBoxesByLastUpdateDescending()) {
                                             //check if expanding box by dragging edge
                                             for (edge in Edge.entries) {
                                                 if (bound.edgeContains(
-                                                        relativeX,
-                                                        relativeY,
+                                                        pos.x,
+                                                        pos.y,
                                                         edge,
                                                         xdpiScaled,
                                                         ydpiScaled
@@ -302,7 +304,7 @@ private fun MainScreen(
                                             }
 
                                             //check if inside of box
-                                            if (bound.contains(relativeX, relativeY)
+                                            if (bound.contains(pos.x, pos.y)
                                             ) {
                                                 selectedBound = bound
                                                 break
@@ -314,46 +316,40 @@ private fun MainScreen(
                                         uiUpdate++
                                         //modify select bounds instead of changing between different in same action
                                         if (modifyingEdge.isNotEmpty()) {
-                                           for (edge in modifyingEdge) {
-                                               if (edge == Edge.Top || edge == Edge.Bottom) {
-                                                   selectedBound.expand(
-                                                       edge,
-                                                       panChange.y / (scale),
-                                                       uiUpdate,
-                                                       xdpiScaled,
-                                                       ydpiScaled
-                                                   )
-                                               }
-                                               else {
-                                                   selectedBound.expand(
-                                                       edge,
-                                                       panChange.x / (scale),
-                                                       uiUpdate,
-                                                       xdpiScaled,
-                                                       ydpiScaled
-                                                   )
-                                               }
-                                           }
+                                            for (edge in modifyingEdge) {
+                                                if (edge == Edge.Top || edge == Edge.Bottom) {
+                                                    selectedBound.expand(
+                                                        edge,
+                                                        panChange.y / (scale),
+                                                        uiUpdate,
+                                                        xdpiScaled,
+                                                        ydpiScaled
+                                                    )
+                                                } else {
+                                                    selectedBound.expand(
+                                                        edge,
+                                                        panChange.x / (scale),
+                                                        uiUpdate,
+                                                        xdpiScaled,
+                                                        ydpiScaled
+                                                    )
+                                                }
+                                            }
 
                                         }
                                         //else move
                                         else {
-                                            //todo zoom as well
+                                            selectedBound.scale(
+                                                zoomChange,
+                                                uiUpdate,
+                                                xdpiScaled,
+                                                ydpiScaled
+                                            )
                                             selectedBound += panChange / scale
                                             selectedBound.lastUpdate = uiUpdate
-                                            //bound += pan / scale
-
                                         }
                                     }
                                 }
-
-
-                                // Apply pan
-                                //offset += pan
-
-
-                                // Apply zoom
-                                //scale *= zoom
                                 event.changes.forEach { change ->
                                     if (change.positionChanged()) {
                                         change.consume()
@@ -363,12 +359,19 @@ private fun MainScreen(
 
                             if (!transformed) {
                                 // Tap
-                                val pos = (down.position - Offset(dx, dy)) / scale
                                 val removed =
                                     bounds.removeDeleted(pos.x, pos.y, xdpiScaled, ydpiScaled)
 
                                 if (removed) {
                                     uiUpdate++
+                                }
+                                //select box tapped to be on top
+                                for (bound in bounds.scanBoxesByLastUpdateDescending()) {
+                                    //check if inside of box
+                                    if (bound.contains(pos.x, pos.y)
+                                    ) {
+                                        bound.lastUpdate = ++uiUpdate
+                                    }
                                 }
                             }
                         }
@@ -388,19 +391,13 @@ private fun MainScreen(
                 dy = (size.height - imageHeight) / 2f
 
 
-                for (bound in bounds.scanBoxesByLastUpdate()) {
+                for (bound in bounds.scanBoxesByLastUpdateAscending()) {
                     drawBox(bound, bound.type.color, textMeasurer, scale, dx, dy)
                     continue
-
-
                 }
-
-
             }
         }
     }
-
-
 }
 
 fun DrawScope.drawBox(
