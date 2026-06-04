@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import olim.android.rezepte.fileManagment.LocalFilesTask
 import olim.android.rezepte.fileManagment.dropbox.DbTokenHandling
 import olim.android.rezepte.ui.theme.RezepteTheme
@@ -84,17 +85,19 @@ class SettingsActivity : ComponentActivity() {
             for (setting in sharedPreference.all) {
                 settingDictionary[setting.key] = setting.value.toString()
             }
-            return if (settingDictionary.isEmpty()) {//return default setting
+            return settingDictionary.ifEmpty {//return default setting
                 convertToDictionary(createSettingsMenu(), "")
-            } else {
-                settingDictionary
             }
         }
 
         fun saveSettings(sharedPreference: SharedPreferences, settings: Map<String, String>) {
             for (setting in settings) {
-                sharedPreference.edit().putString(setting.key, setting.value).apply()
+               saveSetting(sharedPreference, setting.key, setting.value)
             }
+        }
+
+        fun saveSetting(sharedPreference: SharedPreferences, settingName : String, settingValue: String){
+            sharedPreference.edit { putString(settingName, settingValue) }
         }
 
         fun convertToDictionary(
@@ -329,7 +332,12 @@ fun createSettingsMenu(): List<SettingOptionInterface> { //create the layout and
                             "when loading a image automatically split instructions into smaller parts",
                             mutableIntStateOf(0),
                             listOf("off", "intelligent", "sentences")
-                        )
+                        ),
+                        SettingsOptionToggle(
+                            "Box Selection Tooltip",
+                            "when loading the box selection menu show tool tip of how it works",
+                            mutableStateOf(true)
+                        ),
                     )
                 ),
                 SettingsOptionToggle(

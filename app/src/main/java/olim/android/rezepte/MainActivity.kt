@@ -21,11 +21,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -40,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -198,6 +201,22 @@ private fun MainScreen(
 ) {
     // Fetching the Local Context
     val mContext = LocalContext.current
+    var loading by remember { mutableStateOf(false) }
+    if (loading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(64.dp),
+                color = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+        }
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -226,6 +245,9 @@ private fun MainScreen(
         ) {
             //create buttons
             CreateButtonOptions()
+            {
+                loading = it
+            }
             //search button (my recipes)
             Button(
                 onClick = {
@@ -370,11 +392,12 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>, onLogout
 
 
 @Composable
-fun CreateButtonOptions() {
+fun CreateButtonOptions(onImageLoading: (Boolean) -> Unit) {
     // Fetching the Local Context
     val mContext = LocalContext.current
     var urlInput by remember { mutableStateOf(false) }
     var imageInput by remember { mutableStateOf(false) }
+
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
@@ -464,19 +487,18 @@ fun CreateButtonOptions() {
                 stringResource(id = R.string.image_dialog_description),
                 onDismiss = { imageInput = false })
             { imageUri: Uri ->
+                imageInput = false
+                onImageLoading(true)
                 ImageToRecipe.convert(
                     imageUri,
                     mContext,
-                    settings = SettingsActivity.loadSettings(
-                        mContext.getSharedPreferences(
-                            "olim.android.rezepte.settings",
-                            Context.MODE_PRIVATE
-                        )
-                    ),
-                    )
-                {
-                    //todo remove
-                }
+                    finished = { onImageLoading(false) },
+                    error = {
+                        onImageLoading(false)
+                        Toast.makeText(mContext, R.string.no_recipe_found_toast, Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                )
             }
         }
     }

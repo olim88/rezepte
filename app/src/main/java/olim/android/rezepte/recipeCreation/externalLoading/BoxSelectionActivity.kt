@@ -1,6 +1,7 @@
 package olim.android.rezepte.recipeCreation.externalLoading
 
 import android.content.Context
+import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.graphics.Point
 import android.net.Uri
@@ -36,6 +37,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -61,14 +64,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import olim.android.rezepte.MainActivity.Companion.resources
@@ -140,7 +146,13 @@ private fun MainScreen(
     val displayMetrics = resources?.displayMetrics ?: return
     val textMeasurer = rememberTextMeasurer()
 
-
+    //show popup about how to use box selection
+    var showPopup by remember { mutableStateOf(true) }
+    if (showPopup){
+        ExplanationPopup(stringResource(id = R.string.box_selection_explination), "Creation.Image Loading.Box Selection Tooltip") {
+            showPopup = false
+        }
+    }
 
     Scaffold(modifier = Modifier.navigationBarsPadding(), bottomBar = {
         //buttons to create new boxes
@@ -208,12 +220,12 @@ private fun MainScreen(
                 val intent = Intent(mContext, CreateActivity::class.java)
 
                 intent.putExtra("data", parseData(recipe))
-                //intent.putExtra("imageData",recipe.second) add image
+
                 mContext.startActivity(intent)
 
             }, modifier = Modifier.fillMaxWidth()) {
                 Row {
-                    Text("Extract Text", modifier = Modifier.align(Alignment.CenterVertically))
+                    Text(stringResource(id = R.string.box_selection_extract_text), modifier = Modifier.align(Alignment.CenterVertically))
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowRightAlt,
                         contentDescription = "todo",//todo stringResource(id = R.string.search_icon_content_description),
@@ -481,4 +493,60 @@ fun DrawScope.drawBox(
         strokeWidth = 3f
     )
 
+}
+
+/**
+ * Shows a popup with text and a dissmis button. if settings provided also shows button to not show again
+ */
+@Composable
+fun ExplanationPopup(message: String, setting  : String? = null,onDismiss: () -> Unit){
+    val mContext = LocalContext.current
+    val preferences = mContext.getSharedPreferences(
+        "olim.android.rezepte.settings",
+        MODE_PRIVATE
+    )
+    val settings = SettingsActivity.loadSettings(
+        preferences
+    )
+    var state by remember { mutableStateOf(settings[setting] == "false") }
+
+    //hide if popup already disabled
+    if (settings[setting] == "false"){
+        onDismiss()
+        return
+    }
+
+    Dialog(onDismissRequest = { onDismiss() }) {
+        // Draw a rectangle shape with rounded corners inside the dialog
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(5.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column( modifier = Modifier
+                .fillMaxWidth()
+                ) {
+                Text(message, modifier = Modifier.padding(10.dp).align(Alignment.CenterHorizontally), textAlign = TextAlign.Center,)
+
+                Button(onClick = {onDismiss()}, modifier = Modifier.padding(top = 10.dp).align(Alignment.CenterHorizontally)){
+                    Text(stringResource(id = R.string.got_it))
+                }
+                if (setting != null){
+                    Row(modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                        Checkbox(
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                            checked = state,
+                            onCheckedChange = { state = !state
+                                SettingsActivity.saveSetting(preferences, setting, if (state) "false" else "true")
+                            })
+                        Text(stringResource(id = R.string.dont_show_agin),modifier = Modifier.align(Alignment.CenterVertically))
+                    }
+
+                }
+            }
+
+
+        }
+    }
 }

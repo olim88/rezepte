@@ -39,7 +39,7 @@
         <string name="invalid_website_toast">Invalid website</string>
         <string name="get_string_dialog_enter_string">Load Recipe</string>
 
-        <string name="image_dialog_description">Tip: To help us read your recipe, please use an upright image with clearly visible text from a single recipe. If the text isn\'t detected, you can often copy it using Google Lens and paste it in.</string>
+        <string name="image_dialog_description">Tip: To help us read your recipe, please use an upright.</string>
         <string name="no_recipe_found_toast">No Recipe Found</string>
 
         <!-- Add image dialog -->
@@ -201,7 +201,14 @@
 
         <!-- Content Descriptions -->
         <string name="cd_done_icon">Confirm changes</string>
-    
+
+        <!-- Box selection screen -->
+    <string name="box_selection_explination">The app has attempted to identify each part of the recipe, but it may not be completely accurate. Use the boxes to select and adjust each section of the recipe, adding more boxes if needed.\n\nOnce you are finished, press Extract Text to view your recipe in the creation suite.
+</string>
+    <string name="dont_show_agin">Don\'t Show Again</string>
+    <string name="got_it">Got it</string>
+    <string name="box_selection_extract_text">Extract Text</string>
+
     
     <!-- link steps -->
         <string name="no_data_found_toast">No data found</string>

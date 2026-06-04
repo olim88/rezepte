@@ -27,13 +27,14 @@ import kotlin.math.min
 
 private val TextBlock.lineHeight: Int?
     get() {
-        //get the height of the block
-        if (this.cornerPoints == null) return null
-        val height =
-            ((this.cornerPoints?.get(3)?.y!! - this.cornerPoints?.get(0)?.y!!) + (this.cornerPoints?.get(
-                2
-            )?.y!! - this.cornerPoints?.get(1)?.y!!)) / 2 //get avg height as should be more acc than bound height hopefully
-        return height / this.lines.count()
+        val points = cornerPoints ?: return null
+        if (lines.isEmpty()) return null
+
+        val avgHeight =
+            ((points[3].y - points[0].y) +
+                    (points[2].y - points[1].y)) / 2
+
+        return avgHeight / lines.size
     }
 
 enum class ScanBoxType(val color: Color) {
@@ -214,8 +215,9 @@ data class RecipeBounds(
      */
     fun scanBoxesByLastUpdateDescending(): List<ScanBox> =
         scanBoxes.sortedByDescending { it.lastUpdate }
+
     fun scanBoxesByLastUpdateAscending(): List<ScanBox> =
-        scanBoxes.sortedBy{ it.lastUpdate }
+        scanBoxes.sortedBy { it.lastUpdate }
 
 }
 
@@ -229,6 +231,8 @@ data class Block(
 
 class ImageToRecipe {
     companion object {
+        val SERVINGS_REGEX = "ma[kr]es?|serving?s|serves".toRegex()
+
         var width: Int? = null
         var height: Int? = null
         private val recognizer by lazy {
@@ -238,33 +242,37 @@ class ImageToRecipe {
         fun convert(
             imageUri: Uri,
             context: Context,
-            settings: Map<String, String>,
-            callback: (Recipe) -> Unit
+            finished: () -> Unit,
+            error: () -> Unit,
+
         ) {
             val image = InputImage.fromFilePath(context, imageUri)
-            convert(image, imageUri, settings, callback, context)
+            convert(image, imageUri, finished, error, context)
         }
 
         fun convert(
             imageBitmap: Bitmap,
-            settings: Map<String, String>,
-            callback: (Recipe) -> Unit,
+            finished: () -> Unit,
+            error: () -> Unit,
             context: Context
         ) {
             val image = InputImage.fromBitmap(imageBitmap, 0)
-            convert(image, null, settings, callback, context)
+            convert(image, null,finished, error, context)
         }
 
         private fun convert(
             inputImage: InputImage,
             imageUri: Uri?,
-            settings: Map<String, String>,
-            callback: (Recipe) -> Unit,
+            finished: () -> Unit,
+            error: () -> Unit,
             context: Context
         ) {
             width = inputImage.width
             height = inputImage.height
-            findBoundingBoxes(inputImage) { bounds, text ->
+            findBoundingBoxes(inputImage,error) { bounds, text ->
+                //finished loading
+                finished()
+                //start box selection activity
                 val intent = Intent(context, BoxSelectionActivity::class.java)
 
                 intent.putExtra("bounds", bounds)
@@ -273,11 +281,7 @@ class ImageToRecipe {
                 intent.putExtra("image_width", inputImage.width)
                 intent.putExtra("image_height", inputImage.height)
 
-
                 context.startActivity(intent)
-
-                callback(boundsToRecipe(bounds, text, settings))
-
             }
         }
 
@@ -331,6 +335,7 @@ class ImageToRecipe {
 
         fun findBoundingBoxes(
             inputImage: InputImage,
+            error: () -> Unit,
             callback: (RecipeBounds, List<Block>) -> Unit
 
         ) {
@@ -359,7 +364,7 @@ class ImageToRecipe {
                     }
                     //if there are no text blocks found call error and return
                     if (textBlocks.isEmpty()) {
-                        callback(recipeBounds, blocks)
+                        error()
                         return@addOnSuccessListener
                     }
                     //find and sort the needed elements in the image
@@ -376,78 +381,68 @@ class ImageToRecipe {
                     verticallySorted.sortBy {
                         textBlocks[it].cornerPoints?.get(0)?.y
                     }
-                    lineHeightSorted.sortBy {
+                    lineHeightSorted.sortByDescending {
                         textBlocks[it].lineHeight
                     }
-                    lineHeightSorted.reverse()
-
 
                     //find the title (going to be the largest thing in the top 6 blocks)
-                    var titleIndex = -1
-                    for (index in lineHeightSorted) {
-                        //println("line ${textBlocks[index].text},${verticallySorted.slice(0..min(5,verticalySorted.count()-1))}")
-                        //if in to 5 return index
-                        if (verticallySorted.slice(0..min(5, verticallySorted.count() - 1))
-                                .contains(index)
-                        ) {
-                            recipeBounds.add(
-                                getBox(
-                                    textBlocks[index].cornerPoints,
-                                    ScanBoxType.Title
-                                )
-                            )
-                            titleIndex = index
-                            break
-                        }
+                    val titleIndex = lineHeightSorted.firstOrNull {
+                        it in verticallySorted.take(6)
                     }
-                    //find the servings (look at top 6 elements on the page)
-                    var servingsIndex = -1
-                    for (index in 0..min(5, verticallySorted.count() - 1)) {
-                        //if they have a keyword set the servings and are not to long
-                        if (textBlocks[verticallySorted[index]].text.lowercase()
-                                .contains("ma[kr]es?|serving?s|serves".toRegex()) && textBlocks[verticallySorted[index]].text.length < 30
-                        ) {
-                            recipeBounds.add(
-                                getBox(
-                                    textBlocks[verticallySorted[index]].cornerPoints,
-                                    ScanBoxType.Servings
-                                )
+                    if (titleIndex != null) {
+                        recipeBounds.add(
+                            getBox(
+                                textBlocks[titleIndex].cornerPoints,
+                                ScanBoxType.Title
                             )
+                        )
+                    }
+                    //find the servings
+                    val servingsIndex = verticallySorted.firstOrNull {
+                        val text = textBlocks[it].text.lowercase()
+                        text.contains(SERVINGS_REGEX) && text.length < 30
+                    }
+                    if (servingsIndex != null) {
+                        recipeBounds.add(
+                            getBox(
+                                textBlocks[servingsIndex].cornerPoints,
+                                ScanBoxType.Servings
+                            )
+                        )
+                    }
 
-                            servingsIndex = verticallySorted[index]
-                            break
-                        }
-                    }
                     //find columns of items
                     val columns = mutableMapOf<Int, MutableList<Int>>(Pair(0, mutableListOf()))
                     var currentCol = 0
                     for (blockIndex in horizontalSorted) {
+                        val current = columns[currentCol] ?: continue
                         //skip first and add to first colum
                         if (blockIndex == horizontalSorted[0]) {
-                            columns[currentCol]!!.add(blockIndex)
+                            current.add(blockIndex)
                             continue
                         }
-                        //do not add the servings
-                        if (blockIndex == servingsIndex) {
-                            continue
-                        }
-                        if (textBlocks[blockIndex].cornerPoints != null) {
+                        //do not add the servings or title
+                        if (blockIndex == servingsIndex || blockIndex == titleIndex) continue
+
+                        textBlocks[blockIndex].boundingBox?.let {
                             //if the corners are on a similar x value add to the current col else increase col number and add it to that
-                            val thisX = textBlocks[blockIndex].cornerPoints!![0].x
-                            val range = textBlocks[blockIndex].lineHeight!!
-                            if (textBlocks[columns[currentCol]!!.last()].cornerPoints!![0].x in thisX - range..thisX + range) {
-                                columns[currentCol]!!.add(blockIndex)
+                            val thisX = it.left
+                            val range = textBlocks[blockIndex].lineHeight ?: continue
+                            val corners = textBlocks[current.last()].boundingBox ?: continue
+                            val newX = corners.left
+                            if (newX in thisX - range..thisX + range) {
+                                current.add(blockIndex)
                             } else {
                                 currentCol += 1
                                 columns[currentCol] = mutableListOf(blockIndex)
                             }
                         }
                     }
-                    //sort the elements in the colums by each of the heights
+                    //sort the elements in the columns by each of the heights
                     //reorder based on the vertical height of the text blocks
-                    for (col in columns) {
-                        col.value.sortBy {
-                            textBlocks[it].cornerPoints?.get(0)?.y
+                    for (column in columns.values) {
+                        column.sortBy {
+                            textBlocks[it].boundingBox?.top
                         }
                     }
                     //even though they are going to be horizontally in a colum there may be big spaces between and this needs to be separated out
@@ -625,6 +620,7 @@ class ImageToRecipe {
                 .addOnFailureListener { e ->
                     // Task failed with an exception
                     Log.d("can't load image", "$e")
+                    error()
                 }
         }
 
