@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "olim.android.rezepte"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "olim.android.rezepte"
         minSdk = 27
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.3"
+        versionCode = 7
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -34,11 +34,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
+    kotlin {
+        jvmToolchain(11)
     }
     buildFeatures {
         compose = true
@@ -50,6 +50,8 @@ android {
         resources {
             pickFirsts += "mozilla/public-suffix-list.txt"
             pickFirsts += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/NOTICE.md"
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
 
@@ -61,21 +63,21 @@ android {
 
 dependencies {
 
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
-    implementation("androidx.activity:activity-compose:1.12.4")
-    implementation(platform("androidx.compose:compose-bom:2026.02.01"))
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation(platform("androidx.compose:compose-bom:2026.05.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("com.google.android.material:material:1.13.0")
+    implementation("com.google.android.material:material:1.14.0")
     implementation("androidx.preference:preference:1.2.1")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
-    implementation("androidx.compose.foundation:foundation-layout:1.10.4")
-    implementation("androidx.compose.ui:ui-graphics:1.10.6")
+    implementation("androidx.compose.foundation:foundation-layout:1.11.2")
+    implementation("androidx.compose.ui:ui-graphics:1.11.2")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.16.1")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
@@ -84,15 +86,15 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     implementation("com.dropbox.core:dropbox-core-sdk:7.0.0")
-    implementation("com.fasterxml.woodstox:woodstox-core:7.1.1")
+    implementation("com.fasterxml.woodstox:woodstox-core:7.2.0")
     implementation("org.redundent:kotlin-xml-builder:1.9.3")
-    implementation("com.gitlab.mvysny.konsume-xml:konsume-xml:1.4")
-    implementation("org.jsoup:jsoup:1.21.2")
+    implementation("com.gitlab.mvysny.konsume-xml:konsume-xml:2.0")
+    implementation("org.jsoup:jsoup:1.22.2")
     implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation ("com.google.mlkit:text-recognition:16.0.1")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
-    implementation ("com.google.android.gms:play-services-ads:24.9.0")
+    implementation ("com.google.android.gms:play-services-ads:25.3.0")
 
 
 
