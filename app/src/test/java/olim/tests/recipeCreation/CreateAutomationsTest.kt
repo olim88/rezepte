@@ -17,7 +17,7 @@ class CreateAutomationsTest {
     @Test
     fun testOvenFanTemp() {
         Assert.assertEquals(
-            CookingStepTemperature(102, HobOption.zero, true),
+            CookingStepTemperature(102, HobOption.Zero, true),
             CreateAutomations.getInstructionTemp("123C/ 102C Fan/100F", true, true, false)
         )
     }
@@ -25,7 +25,7 @@ class CreateAutomationsTest {
     @Test
     fun testOvenNotFanTemp() {
         Assert.assertEquals(
-            CookingStepTemperature(123, HobOption.zero, false),
+            CookingStepTemperature(123, HobOption.Zero, false),
             CreateAutomations.getInstructionTemp("102C Fan/ 123C/ ", true, false, false)
         )
     }
@@ -33,7 +33,7 @@ class CreateAutomationsTest {
     @Test
     fun testOvenFahrenheitTemp() {
         Assert.assertEquals(
-            CookingStepTemperature(37, HobOption.zero, false, "F"),
+            CookingStepTemperature(37, HobOption.Zero, false, "F"),
             CreateAutomations.getInstructionTemp("102C Fan/ 123C/100F ", true, false, true)
         )
     }
@@ -41,7 +41,7 @@ class CreateAutomationsTest {
     @Test
     fun testOvenOnlyFahrenheitTemp() {
         Assert.assertEquals(
-            CookingStepTemperature(37, HobOption.zero, false, "F"),
+            CookingStepTemperature(37, HobOption.Zero, false, "F"),
             CreateAutomations.getInstructionTemp("100F ", true, false, false)
         )
     }
@@ -49,7 +49,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions1DMetric() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.roundTin, 20f, null, null),
+            CookingStepContainer(TinOrPanOptions.RoundTin, 20f, null, null),
             CreateAutomations.getInstructionContainer("20cm(8in)round tin ", true, true)
         )
     }
@@ -57,7 +57,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions1DImp() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.roundTin, 20.32f, null, null),
+            CookingStepContainer(TinOrPanOptions.RoundTin, 20.32f, null, null),
             CreateAutomations.getInstructionContainer("20cm(8in) round tin ", false, true)
         )
     }
@@ -65,7 +65,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions2DMetric() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.rectangleTin, 20f, 25f, null),
+            CookingStepContainer(TinOrPanOptions.RectangleTin, 20f, 25f, null),
             CreateAutomations.getInstructionContainer("20x25 cm(8 x8 in) tin ", true, true)
         )
     }
@@ -73,7 +73,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions2DImp() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.rectangleTin, 20.32f, 20.32f, null),
+            CookingStepContainer(TinOrPanOptions.RectangleTin, 20.32f, 20.32f, null),
             CreateAutomations.getInstructionContainer("20x20 cm(8 x8- in) tin ", false, true)
         )
     }
@@ -81,7 +81,7 @@ class CreateAutomationsTest {
     @Test
     fun testVolumeMetric() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.dish, null, null, 5f),
+            CookingStepContainer(TinOrPanOptions.Dish, null, null, 5f),
             CreateAutomations.getInstructionContainer("5l dish ", false, true)
         )
     }
@@ -90,7 +90,7 @@ class CreateAutomationsTest {
     @Test
     fun testVolumeImp() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.dish, null, null, 1.7047837f),
+            CookingStepContainer(TinOrPanOptions.Dish, null, null, 1.7047837f),
             CreateAutomations.getInstructionContainer("5l(3pint) dish ", false, false)
         )
     }
@@ -102,8 +102,8 @@ class CreateAutomationsTest {
                 0,
                 "25 minutes",
                 CookingStage.oven,
-                CookingStepContainer(TinOrPanOptions.roundTin, 20f, null, null),
-                CookingStepTemperature(160, HobOption.zero, true, null)
+                CookingStepContainer(TinOrPanOptions.RoundTin, 20f, null, null),
+                CookingStepTemperature(160, HobOption.Zero, true, null)
             ),
             CreateAutomations.autoGenerateStepsFromInstructions(
                 instructions = Instructions(

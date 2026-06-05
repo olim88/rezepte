@@ -168,7 +168,7 @@ class CreateAutomations {
 
                     CookingStepTemperature(
                         temperature,
-                        HobOption.zero,
+                        HobOption.Zero,
                         fan1.isNotEmpty() || fan2.isNotEmpty(),
                         originalUnit
                     )
@@ -201,13 +201,13 @@ class CreateAutomations {
                             HobOption.valueOf(words[index - 1])
                         } catch (e: Exception) {
                             when (words[index - 1]) {//other descriptors that need converting into the format used
-                                "gently" -> HobOption.lowMedium
-                                "medium-low" -> HobOption.lowMedium
-                                "medium-high" -> HobOption.highMedium
-                                else -> HobOption.zero
+                                "gently" -> HobOption.LowMedium
+                                "medium-low" -> HobOption.LowMedium
+                                "medium-high" -> HobOption.HighMedium
+                                else -> HobOption.Zero
                             }
                         }
-                        if (value != HobOption.zero) {//only return if a value is found as there may be another place where it is said
+                        if (value != HobOption.Zero) {//only return if a value is found as there may be another place where it is said
                             return CookingStepTemperature(null, value, null)
                         }
                     }
@@ -220,19 +220,19 @@ class CreateAutomations {
         fun getInstructionContainer(text: String, metricPreferred: Boolean, metricVolumePreferred: Boolean): CookingStepContainer? {
             val cleanText = getCleanText(text)
             val option = when {
-                cleanText.contains(" frying pan ") -> TinOrPanOptions.fryingPan
-                cleanText.contains("pan ") -> TinOrPanOptions.saucePan
-                cleanText.contains(" wok ") -> TinOrPanOptions.saucePan
-                cleanText.contains(" bowl ") -> TinOrPanOptions.bowl
-                cleanText.contains(" trays? ".toRegex()) -> TinOrPanOptions.tray
-                cleanText.contains(" loaf tin ") -> TinOrPanOptions.loafTin
-                cleanText.contains(" roasting tin ") -> TinOrPanOptions.roastingTin
-                cleanText.contains(" rectangular tin ") -> TinOrPanOptions.rectangleTin
-                cleanText.contains(" muffin ") -> TinOrPanOptions.muffinTin
-                cleanText.contains(" cupcake ") -> TinOrPanOptions.cupcakeTin
-                cleanText.contains("tins?".toRegex()) -> TinOrPanOptions.roundTin
-                cleanText.contains(" dish ") -> TinOrPanOptions.dish
-                else -> TinOrPanOptions.none
+                cleanText.contains(" frying pan ") -> TinOrPanOptions.FryingPan
+                cleanText.contains("pan ") -> TinOrPanOptions.SaucePan
+                cleanText.contains(" wok ") -> TinOrPanOptions.SaucePan
+                cleanText.contains(" bowl ") -> TinOrPanOptions.Bowl
+                cleanText.contains(" trays? ".toRegex()) -> TinOrPanOptions.Tray
+                cleanText.contains(" loaf tin ") -> TinOrPanOptions.LoafTin
+                cleanText.contains(" roasting tin ") -> TinOrPanOptions.RoastingTin
+                cleanText.contains(" rectangular tin ") -> TinOrPanOptions.RectangleTin
+                cleanText.contains(" muffin ") -> TinOrPanOptions.MuffinTin
+                cleanText.contains(" cupcake ") -> TinOrPanOptions.CupcakeTin
+                cleanText.contains("tins?".toRegex()) -> TinOrPanOptions.RoundTin
+                cleanText.contains(" dish ") -> TinOrPanOptions.Dish
+                else -> TinOrPanOptions.None
             }
 
             data class Dimension(
@@ -264,8 +264,8 @@ class CreateAutomations {
             }
             dimensions.firstOrNull()?.let {
                 //if got two dimensions but thinking its a round tin change it to rectangular todo maybe have this as one value and logic elsewhere changes
-                if (it.d2 != null && option == TinOrPanOptions.roundTin) {
-                    return CookingStepContainer(TinOrPanOptions.rectangleTin, it.d1, it.d2, null)
+                if (it.d2 != null && option == TinOrPanOptions.RoundTin) {
+                    return CookingStepContainer(TinOrPanOptions.RectangleTin, it.d1, it.d2, null)
                 }
 
                 return CookingStepContainer(option, it.d1, it.d2, null)

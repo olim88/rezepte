@@ -451,8 +451,8 @@ fun StartUpStepExample(title: String, description: String) {
         //show the example step
         val exampleStepData = CookingStep(
             0, "20 minutes", CookingStage.oven,
-            CookingStepContainer(TinOrPanOptions.tray, null, null, null),
-            CookingStepTemperature(200, HobOption.zero, true)
+            CookingStepContainer(TinOrPanOptions.Tray, null, null, null),
+            CookingStepTemperature(200, HobOption.Zero, true)
         )
         CookingStepDisplay(
             step = exampleStepData,
@@ -467,8 +467,8 @@ fun StartUpStepExample(title: String, description: String) {
         )
         val exampleStepData2 = CookingStep(
             0, "5-10 minutes", CookingStage.hob,
-            CookingStepContainer(TinOrPanOptions.saucePan, null, null, null),
-            CookingStepTemperature(null, HobOption.highMedium, true)
+            CookingStepContainer(TinOrPanOptions.SaucePan, null, null, null),
+            CookingStepTemperature(null, HobOption.HighMedium, true)
         )
         CookingStepDisplay(
             step = exampleStepData2,

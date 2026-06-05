@@ -49,7 +49,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -77,7 +76,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
@@ -1089,7 +1087,7 @@ fun CookingStepsInput(
                                     null,
                                     CookingStepTemperature(
                                         0,
-                                        HobOption.zero,
+                                        HobOption.Zero,
                                         false
                                     ) //starts as oven so need temp set up
                                 )
@@ -1223,12 +1221,12 @@ fun CookingStep(
                     when (data.type) {
                         CookingStage.oven -> {
                             data.cookingTemperature =
-                                CookingStepTemperature(0, HobOption.zero, false)
+                                CookingStepTemperature(0, HobOption.Zero, false)
                         }
 
                         CookingStage.hob -> {
                             data.cookingTemperature =
-                                CookingStepTemperature(null, HobOption.zero, null)
+                                CookingStepTemperature(null, HobOption.Zero, null)
                         }
 
                         else -> {

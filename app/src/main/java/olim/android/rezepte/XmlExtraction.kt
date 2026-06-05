@@ -2,9 +2,15 @@ package olim.android.rezepte
 
 import com.gitlab.mvysny.konsumexml.Konsumer
 import com.gitlab.mvysny.konsumexml.konsumeXml
+import olim.android.rezepte.XmlExtraction.Companion.enumValueOfOrNull
 
 class XmlExtraction {
     companion object {
+
+        inline fun <reified T : Enum<T>> enumValueOfOrNull(value: String?): T? {
+            return enumValues<T>().find { it.name.equals(value, ignoreCase = true) }
+        }
+
         fun getData(xmlData: String): Recipe {
             //extract data
             val extractedData = xmlData.konsumeXml().use { k ->
@@ -65,7 +71,8 @@ data class CookingStepContainer(
         fun xml(k: Konsumer): CookingStepContainer {
 
             return CookingStepContainer(
-                enumValueOf(k.childText("type")),
+                enumValueOfOrNull<TinOrPanOptions>(k.childTextOrNull("type"))
+                    ?: TinOrPanOptions.None,
                 k.childTextOrNull("tinSize")?.toFloatOrNull(),
                 k.childTextOrNull("tinSizeTwo")?.toFloatOrNull(),
                 k.childTextOrNull("tinVolume")?.toFloatOrNull()
@@ -85,8 +92,8 @@ data class CookingStepTemperature(
         fun xml(k: Konsumer): CookingStepTemperature {
 
             return CookingStepTemperature(
-                k.childTextOrNull("temperature")?.toInt(),
-                enumValueOf(k.childText("hobTemperature")),
+                k.childTextOrNull("temperature")?.toIntOrNull(),
+                enumValueOfOrNull<HobOption>(k.childTextOrNull("hobTemperature")) ?: HobOption.Zero,
                 k.childTextOrNull("isFan") == "true"
             )
         }
@@ -106,7 +113,8 @@ data class CookingStep(
 
             return CookingStep(
                 k.attributes["index"].toInt(), k.childText("time"),
-                enumValueOf(k.childText("cookingStage")),
+                enumValueOfOrNull<CookingStage>(k.childTextOrNull("cookingStage"))
+                    ?: CookingStage.prep,
                 k.childOrNull("cookingStepContainer") { CookingStepContainer.xml(this) },
                 k.childOrNull("cookingStepTemperature") { CookingStepTemperature.xml(this) },
             )
@@ -208,34 +216,34 @@ enum class CookingStage(val text: String) {
 }
 
 enum class TinOrPanOptions(val text: String, val sizeing: TinOrPanSizeOptions) {
-    none("none", TinOrPanSizeOptions.None),
-    fryingPan(
+    None("none", TinOrPanSizeOptions.None),
+    FryingPan(
         "frying pan",
         TinOrPanSizeOptions.None
     ),
-    wok("wok", TinOrPanSizeOptions.None),
-    saucePan(
+    Wok("wok", TinOrPanSizeOptions.None),
+    SaucePan(
         "sauce pan",
         TinOrPanSizeOptions.None
     ),
-    bowl("bowl", TinOrPanSizeOptions.None),
-    tray(
+    Bowl("bowl", TinOrPanSizeOptions.None),
+    Tray(
         "tray",
         TinOrPanSizeOptions.None
     ),
-    muffinTin("muffin Tin", TinOrPanSizeOptions.None),
-    cupcakeTin("cupcake Tin", TinOrPanSizeOptions.None),
-    roastingTin("roasting tin", TinOrPanSizeOptions.None),
-    roundTin(
+    MuffinTin("muffin Tin", TinOrPanSizeOptions.None),
+    CupcakeTin("cupcake Tin", TinOrPanSizeOptions.None),
+    RoastingTin("roasting tin", TinOrPanSizeOptions.None),
+    RoundTin(
         "round tin",
         TinOrPanSizeOptions.OneDimension
     ),
-    rectangleTin("rectangular tin", TinOrPanSizeOptions.TwoDimension),
-    loafTin(
+    RectangleTin("rectangular tin", TinOrPanSizeOptions.TwoDimension),
+    LoafTin(
         "loaf tin",
         TinOrPanSizeOptions.TwoDimension
     ),
-    dish("dish", TinOrPanSizeOptions.Volume),
+    Dish("dish", TinOrPanSizeOptions.Volume),
 }
 
 enum class TinOrPanSizeOptions {
@@ -243,10 +251,13 @@ enum class TinOrPanSizeOptions {
 }
 
 enum class HobOption(val text: String) {
-    zero("none"), low("low"), lowMedium("medium low"), medium("medium"), highMedium("medium high"), high(
-        "high"
-    ),
-    max("max"),
+    Zero("none"),
+    Low("low"),
+    LowMedium("medium low"),
+    Medium("medium"),
+    HighMedium("medium high"),
+    High("high"),
+    Max("max"),
 }
 
 fun getEmptyRecipe(): Recipe {

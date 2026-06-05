@@ -693,8 +693,8 @@ fun CookingStepDisplayPreview() {
         CookingStepDisplay(
             CookingStep(
                 0, "20 mins", CookingStage.oven,
-                CookingStepContainer(TinOrPanOptions.roundTin, 9f, null, null),
-                CookingStepTemperature(250, HobOption.zero, true)
+                CookingStepContainer(TinOrPanOptions.RoundTin, 9f, null, null),
+                CookingStepTemperature(250, HobOption.Zero, true)
             ), MaterialTheme.colorScheme.primary, mapOf()
         )
     }
