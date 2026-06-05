@@ -580,6 +580,7 @@ fun parseData(recipe: Recipe): String {
     //get info from layout
 
     val recipeXml = xml("recipe") {
+        attribute("version", "2") // version of xml
         "data" {
             "name" {
                 -recipe.data.name

@@ -208,34 +208,34 @@ enum class CookingStage(val text: String) {
 }
 
 enum class TinOrPanOptions(val text: String, val sizeing: TinOrPanSizeOptions) {
-    None("none", TinOrPanSizeOptions.None),
-    FryingPan(
+    none("none", TinOrPanSizeOptions.None),
+    fryingPan(
         "frying pan",
         TinOrPanSizeOptions.None
     ),
-    Wok("wok", TinOrPanSizeOptions.None),
-    SaucePan(
+    wok("wok", TinOrPanSizeOptions.None),
+    saucePan(
         "sauce pan",
         TinOrPanSizeOptions.None
     ),
-    Bowl("bowl", TinOrPanSizeOptions.None),
-    Tray(
+    bowl("bowl", TinOrPanSizeOptions.None),
+    tray(
         "tray",
         TinOrPanSizeOptions.None
     ),
-    MuffinTin("muffin Tin", TinOrPanSizeOptions.None),
-    CupcakeTin("cupcake Tin", TinOrPanSizeOptions.None),
-    RoastingTin("roasting tin", TinOrPanSizeOptions.None),
-    RoundTin(
+    muffinTin("muffin Tin", TinOrPanSizeOptions.None),
+    cupcakeTin("cupcake Tin", TinOrPanSizeOptions.None),
+    roastingTin("roasting tin", TinOrPanSizeOptions.None),
+    roundTin(
         "round tin",
         TinOrPanSizeOptions.OneDimension
     ),
-    RectangleTin("rectangular tin", TinOrPanSizeOptions.TwoDimension), loafTin(
+    rectangleTin("rectangular tin", TinOrPanSizeOptions.TwoDimension),
+    loafTin(
         "loaf tin",
         TinOrPanSizeOptions.TwoDimension
     ),
-    Dish("dish", TinOrPanSizeOptions.Volume),
-
+    dish("dish", TinOrPanSizeOptions.Volume),
 }
 
 enum class TinOrPanSizeOptions {

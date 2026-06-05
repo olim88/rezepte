@@ -1382,7 +1382,7 @@ class MakeFormatting {
             //if there is a container
             if (step.container != null) {
                 //starting container text
-                if (step.container!!.type != TinOrPanOptions.Tray) { //tray needs different framing
+                if (step.container!!.type != TinOrPanOptions.tray) { //tray needs different framing
                     text += " in a"
                 } else {
                     text += " on a"

@@ -49,7 +49,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions1DMetric() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.RoundTin, 20f, null, null),
+            CookingStepContainer(TinOrPanOptions.roundTin, 20f, null, null),
             CreateAutomations.getInstructionContainer("20cm(8in)round tin ", true, true)
         )
     }
@@ -57,7 +57,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions1DImp() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.RoundTin, 20.32f, null, null),
+            CookingStepContainer(TinOrPanOptions.roundTin, 20.32f, null, null),
             CreateAutomations.getInstructionContainer("20cm(8in) round tin ", false, true)
         )
     }
@@ -65,7 +65,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions2DMetric() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.RectangleTin, 20f, 25f, null),
+            CookingStepContainer(TinOrPanOptions.rectangleTin, 20f, 25f, null),
             CreateAutomations.getInstructionContainer("20x25 cm(8 x8 in) tin ", true, true)
         )
     }
@@ -73,7 +73,7 @@ class CreateAutomationsTest {
     @Test
     fun testDimensions2DImp() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.RectangleTin, 20.32f, 20.32f, null),
+            CookingStepContainer(TinOrPanOptions.rectangleTin, 20.32f, 20.32f, null),
             CreateAutomations.getInstructionContainer("20x20 cm(8 x8- in) tin ", false, true)
         )
     }
@@ -81,7 +81,7 @@ class CreateAutomationsTest {
     @Test
     fun testVolumeMetric() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.Dish, null, null, 5f),
+            CookingStepContainer(TinOrPanOptions.dish, null, null, 5f),
             CreateAutomations.getInstructionContainer("5l dish ", false, true)
         )
     }
@@ -90,7 +90,7 @@ class CreateAutomationsTest {
     @Test
     fun testVolumeImp() {
         Assert.assertEquals(
-            CookingStepContainer(TinOrPanOptions.Dish, null, null, 1.7047837f),
+            CookingStepContainer(TinOrPanOptions.dish, null, null, 1.7047837f),
             CreateAutomations.getInstructionContainer("5l(3pint) dish ", false, false)
         )
     }
@@ -102,7 +102,7 @@ class CreateAutomationsTest {
                 0,
                 "25 minutes",
                 CookingStage.oven,
-                CookingStepContainer(TinOrPanOptions.RoundTin, 20f, null, null),
+                CookingStepContainer(TinOrPanOptions.roundTin, 20f, null, null),
                 CookingStepTemperature(160, HobOption.zero, true, null)
             ),
             CreateAutomations.autoGenerateStepsFromInstructions(
