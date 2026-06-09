@@ -333,14 +333,16 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>, onLogout
                         readOnly = true,
                         label = { Text(stringResource(id = R.string.dropbox_account)) },
                         modifier = Modifier
+                            .weight(1f)
                             .padding(5.dp),
                         maxLines = 1
+
                     )
                 }
 
                 Spacer(
                     Modifier
-                        .weight(1f)
+
                 )
                 Button(
                     onClick = {
@@ -348,11 +350,15 @@ fun DropboxInfo(accountData: MutableState<Pair<FullAccount?, Boolean>>, onLogout
 
                     }, modifier = Modifier
                         .padding(5.dp)
+
+
                         .align(Alignment.CenterVertically)
                 ) {
                     Text(
                         text = stringResource(R.string.dropbox_logout_button),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+
                     )
                 }
             }
