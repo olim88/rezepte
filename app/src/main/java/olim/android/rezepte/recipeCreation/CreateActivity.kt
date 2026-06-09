@@ -1837,7 +1837,7 @@ fun FinishButton(
                         )
                     },
                     onTap = { offset ->
-                        if (data.value.data.cookingSteps.list.isEmpty()) onFinish(
+                        if (data.value.data.cookingSteps.list.isEmpty() || settings["Creation.Advanced Step Config"] == "false") onFinish(
                             data.value,
                             image.value,
                             imageBitmap.value,
