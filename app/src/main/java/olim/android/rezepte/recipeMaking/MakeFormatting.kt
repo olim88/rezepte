@@ -211,12 +211,20 @@ class MakeFormatting {
 
             Fraction(0.0f, "")
         )
-        private val numberRegex = Regex(
-            "([0-9]+(/|\\d*\\.)?[0-9]*(((${
-                fractions.slice(1..fractions.count() - 2).joinToString(")|(")
-            }))?))|(((${fractions.slice(1..fractions.count() - 2).joinToString(")|(")})))"
-        ) //the regex to show that it is a number
+//        val numberRegex = Regex(
+//            "([0-9]+(/|\\d*\\.)?[0-9]*(((${
+//                fractions.slice(1..fractions.count() - 2).joinToString(")|(")
+//            }))?))|(((${fractions.slice(1..fractions.count() - 2).joinToString(")|(")})))"
+//        ) //the regex to show that it is a number
 
+        val fractionPattern =
+            fractions
+                .drop(1)
+                .dropLast(1)
+                .joinToString("|") { Regex.escape(it.label) }
+        val numberRegex = Regex(
+            """(?<![\d/])(?:\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?(?:$fractionPattern)?|(?:$fractionPattern))(?![\d/])"""
+        )
 
 
         private fun combineNumbersWithThereFractions(string: String): String {
