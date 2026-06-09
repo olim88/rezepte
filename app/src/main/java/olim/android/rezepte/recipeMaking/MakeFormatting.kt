@@ -645,9 +645,8 @@ class MakeFormatting {
             isVulgar: Boolean,
             roundPercentage: Float
         ): String {
-            var output = wholeString
-            for (number in wholeString.containedNumbers) {
-                //if there is an "x" in the string before the number this signifies the number is being multiplied by another value and to avoid having both multiplied do not multiply a number after a "x"
+            return wholeString.replace(numberRegex) { matchResult ->
+                val number = matchResult.value
                 var value =
                     if (wholeString.indexOf(" x ") != -1 && wholeString.indexOf(" x ") < wholeString.indexOf(
                             number
@@ -660,16 +659,12 @@ class MakeFormatting {
 
                 value = roundSmallGaps(value, roundPercentage)
 
-                output = if (isVulgar) {
-                    output.replace(number, value.vulgarFraction.first)
+                if (isVulgar) {
+                    return@replace   value.vulgarFraction.first
                 } else {
-                    output.replace(
-                        number,
-                        (value.vulgarFraction.second).toString().replace(".0 ", " ")
-                    )
+                    return@replace   (value.vulgarFraction.second).toString().replace(".0 ", " ")
                 }
             }
-            return output
         }
 
         /**
